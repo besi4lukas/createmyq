@@ -36,6 +36,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-4 Drizzle schema and migrations** 🗄️ · 2.5h · depends: STM-3
   Every table on the design tab: `users`, `invites`, `categories`, `sources` (incl. `visibility`, **unique** `content_hash`), `source_chunks`, `questions`, `sessions`, `session_questions` (with `question_snapshot`), `answers`, `misses`, `flags`.
   **Done when:** migrations run clean against an empty DB, and a second run is a no-op.
+  _Status:_ in review (branch `stm-4-drizzle-schema`). 15 tables in `worker/db/schema.ts`, migrations `drizzle/0000_enable_pgvector.sql` + `0001_schema.sql`. Verified on a throwaway Neon branch: clean apply on an empty DB, second and third runs are no-ops (identical schema fingerprint), duplicate `content_hash` and duplicate `idempotency_key` rejected. Adds `magic_links` + `auth_sessions` for STM-5, `source_uploads` for FR-10a, `model_calls` for cost control. Not yet applied to `production`: run `npm run db:migrate` (reads `DATABASE_URL_UNPOOLED` from `.env.local`).
 
 ## Day 2: Access and the question bank (8h, the heaviest day)
 
