@@ -26,6 +26,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-2 CI and environments** · 1h · depends: STM-1
   Typecheck, lint and build on every PR. Deploy on merge to main. Secrets through wrangler.
   **Done when:** a PR shows a green check, and a merge deploys automatically.
+  _Status:_ workflow in `.github/workflows/ci.yml` (PR checks green). Left: add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repo secrets, merge the PR, confirm the deploy run succeeds.
 
 - [ ] **STM-3 Neon + Hyperdrive** · 1h · depends: STM-1
   Neon project, Hyperdrive binding, DB client created per request, `nodejs_compat` on.

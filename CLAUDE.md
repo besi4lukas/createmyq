@@ -37,6 +37,14 @@ npm run deploy      # build + wrangler deploy
 npm run cf-typegen  # regenerate worker-configuration.d.ts. Run after every wrangler.jsonc change
 ```
 
+### CI and deploy
+
+`.github/workflows/ci.yml` runs typecheck, lint and build on every PR and push to main. A push to main (a merge) then runs `npm run deploy` with the wrangler version from `package-lock.json`. Deploys never overlap.
+
+- GitHub repo secrets: `CLOUDFLARE_API_TOKEN` (Cloudflare dashboard → My Profile → API Tokens → Create Token → "Edit Cloudflare Workers" template) and `CLOUDFLARE_ACCOUNT_ID`. Set them with `gh secret set <NAME>`.
+- Runtime secrets for the Worker go through `npx wrangler secret put <NAME>`, never the repo or the CI config. Locally they live in `.dev.vars`.
+- Always use `npx wrangler`, not a global `wrangler`.
+
 ## Layout
 
 ```
