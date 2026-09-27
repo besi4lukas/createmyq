@@ -43,6 +43,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-5 Magic link sign in** · 3h · depends: STM-4
   15-minute single-use token, invite allowlist checked at sign in, 30-day session cookie, middleware rejecting every unauthenticated route.
   **Done when:** an email not on the allowlist cannot get in, a used link cannot be reused, and a session survives a refresh.
+  _Status:_ in review (branch `stm-5-magic-link`). Verified locally against a throwaway Neon branch: uninvited email gets the same response and no link row, used and expired links rejected, session survives a browser reload, logout kills the session, protected routes return JSON 401. Folds in sign out (FR-3). `/api/health` stays public, `/api/health/db` now needs a session. Before it works live: Resend account + `npx wrangler secret put RESEND_API_KEY`, and a verified sender domain in `MAIL_FROM` for anyone but the Resend account owner.
 
 - [ ] **STM-6 Write the first 20 System Design questions** ✍️ · 2h · depends: none
   Spread across Beginner / Intermediate / Advanced. _Can move to an evening before the sprint._

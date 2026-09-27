@@ -22,7 +22,13 @@
       "binding": "HYPERDRIVE",
       "id": "02d4ca5e5664448bb41400bfff148cf7"
     }
-  ]
+  ],
+  // STM-5: sender for magic-link emails (Resend). onboarding@resend.dev only
+  // delivers to the Resend account owner's address; switch to a sender on your
+  // own verified domain before inviting anyone else. RESEND_API_KEY is a secret.
+  "vars": {
+    "MAIL_FROM": "Stumper <onboarding@resend.dev>"
+  }
   // Bindings arrive with their tickets, not before:
   //   STM-9  Durable Object: user session
   //   STM-13 R2 bucket for uploads

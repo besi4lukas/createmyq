@@ -4,3 +4,8 @@
 
 # Keep a .dev.vars file even if it's empty: without one, wrangler falls back to .env
 # and would expose every .env/.env.local variable to the Worker (and to `wrangler types`).
+
+# STM-5: Resend API key for magic-link emails. Leave unset locally: on localhost the
+# link is printed to the wrangler dev console instead of being emailed.
+# Production: npx wrangler secret put RESEND_API_KEY
+# RESEND_API_KEY=
