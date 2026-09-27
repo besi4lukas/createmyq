@@ -31,6 +31,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-3 Neon + Hyperdrive** · 1h · depends: STM-1
   Neon project, Hyperdrive binding, DB client created per request, `nodejs_compat` on.
   **Done when:** `/api/health/db` runs a real query through Hyperdrive and returns a row.
+  _Status:_ in review. Neon project `sweet-pine-24006217` (branch `production`) behind Hyperdrive config `createmyq-db` (`02d4ca5e5664448bb41400bfff148cf7`), `pg` client per request in `worker/db/client.ts`. Locally `/api/health/db` returns `now()` + `version()` (PostgreSQL 18.6). Local dev reads the Neon URL from `.env` (see `.env.example`), not `.dev.vars`. Waiting on merge + a live `/api/health/db` check through the deployed Hyperdrive before ticking.
 
 - [ ] **STM-4 Drizzle schema and migrations** 🗄️ · 2.5h · depends: STM-3
   Every table on the design tab: `users`, `invites`, `categories`, `sources` (incl. `visibility`, **unique** `content_hash`), `source_chunks`, `questions`, `sessions`, `session_questions` (with `question_snapshot`), `answers`, `misses`, `flags`.
