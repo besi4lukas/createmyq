@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* All theme variables live here and only here (design tab: "Colour, spacing and type
+   live as theme variables in one file"). STM-26 fills this out. */
+@theme {
+  --color-surface: #fbfaf7;
+  --color-ink: #1c1b19;
+  --color-ink-muted: #6b6860;
+  --font-display: ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}

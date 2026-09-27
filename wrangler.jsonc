@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "createmyq",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-25",
+  // Frontend is built by Vite and served from the same Worker (Workers Assets).
+  // /api/* always hits the Worker first; everything else falls back to the SPA.
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+  // Bindings arrive with their tickets, not before:
+  //   STM-3  nodejs_compat flag + Hyperdrive (Neon)
+  //   STM-9  Durable Object: user session
+  //   STM-13 R2 bucket for uploads
+  //   STM-15 Queue + Workflow
+  //   STM-16 Durable Object: generation lock
+  //   STM-18 AI Gateway
+}
