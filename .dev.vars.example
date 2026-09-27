@@ -1,3 +1,6 @@
 # Local secrets for `npm run dev`. Copy to .dev.vars (gitignored).
 # Production secrets go through `wrangler secret put <NAME>`, never the repo.
 # Add names here as tickets introduce them.
+
+# Keep a .dev.vars file even if it's empty: without one, wrangler falls back to .env
+# and would expose every .env/.env.local variable to the Worker (and to `wrangler types`).

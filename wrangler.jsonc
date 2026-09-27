@@ -3,6 +3,8 @@
   "name": "createmyq",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-09-25",
+  // node-postgres (pg) needs Node APIs (net, tls, crypto) to talk to Hyperdrive.
+  "compatibility_flags": ["nodejs_compat"],
   // Frontend is built by Vite and served from the same Worker (Workers Assets).
   // /api/* always hits the Worker first; everything else falls back to the SPA.
   "assets": {
@@ -12,9 +14,16 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // Neon Postgres (project sweet-pine-24006217, branch production) via Hyperdrive.
+  // Locally, wrangler dev reads CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE from .dev.vars.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "02d4ca5e5664448bb41400bfff148cf7"
+    }
+  ]
   // Bindings arrive with their tickets, not before:
-  //   STM-3  nodejs_compat flag + Hyperdrive (Neon)
   //   STM-9  Durable Object: user session
   //   STM-13 R2 bucket for uploads
   //   STM-15 Queue + Workflow
