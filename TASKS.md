@@ -33,10 +33,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
   **Done when:** `/api/health/db` runs a real query through Hyperdrive and returns a row.
   _Status:_ done. Neon project `sweet-pine-24006217` (branch `production`) behind Hyperdrive config `createmyq-db` (`02d4ca5e5664448bb41400bfff148cf7`), `pg` client per request in `worker/db/client.ts`. Locally `/api/health/db` returns `now()` + `version()` (PostgreSQL 18.6). Local dev reads the Neon URL from `.env` (see `.env.example`), not `.dev.vars`. Live `/api/health/db` returns a row through the deployed Hyperdrive (PR #2, run 36345593528).
 
-- [ ] **STM-4 Drizzle schema and migrations** 🗄️ · 2.5h · depends: STM-3
+- [x] **STM-4 Drizzle schema and migrations** 🗄️ · 2.5h · depends: STM-3
   Every table on the design tab: `users`, `invites`, `categories`, `sources` (incl. `visibility`, **unique** `content_hash`), `source_chunks`, `questions`, `sessions`, `session_questions` (with `question_snapshot`), `answers`, `misses`, `flags`.
   **Done when:** migrations run clean against an empty DB, and a second run is a no-op.
-  _Status:_ in review (branch `stm-4-drizzle-schema`). 15 tables in `worker/db/schema.ts`, migrations `drizzle/0000_enable_pgvector.sql` + `0001_schema.sql`. Verified on a throwaway Neon branch: clean apply on an empty DB, second and third runs are no-ops (identical schema fingerprint), duplicate `content_hash` and duplicate `idempotency_key` rejected. Adds `magic_links` + `auth_sessions` for STM-5, `source_uploads` for FR-10a, `model_calls` for cost control. Not yet applied to `production`: run `npm run db:migrate` (reads `DATABASE_URL_UNPOOLED` from `.env.local`).
+  _Status:_ done (PR #3, deploy run 36351125069). 15 tables in `worker/db/schema.ts`, migrations `drizzle/0000_enable_pgvector.sql` + `0001_schema.sql`. Verified on a throwaway Neon branch: clean apply on an empty DB, second and third runs are no-ops (identical schema fingerprint), duplicate `content_hash` and duplicate `idempotency_key` rejected. Adds `magic_links` + `auth_sessions` for STM-5, `source_uploads` for FR-10a, `model_calls` for cost control. Applied to `production` by the user with `npm run db:migrate` (reads `DATABASE_URL_UNPOOLED` from `.env.local`).
 
 ## Day 2: Access and the question bank (8h, the heaviest day)
 
