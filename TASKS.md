@@ -18,10 +18,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 
 ## Day 1: Foundation (6.5h)
 
-- [ ] **STM-1 Scaffold the repo** · 2h · depends: none
+- [x] **STM-1 Scaffold the repo** · 2h · depends: none
   Vite, React, TypeScript, Tailwind, Hono on Workers, served through Workers Assets.
   **Done when:** `wrangler dev` serves the page, `/api/health` returns ok, a deploy to workers.dev succeeds.
-  _Status:_ scaffold in place. Page, `/api/health` and SPA fallback verified locally, and typecheck, lint and build pass. **Remaining:** `wrangler login` + `npm run deploy` to workers.dev.
+  _Status:_ done. Deployed to https://createmyq.besi4lukas.workers.dev (version `858ef120`, 2026-09-27). Live `/api/health` returns ok, `/` and SPA deep links return 200. Run dev with `npx wrangler dev` or `npm run dev`, not the global `wrangler`.
 
 - [ ] **STM-2 CI and environments** · 1h · depends: STM-1
   Typecheck, lint and build on every PR. Deploy on merge to main. Secrets through wrangler.
