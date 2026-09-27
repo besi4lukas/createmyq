@@ -23,10 +23,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
   **Done when:** `wrangler dev` serves the page, `/api/health` returns ok, a deploy to workers.dev succeeds.
   _Status:_ done. Deployed to https://createmyq.besi4lukas.workers.dev (version `858ef120`, 2026-09-27). Live `/api/health` returns ok, `/` and SPA deep links return 200. Run dev with `npx wrangler dev` or `npm run dev`, not the global `wrangler`.
 
-- [ ] **STM-2 CI and environments** · 1h · depends: STM-1
+- [x] **STM-2 CI and environments** · 1h · depends: STM-1
   Typecheck, lint and build on every PR. Deploy on merge to main. Secrets through wrangler.
   **Done when:** a PR shows a green check, and a merge deploys automatically.
-  _Status:_ workflow in `.github/workflows/ci.yml` (PR checks green). Left: add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repo secrets, merge the PR, confirm the deploy run succeeds.
+  _Status:_ done. `.github/workflows/ci.yml` checks every PR (PR #1 green) and the merge to main deployed automatically (run 36340935779). Live `/api/health` ok, unknown `/api` routes return JSON 404.
 
 - [ ] **STM-3 Neon + Hyperdrive** · 1h · depends: STM-1
   Neon project, Hyperdrive binding, DB client created per request, `nodejs_compat` on.
