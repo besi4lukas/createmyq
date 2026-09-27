@@ -8,8 +8,8 @@ import { hashToken } from "./tokens";
 export type SessionUser = { id: string; email: string };
 export type AppEnv = { Bindings: Env; Variables: { user: SessionUser; db: Db } };
 
-/** Sent as `__Host-stumper_session`: the prefix forces Secure, Path=/ and no Domain. */
-export const SESSION_COOKIE = "stumper_session";
+/** Sent as `__Host-createmyq_session`: the prefix forces Secure, Path=/ and no Domain. */
+export const SESSION_COOKIE = "createmyq_session";
 export const SESSION_DAYS = 30;
 
 export function setSessionCookie(c: Context, token: string) {

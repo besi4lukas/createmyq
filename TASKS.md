@@ -119,7 +119,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 
 - [ ] **STM-22 Wire the gate into the Workflow** · 1.5h · depends: STM-21
   Sample chunks from start, middle and end, aggregate, fall through to the model on low confidence, record every decision with its inputs.
-  **Done when:** a cooking PDF is refused with "This looks like cooking. Stumper only covers software engineering right now.", a software PDF passes, and both decisions are logged.
+  **Done when:** a cooking PDF is refused with "This looks like cooking. CreateMyQ only covers software engineering right now.", a software PDF passes, and both decisions are logged.
 
 - [ ] **STM-23 Difficulty and format tagging** · 1.5h · depends: STM-21
   Per question, by the classifier, at write time.

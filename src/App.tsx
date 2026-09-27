@@ -46,7 +46,7 @@ export default function App() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4">
-      <h1 className="font-display text-4xl text-ink">Stumper</h1>
+      <h1 className="font-display text-4xl text-ink">CreateMyQ</h1>
       {view.name === "loading" && <p className="text-ink-muted">Loading…</p>}
       {view.name === "sign-in" && <SignIn />}
       {view.name === "verify" && (
@@ -111,7 +111,7 @@ function SignIn() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      <p className="text-ink-muted">Stumper is invite only. Enter your email to get a sign-in link.</p>
+      <p className="text-ink-muted">CreateMyQ is invite only. Enter your email to get a sign-in link.</p>
       <label className="flex flex-col gap-2">
         <span className="font-medium">Email</span>
         <input
@@ -171,7 +171,7 @@ function Verify({
         </button>
       ) : (
         <button type="button" className={button} onClick={verify} disabled={busy} autoFocus>
-          {busy ? "Signing in…" : "Continue to Stumper"}
+          {busy ? "Signing in…" : "Continue to CreateMyQ"}
         </button>
       )}
     </div>

@@ -24,7 +24,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       credentials: "same-origin",
     });
   } catch {
-    throw new ApiError(0, "Could not reach Stumper. Check your connection and try again.");
+    throw new ApiError(0, "Could not reach CreateMyQ. Check your connection and try again.");
   }
   const data = (await res.json().catch(() => ({}))) as { error?: string };
   if (res.status === 401) onUnauthorized();

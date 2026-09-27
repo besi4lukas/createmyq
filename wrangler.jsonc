@@ -27,7 +27,7 @@
   // delivers to the Resend account owner's address; switch to a sender on your
   // own verified domain before inviting anyone else. RESEND_API_KEY is a secret.
   "vars": {
-    "MAIL_FROM": "Stumper <onboarding@resend.dev>"
+    "MAIL_FROM": "CreateMyQ <onboarding@resend.dev>"
   }
   // Bindings arrive with their tickets, not before:
   //   STM-9  Durable Object: user session

@@ -24,9 +24,9 @@ class ResendMailer implements Mailer {
       body: JSON.stringify({
         from: this.from,
         to: [to],
-        subject: "Your Stumper sign-in link",
-        text: `Sign in to Stumper:\n\n${link}\n\nThe link works once and expires in 15 minutes. If you did not ask for it, ignore this email.`,
-        html: `<p>Sign in to Stumper:</p><p><a href="${link}">Sign in</a></p><p>The link works once and expires in 15 minutes. If you did not ask for it, ignore this email.</p>`,
+        subject: "Your CreateMyQ sign-in link",
+        text: `Sign in to CreateMyQ:\n\n${link}\n\nThe link works once and expires in 15 minutes. If you did not ask for it, ignore this email.`,
+        html: `<p>Sign in to CreateMyQ:</p><p><a href="${link}">Sign in</a></p><p>The link works once and expires in 15 minutes. If you did not ask for it, ignore this email.</p>`,
       }),
     });
     if (!res.ok) {

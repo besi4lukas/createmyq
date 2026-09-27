@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-CreateMyQ (the product is called **Stumper**) is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
+**CreateMyQ** is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
 
 Source docs: *CreateMyQ Paper First Design* (the "design tab") and *Build tickets*. Tickets are tracked in [TASKS.md](TASKS.md).
 
@@ -91,7 +91,7 @@ Claim lock → Extract → Fingerprint (stop if the bank exists) → Classify (s
 ## User-facing messages (use these exact strings)
 
 - No text extracted: "I could not read this file. Scanned PDFs are not supported yet."
-- Off-topic: "This looks like {detected}. Stumper only covers software engineering right now."
+- Off-topic: "This looks like {detected}. CreateMyQ only covers software engineering right now."
 - Too few questions: the job fails and says the source was too thin.
 - Daily cap: "You have hit today's limit. It resets at midnight."
 - Spend ceiling crossed: generation is disabled and the message says why.
@@ -104,7 +104,7 @@ PDF ≤ 50 pages and ≤ 20 MB. Magic link valid 15 min, single use. Session coo
 
 - Every `/api` route requires a valid session except the sign-in endpoints. `requireSession` in `worker/auth/session.ts` runs on every route; the only public ones are listed there (`GET /api/health` liveness, `POST /api/auth/request|verify|logout`). New routes are protected by default and get `c.var.user` and `c.var.db`.
 - Auth routes: `POST /api/auth/request {email}` (same answer whether invited or not; work runs in `waitUntil`), `POST /api/auth/verify {token}` (atomic single-use consume, re-checks the invite, creates the session), `POST /api/auth/logout`, `GET /api/me`. The emailed link is the SPA page `/auth/verify#token=…`, which POSTs only on a click, so link scanners can't burn it. Only token hashes are stored.
-- Session cookie: `__Host-stumper_session`, HttpOnly, Secure, SameSite=Lax, Path=/, 30 days. `hono/csrf` rejects cross-site form posts.
+- Session cookie: `__Host-createmyq_session`, HttpOnly, Secure, SameSite=Lax, Path=/, 30 days. `hono/csrf` rejects cross-site form posts.
 - Email goes through the `Mailer` interface (`worker/auth/mailer.ts`), backed by Resend. Secret `RESEND_API_KEY` (`npx wrangler secret put RESEND_API_KEY`), sender in the `MAIL_FROM` var in `wrangler.jsonc`. Without the key on localhost the link is logged to the console; deployed without it, nothing is sent and an error is logged (never the link).
 - Users read only their own sessions, answers, preferences and private sources.
 - Uploads go browser → R2 via short-lived signed URL, never through the API.
