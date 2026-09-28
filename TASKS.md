@@ -40,9 +40,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 
 ## Day 2: Access and the question bank (8h, the heaviest day)
 
-- [ ] **STM-5 Magic link sign in** · 3h · depends: STM-4
-  15-minute single-use token, invite allowlist checked at sign in, 30-day session cookie, middleware rejecting every unauthenticated route.
-  **Done when:** an email not on the allowlist cannot get in, a used link cannot be reused, and a session survives a refresh.
+- [ ] **STM-5 Clerk sign in** · 3h · depends: STM-4
+  Clerk email-code sign-in (Restricted mode), Clerk session token sent as a bearer token and verified in the Worker with `CLERK_JWT_KEY`, `invites` checked on every request, user created on first request, middleware rejecting every unauthenticated route. 7-day session (Clerk free plan). Replaces the magic-link design (FR-2/FR-3) by the user's decision.
+  **Done when:** an email not on the allowlist cannot get in (neither a stranger nor a Clerk user missing from `invites`), a signed-out or invalid token gets a JSON 401, and a session survives a refresh.
+  _Status:_ in review (branch `stm-5-clerk-auth`; magic-link PR #4 closed). Worker verified locally against a throwaway Neon branch with a locally generated key pair standing in for Clerk: no/garbage/expired/tampered/wrong-`azp` tokens and a missing email claim → JSON 401, missing `CLERK_JWT_KEY` → 500 (fail closed), invited email → user created on first request with `invites.used_at` set, uninvited email → 403 `not_invited` and no user row, cross-site form POST → 403. Folds in sign out (FR-3). Browser tests with real Clerk wait on the dev-instance keys (`VITE_CLERK_PUBLISHABLE_KEY` in `.env.local`, `CLERK_JWT_KEY` in `.dev.vars`) and the dashboard setup. Before it works live: `npx wrangler secret put CLERK_JWT_KEY`, `gh variable set VITE_CLERK_PUBLISHABLE_KEY`, and an `invites` row + Clerk user per person.
 
 - [ ] **STM-6 Write the first 20 System Design questions** ✍️ · 2h · depends: none
   Spread across Beginner / Intermediate / Advanced. _Can move to an evening before the sprint._
@@ -164,8 +165,9 @@ These are in the design tab's "What ships in beta" or FR list, but no ticket abo
 - [ ] Upload / paste-a-link UI, and generation progress the user can leave and return to (FR-7, FR-13). STM-13 covers only the signed-URL path.
 - [ ] Preferences UI and applying defaults to new quizzes (FR-23). STM-24 covers storage only.
 - [ ] Per-model-call token and cost recording (cost control NFR). Partly STM-27.
-- [ ] Account deletion that keeps generated questions but strips the link (security NFR).
-- [ ] Operator script to add invites. Needed before STM-28.
+- [ ] Account deletion that keeps generated questions but strips the link (security NFR). Also deletes the person's Clerk user.
+- [ ] Operator script to add invites. Needed before STM-28. It inserts the `invites` row and creates the Clerk user (Backend API, `CLERK_SECRET_KEY` on the operator's machine only).
+- [ ] 🗄️ Drop the unused `magic_links` and `auth_sessions` tables (left over from the magic-link design; STM-5 moved to Clerk).
 
 ## Risks being watched
 

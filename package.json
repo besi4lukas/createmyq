@@ -16,6 +16,8 @@
     "db:check": "drizzle-kit check"
   },
   "dependencies": {
+    "@clerk/backend": "^3.20.1",
+    "@clerk/react": "^6.17.2",
     "@neon/config": "^1.8.2",
     "@neon/env": "^1.4.7",
     "drizzle-orm": "^0.45.3",

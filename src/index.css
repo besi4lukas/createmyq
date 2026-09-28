@@ -1,3 +1,5 @@
+/* Clerk's components sit in the "clerk" layer (main.tsx), below Tailwind utilities. */
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 /* All theme variables live here and only here (design tab: "Colour, spacing and type
