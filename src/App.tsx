@@ -13,7 +13,7 @@ export default function App() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 px-4">
-      <h1 className="font-display text-4xl text-ink">Stumper</h1>
+      <h1 className="font-display text-4xl text-ink">CreateMyQ</h1>
       <p className="text-ink-muted">Scaffold is up. API health: {health}</p>
     </main>
   );

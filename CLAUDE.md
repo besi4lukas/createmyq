@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-CreateMyQ (the product is called **Stumper**) is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
+**CreateMyQ** is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
 
 Source docs: *CreateMyQ Paper First Design* (the "design tab") and *Build tickets*. Tickets are tracked in [TASKS.md](TASKS.md).
 
@@ -90,7 +90,7 @@ Claim lock → Extract → Fingerprint (stop if the bank exists) → Classify (s
 ## User-facing messages (use these exact strings)
 
 - No text extracted: "I could not read this file. Scanned PDFs are not supported yet."
-- Off-topic: "This looks like {detected}. Stumper only covers software engineering right now."
+- Off-topic: "This looks like {detected}. CreateMyQ only covers software engineering right now."
 - Too few questions: the job fails and says the source was too thin.
 - Daily cap: "You have hit today's limit. It resets at midnight."
 - Spend ceiling crossed: generation is disabled and the message says why.
