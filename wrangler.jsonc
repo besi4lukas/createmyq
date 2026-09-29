@@ -22,12 +22,18 @@
       "binding": "HYPERDRIVE",
       "id": "02d4ca5e5664448bb41400bfff148cf7"
     }
-  ]
+  ],
+  // STM-9: one UserSession per user (idFromName(users.id)): the quiz in progress
+  // and preferences. SQLite-backed; the class is exported from worker/index.ts.
+  "durable_objects": {
+    "bindings": [{ "name": "USER_SESSION", "class_name": "UserSession" }]
+  },
+  // Never edit or remove an applied migration; add a new tag instead.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UserSession"] }]
   // STM-5: sign-in is Clerk. The Worker verifies session tokens with the secret
   // CLERK_JWT_KEY (Clerk dashboard → API keys → JWKS Public Key, PEM). It is a
   // secret, not a var: `npx wrangler secret put CLERK_JWT_KEY` in prod, .dev.vars locally.
   // Bindings arrive with their tickets, not before:
-  //   STM-9  Durable Object: user session
   //   STM-13 R2 bucket for uploads
   //   STM-15 Queue + Workflow
   //   STM-16 Durable Object: generation lock

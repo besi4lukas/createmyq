@@ -5,9 +5,10 @@
  * Nothing is written here. The quiz only becomes a `sessions` row when it is
  * finished and flushed from the user's Durable Object (STM-9, STM-10).
  */
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db/client";
+import { categories } from "../db/schema";
 import { questionDifficultySchema, multipleChoicePayload } from "../questions/payload";
 
 /** A question is "seen" if it was in one of the user's sessions finished this recently. */
@@ -20,6 +21,12 @@ export const assembleQuery = z.object({
   length: z.enum(["5", "10", "20"]).transform(Number),
 });
 export type AssembleParams = z.infer<typeof assembleQuery> & { categoryId: string };
+
+/** The id of the category with this slug, or null. */
+export async function findCategoryId(db: Db, slug: string): Promise<string | null> {
+  const [cat] = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug));
+  return cat?.id ?? null;
+}
 
 /** Full question row. Stays on the server: it carries the answer and explanation. */
 export type AssembledQuestion = {

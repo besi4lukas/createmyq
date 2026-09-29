@@ -65,6 +65,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-9 Session Durable Object** · 3h · depends: STM-8
   One per user. Holds create, answer, resume and finish, with preferences alongside.
   **Done when:** a refresh mid-quiz resumes at the right question with prior answers intact.
+  _Status:_ PR open (branch `stm-9-session-do`), not merged. `UserSession` SQLite-backed DO (`worker/durable/user-session.ts`, migration `v1`), one per user via `idFromName(users.id)`. Routes in `worker/quiz/session-routes.ts`: `POST /api/session` {category, difficulty, length, mode} (409 `quiz_in_progress` + the quiz if one is running), `GET /api/session` (resume), `POST /api/session/answer` {index, option} (graded in the DO, idempotent by index), `POST /api/session/finish` (score + review; repeat returns the same result), `GET/PUT /api/prefs` (defaultDifficulty, defaultMode, defaultLength, formats). Practice reveals verdict + explanation per answer; Exam only at finish. Finish moves the quiz to `quiz:done:<idempotencyKey>` and deletes nothing: the flush is STM-10's `TODO(STM-10)`. Verified on throwaway Neon branch `stm-9-session-test` (deleted), including a `wrangler dev` restart mid-quiz resuming at index 2 with both answers.
 
 - [ ] **STM-10 Session flush to Postgres** · 2h · depends: STM-9
   One transaction on finish, idempotency key, retry on alarm, local state cleared only after confirmation.
