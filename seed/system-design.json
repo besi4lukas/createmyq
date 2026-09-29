@@ -1,0 +1,689 @@
+{
+  "category": {
+    "slug": "system-design",
+    "name": "System Design",
+    "niche": "software engineering"
+  },
+  "questions": [
+    {
+      "external_id": "sd-001",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "caching",
+      "prompt": "An app uses the cache-aside (lazy loading) pattern. What happens when it reads a key that is not in the cache?",
+      "payload": {
+        "options": [
+          "The cache notices the miss, loads the value from the database by itself, and returns it",
+          "The app reads the value from the database, returns it, and writes it into the cache",
+          "The database notices the miss and pushes the value into the cache for the app to read",
+          "The app returns an empty result and schedules a background job to warm the cache"
+        ],
+        "answer": "The app reads the value from the database, returns it, and writes it into the cache"
+      },
+      "explanation": "In cache-aside the application owns the caching logic: on a miss it loads the value from the database itself and puts it in the cache, so later reads hit. A cache that loads missing values by itself is a different pattern, called read-through. The database does not know the cache exists, so it never pushes values into it. A miss is not an error and does not return empty data; it just costs one database read."
+    },
+    {
+      "external_id": "sd-002",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "scalability",
+      "prompt": "Your app runs on one server. Traffic is expected to grow ten times over the next year, and the site must stay up if any single machine fails. Which approach meets both needs?",
+      "payload": {
+        "options": [
+          "Move the app to the largest server that your cloud provider offers",
+          "Run the app on several servers and spread requests with a load balancer",
+          "Add a cache in front of the server so that each request costs less work",
+          "Configure the server to run more worker threads on the same machine"
+        ],
+        "answer": "Run the app on several servers and spread requests with a load balancer"
+      },
+      "explanation": "Running copies of the app on several machines behind a load balancer is horizontal scaling (scaling out). You can keep adding machines as traffic grows, and if one machine dies the load balancer sends its traffic to the others. Moving to a bigger machine is vertical scaling (scaling up): there is a limit to how big a machine can get, and it is still one machine that can fail. A cache and more threads get more out of the one server, but if that server goes down, the whole site goes down with it."
+    },
+    {
+      "external_id": "sd-003",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "cdn",
+      "prompt": "Your site is hosted in Virginia, and users in Australia say pages load slowly. Most of each page is images and script files that are the same for every user. How would a CDN (content delivery network) help most?",
+      "payload": {
+        "options": [
+          "It would serve those files from servers close to the users in Australia",
+          "It would move your database to Australia so that its queries run faster",
+          "It would compress the files so they take less disk space on your server",
+          "It would take over your server's job, so the server could be switched off"
+        ],
+        "answer": "It would serve those files from servers close to the users in Australia"
+      },
+      "explanation": "A CDN keeps copies of files that are the same for everyone on \"edge\" servers in many countries. An Australian user then fetches them from a nearby server instead of from Virginia, which removes most of the delay, because distance is what makes each request slow. A CDN does not move or speed up your database, and saving disk space on your server does not make files reach users any faster. Your own server (the origin) is still needed for anything the CDN has not cached yet and for pages that differ per user."
+    },
+    {
+      "external_id": "sd-004",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "indexing",
+      "prompt": "A query that filters on one column is slow, so you add a database index on that column. What is the usual trade-off?",
+      "payload": {
+        "options": [
+          "Both reads and writes get faster, because the rows are now kept in sorted order",
+          "Those reads get faster, but queries that filter on other columns get slower",
+          "Writes are unaffected; the only cost is the extra disk space the index uses",
+          "Those reads get faster, but inserts and updates must also update the index"
+        ],
+        "answer": "Those reads get faster, but inserts and updates must also update the index"
+      },
+      "explanation": "An index lets the database find matching rows without scanning the whole table, like the index at the back of a book. The cost is that every insert and delete, and every update that changes the indexed column, must also change the index, so those writes do a little more work. The index takes disk space too, but that is not the only cost. Adding an index does not reorder the table's rows, and it does not make writes faster in general (at most, an update or delete that filters on that column finds its rows sooner, but it still pays to maintain the index). Queries on other columns are not slowed down; they simply do not use the new index."
+    },
+    {
+      "external_id": "sd-005",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "load balancing",
+      "prompt": "Why is an API easier to scale horizontally when its app servers are stateless?",
+      "payload": {
+        "options": [
+          "Stateless servers keep each user's session in local memory, so lookups are faster",
+          "Any server can handle any request, so servers can be added or removed freely",
+          "Stateless servers do not need a database, so there is no shared bottleneck",
+          "Stateless servers use less memory, so each one can fit more concurrent users"
+        ],
+        "answer": "Any server can handle any request, so servers can be added or removed freely"
+      },
+      "explanation": "A stateless server keeps nothing about a user between requests; session data lives in a shared store such as a database or cache, or in a signed token the client sends with each request. That means any server can answer any request, so new servers can join and old ones can leave without losing anyone's session. Keeping sessions in local memory is exactly what makes a server stateful. Stateless servers still use a database, and memory use is not the point."
+    },
+    {
+      "external_id": "sd-006",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "message queues",
+      "prompt": "An order service calls an email service directly. During a sale the email service slows down, and orders start timing out. How does putting a message queue between them help?",
+      "payload": {
+        "options": [
+          "The queue sends the emails itself, faster than the email service ever could",
+          "The queue guarantees each email lands in the customer's inbox exactly once",
+          "The queue lets the order service skip the email step when the email service is slow",
+          "Orders stop waiting on emails; the email service works through the backlog later"
+        ],
+        "answer": "Orders stop waiting on emails; the email service works through the backlog later"
+      },
+      "explanation": "A queue decouples the two services. The order service drops an \"email this customer\" job on the queue and finishes the order straight away, so a slow email service no longer makes orders time out. A traffic spike becomes a backlog of jobs that the email service works through at its own pace. The queue does not send emails itself or make the email service faster. Most queues deliver each job at least once, so an email can occasionally go out twice, and no queue controls what happens in a customer's inbox. Nothing is skipped either; each job waits in the queue until it is processed."
+    },
+    {
+      "external_id": "sd-007",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "latency",
+      "prompt": "A web app runs in California, and its database is in Europe; neither can be moved. Each page runs 20 small database queries, one after another, and none of them depends on another's result. Pages take over 3 seconds to load, yet the database reports only about 1 millisecond of work per query. Which change would speed up the pages the most?",
+      "payload": {
+        "options": [
+          "Upgrade the database to a larger machine with faster disks",
+          "Add indexes to the columns that the queries filter on",
+          "Add more app servers in California behind a load balancer",
+          "Send the 20 queries together, in one trip to the database"
+        ],
+        "answer": "Send the 20 queries together, in one trip to the database"
+      },
+      "explanation": "Each query has to cross the Atlantic and come back, a round trip of roughly 150 milliseconds. Twenty of those in a row add up to about 3 seconds, while the database's own work is only about 20 milliseconds in total. Because the queries do not depend on each other, the app can send them together as one batch (or one combined query) and pay for the round trip once, so the page takes closer to 150 milliseconds. A bigger database or new indexes would speed up the 1 millisecond of work, not the network wait. More app servers help when servers are overloaded, but every page would still make the same 20 slow round trips. Running the app next to the database would also cut the wait, but here neither can be moved."
+    },
+    {
+      "external_id": "sd-008",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "consistent hashing",
+      "prompt": "A cache cluster picks the node for each key with hash(key) mod N, where N is the number of nodes. Before growing from 10 to 11 nodes, the team switches to consistent hashing. Which problem does this avoid?",
+      "payload": {
+        "options": [
+          "Most keys would map to a different node, so most cache reads would suddenly miss",
+          "The new node would get no keys until every existing node had been restarted",
+          "Every key would be copied to every node, so memory use would grow with each node",
+          "The new node would receive most of the new keys and quickly become overloaded"
+        ],
+        "answer": "Most keys would map to a different node, so most cache reads would suddenly miss"
+      },
+      "explanation": "Changing N from 10 to 11 changes hash(key) mod N for roughly 90% of keys. Each of those keys is now looked up on a node that does not have it, so almost the whole cache effectively empties at once and the database takes the full load. Consistent hashing places nodes and keys on a ring, so the new node takes over only its share (about 1 in 11 keys) and everything else stays put. Adding a node does not need restarts, and neither scheme copies every key to every node. Plain mod N spreads keys evenly across all nodes, so the new node is not overloaded; uneven spread is actually a weakness of basic consistent hashing, fixed with virtual nodes."
+    },
+    {
+      "external_id": "sd-009",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "idempotency",
+      "prompt": "A client sends a \"charge $50\" request, gets no response before its timeout, and retries. How should the payment API make sure the customer is charged only once?",
+      "payload": {
+        "options": [
+          "The client sends a unique ID per charge; the server returns the saved result for repeats",
+          "Use HTTP POST for the charge, since the HTTP spec defines POST as an idempotent method",
+          "Tell clients not to retry after a timeout, and to show the user an error instead",
+          "Reject any charge that matches the same customer's amount from the last minute"
+        ],
+        "answer": "The client sends a unique ID per charge; the server returns the saved result for repeats"
+      },
+      "explanation": "After a timeout the client cannot know whether the first charge went through, so retrying must be safe. If the client attaches a unique ID (an idempotency key) to each charge, the server can recognise a retry and return the original result instead of charging again. POST is not idempotent under the HTTP spec; GET, PUT and DELETE are. Not retrying leaves the user unsure whether they paid, and a charge that really failed is simply dropped. Blocking repeat amounts would wrongly reject a genuine second purchase."
+    },
+    {
+      "external_id": "sd-010",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "rate limiting",
+      "prompt": "An API uses a token bucket rate limiter with a capacity of 10 tokens, refilled at 1 token per second. Each request uses one token, and a request that finds the bucket empty is rejected. A client has been idle for a minute, then sends 15 requests at once. What happens?",
+      "payload": {
+        "options": [
+          "None are allowed, because the burst of 15 is larger than the capacity",
+          "Only 1 is allowed, because the refill rate is 1 token per second",
+          "10 are allowed straight away and the other 5 are rejected",
+          "All 15 are allowed, because the client built up 60 tokens while it was idle"
+        ],
+        "answer": "10 are allowed straight away and the other 5 are rejected"
+      },
+      "explanation": "Tokens build up while the client is idle, but never beyond the bucket's capacity, so the bucket holds 10 tokens, not 60. The first 10 requests each take a token and succeed; the last 5 find the bucket empty and are rejected. This is the point of a token bucket: it allows short bursts up to the capacity while holding the long-run rate to the refill rate. It does not limit every second to 1 request, and it does not reject the whole burst."
+    },
+    {
+      "external_id": "sd-011",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "caching",
+      "prompt": "A very popular cache entry expires. In the same instant thousands of requests miss the cache and all query the database for that one value, overloading it. Which fix targets this problem most directly?",
+      "payload": {
+        "options": [
+          "Shorten the entry's expiry time (TTL) so the value is refreshed much more often",
+          "Switch the cache's eviction policy from LRU to LFU so popular keys are kept",
+          "Add more cache nodes, so the load for the popular key is spread across machines",
+          "Let a single request recompute the value while the others wait or get the old one"
+        ],
+        "answer": "Let a single request recompute the value while the others wait or get the old one"
+      },
+      "explanation": "This is a cache stampede (also called a thundering herd). The fix is to make sure only one request rebuilds the value, using a lock, while the rest wait for it or are served the slightly stale copy. Refreshing a little before expiry, at a random moment, is a related fix. A shorter expiry time makes expiries happen more often, so it makes things worse. The eviction policy (LRU or LFU) decides what is removed when memory is full, not what happens when an entry expires. More cache nodes do not help, because every request misses at the same moment and goes to the database anyway."
+    },
+    {
+      "external_id": "sd-012",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "sharding",
+      "prompt": "An events table is split across 30 database servers (shards) by date, and each shard holds one day of events. Writing new events is slow, and adding more shards has not helped. What is the most likely cause?",
+      "payload": {
+        "options": [
+          "All new events go to today's shard, so one server handles nearly all the writes",
+          "Each extra shard adds a fixed cost to every write, so 30 shards is simply too many",
+          "Every write must be copied to all 30 shards to keep the shards consistent",
+          "Each write must first check all 30 shards to find the one it belongs to"
+        ],
+        "answer": "All new events go to today's shard, so one server handles nearly all the writes"
+      },
+      "explanation": "Sharding by date sends every new write to the newest shard, creating a hot spot: there are 30 servers, but only one is doing the write work, which is why adding shards changes nothing. The usual fix is to shard by something spread evenly, such as a hash of the user or event ID, at the cost of time-range queries having to read several shards. Shards do not add a per-shard cost to each write, a write goes to one shard rather than all of them, and the date alone tells the system which shard to use, so no search is needed."
+    },
+    {
+      "external_id": "sd-013",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "retries",
+      "prompt": "A service is down for a minute. Its 500 clients retry failed calls with exponential backoff: after each failure a client waits twice as long as before (1 s, then 2 s, 4 s and so on). When the service comes back, the retries from all 500 clients arrive in the same instant and knock it over again. Which change to the clients best prevents this?",
+      "payload": {
+        "options": [
+          "Triple the wait after each failure, instead of just doubling it",
+          "Add a random amount to each client's wait before it retries",
+          "Raise each call's timeout from 2 seconds to 10 seconds",
+          "Send the retries through a load balancer to spread them"
+        ],
+        "answer": "Add a random amount to each client's wait before it retries"
+      },
+      "explanation": "All 500 clients failed at the same moment, and they all follow the same backoff schedule, so they also retry at the same moments: 1 s, 2 s and 4 s later, all together. Backoff makes those waves less frequent, but each wave still hits the recovering service at once. Adding a random amount to each wait (called jitter) spreads the clients' retries across the waiting period, so the service sees a steady trickle instead of a spike. Tripling the wait changes when the waves arrive but keeps them in sync. A longer timeout changes how long each call waits for an answer, not when the retries arrive. A load balancer spreads requests across servers, not across time, so the same burst still lands in the same instant."
+    },
+    {
+      "external_id": "sd-014",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "api design",
+      "prompt": "A newest-first feed API pages with LIMIT 20 OFFSET n, and new posts are added to the top all the time. Users paging down see repeated posts. What is the usual fix?",
+      "payload": {
+        "options": [
+          "Raise the page size to 100, so users need fewer pages and run into fewer repeats",
+          "Add an index on the post timestamp, so that each page query runs faster",
+          "Sort the posts again on the client, so they display in a stable order",
+          "Switch to cursor pagination: fetch the 20 posts older than the last one seen"
+        ],
+        "answer": "Switch to cursor pagination: fetch the 20 posts older than the last one seen"
+      },
+      "explanation": "With offsets, every new post at the top pushes older posts down, so the next page's offset lands on items the user already saw. A cursor anchors the next page to the last item returned (for example its timestamp plus ID), so new posts above it do not shift anything. It is also faster on deep pages, because the database does not have to count past all the skipped rows. Bigger pages only make repeats rarer, an index only speeds up the query, and sorting on the client cannot remove duplicates that the server sent."
+    },
+    {
+      "external_id": "sd-015",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "network partitions",
+      "prompt": "A database keeps a full copy of its data in two data centers, and clients on both sides read and write it. The business requires that both sides always give the same answer for the same data. The network link between the data centers fails, so neither side can check with the other, but clients on both sides keep sending requests. Until the link is repaired, what must the system accept?",
+      "payload": {
+        "options": [
+          "Nothing, as long as each write is copied to both sides before it is confirmed",
+          "Only slower responses, while each side keeps serving up-to-date data",
+          "Refused requests on at least one side, until the link is repaired",
+          "Lost data, since writes made while the link is down are dropped when it returns"
+        ],
+        "answer": "Refused requests on at least one side, until the link is repaired"
+      },
+      "explanation": "Because the two sides must always agree, a side cannot answer on its own: it might miss a write the other side accepted, and the two copies would drift apart. So a side has to refuse any request it cannot safely answer without the other side (or hold it until the link returns, which to the client is the same thing). Many systems let one side, chosen in advance, keep working and make only the other side refuse. This is the trade-off the CAP theorem describes: during a network partition a system gives up either consistency or availability, and this business has chosen consistency. A system that kept answering on both sides would stay available but could give different answers until the link is back. Copying each write to both sides before confirming it cannot finish while the link is down, so those writes wait or fail: that is refusing requests, not avoiding the cost. A broken link does not just slow things down: there is no route to the other side, so a side cannot know it has the latest data. Lost data is not required either: writes that were refused were never accepted, so there is nothing to drop when the link returns."
+    },
+    {
+      "external_id": "sd-016",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "quorums",
+      "prompt": "A key-value store keeps 3 copies (replicas) of every key. A write succeeds once W replicas confirm it, and a read asks R replicas and keeps the value with the highest version number. Assume strict quorums: reads and writes for a key go only to that key's 3 replicas, and no other node stands in for one that is down. You need every read to see the latest successful write, and writes must keep working when one replica is down. Which setting meets both needs?",
+      "payload": {
+        "options": [
+          "W = 1, R = 2",
+          "W = 2, R = 1",
+          "W = 2, R = 2",
+          "W = 3, R = 1"
+        ],
+        "answer": "W = 2, R = 2"
+      },
+      "explanation": "A read is guaranteed to reach at least one replica holding the latest write when R + W is greater than the number of replicas (3). W = 2, R = 2 gives 4, so any 2 replicas you read must include one of the 2 that confirmed the write, and with one replica down there are still 2 left to confirm writes and 2 to answer reads. W = 3, R = 1 also overlaps (3 + 1 = 4), but every write needs all 3 replicas, so a single failure stops writes. W = 1, R = 2 and W = 2, R = 1 add up to only 3, so a read can land entirely on replicas that missed the latest write. The strict-quorum assumption matters: with a \"sloppy\" quorum, where stand-in nodes accept writes for a replica that is down, a read can miss the latest write even when R + W is greater than 3. Overlap also does not make the store fully linearizable; concurrent writes to the same key need extra care."
+    },
+    {
+      "external_id": "sd-017",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "back-pressure",
+      "prompt": "Batch jobs add 1,000 tasks per second to an in-memory queue with no size limit, and workers can finish only 800 per second. This lasts for hours, and adding workers is not possible right now. The batch jobs read their input from files, so they can safely pause at any time. What is the sound fix?",
+      "payload": {
+        "options": [
+          "Move the queue to a machine with far more memory, so it can hold the backlog",
+          "Keep the queue on disk instead of in memory, so it can hold far more tasks",
+          "Cap the queue's length, and make the batch jobs pause whenever it is full",
+          "Split the queue into one smaller queue per worker, so each has less to do"
+        ],
+        "answer": "Cap the queue's length, and make the batch jobs pause whenever it is full"
+      },
+      "explanation": "Tasks arrive 200 per second faster than they are finished, so the queue grows by 720,000 tasks an hour and each task waits longer than the one before. More memory or a disk-backed queue only delays the crash while wait times keep climbing; a queue can absorb short bursts, not a lasting gap. Back-pressure fixes this: cap the queue, and when it is full make the producers wait. Because these producers can pause safely, they slow down to the 800 per second the workers can handle and nothing is lost. (Producers that cannot wait, such as user requests, would instead get a quick \"try again later\" error, which is called load shedding.) Splitting the queue changes how the work is divided, not how fast it gets done, so the total backlog grows just as fast. The lasting fix is more worker capacity or less incoming work."
+    },
+    {
+      "external_id": "sd-018",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "dual writes",
+      "prompt": "When an order is saved, the service must also publish an OrderCreated event to a message broker. The code commits the database transaction, then publishes. If the process crashes between those two steps, the order is saved but the event is never sent. Which design prevents this?",
+      "payload": {
+        "options": [
+          "Publish the event first, and commit the database transaction after that",
+          "Save the event to an outbox table in the same transaction; publish it from there",
+          "Wrap the publish in a try/catch block that retries it until the broker accepts it",
+          "Have the broker confirm each event before the order request returns"
+        ],
+        "answer": "Save the event to an outbox table in the same transaction; publish it from there"
+      },
+      "explanation": "The commit and the publish are two separate operations with no shared transaction, so a crash between them loses the event. The transactional outbox fixes this: the event is written to an outbox table in the same database transaction as the order, so both exist or neither does. A separate process then reads the outbox and publishes each event, retrying until it succeeds (so consumers must cope with the occasional duplicate). Publishing first just flips the failure into an event for an order that was never saved. A try/catch retry and a broker confirmation both run inside the process, so they do nothing if the process crashes before publishing."
+    },
+    {
+      "external_id": "sd-019",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "tail latency",
+      "prompt": "Each user request fans out to 100 backend servers in parallel and must wait for all of them. Each server answers slowly 1% of the time, independently of the others. Roughly what share of user requests will be slow?",
+      "payload": {
+        "options": [
+          "About 1%",
+          "About 37%",
+          "About 63%",
+          "About 100%"
+        ],
+        "answer": "About 63%"
+      },
+      "explanation": "A user request is fast only if all 100 responses are fast. The chance of that is 0.99^100, about 0.37, so about 63% of requests hit at least one slow server. About 37% is that share of fast requests, not the slow ones. About 1% is the chance for a single server and ignores the fan-out. About 100% comes from adding 1% a hundred times, which overcounts because the chances of independent events cannot simply be added. This is why systems that fan out watch p99 and p99.9 latency rather than averages, and use techniques such as hedged requests (sending a backup request if the first is slow) to cut the tail."
+    },
+    {
+      "external_id": "sd-020",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "replication",
+      "prompt": "A user changes their display name. The write goes to the primary database, but the next page load reads from an asynchronously updated read replica and shows the old name. Which approach fixes this for that user without sending everyone's reads to the primary?",
+      "payload": {
+        "options": [
+          "Send that user's reads to the primary for a short time after they write",
+          "Add more read replicas, so each one has less work and applies changes sooner",
+          "Put a cache in front of the replica, so the name is served from memory instead",
+          "Set the replica's isolation level to read committed, so it skips stale rows"
+        ],
+        "answer": "Send that user's reads to the primary for a short time after they write"
+      },
+      "explanation": "This is replication lag breaking read-your-writes consistency: the replica has not applied the change yet. A common fix is to route a user's reads to the primary for a short window after they write, or until the replica has caught up to that write, while everyone else keeps using replicas. More replicas do not reduce lag and add work for the primary, which has to feed each of them. A cache in front of the replica can hold the stale value even longer. Isolation levels control what concurrent transactions see on one database; they cannot make a replica return a change it has not received yet."
+    },
+    {
+      "external_id": "sd-021",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "data modeling",
+      "prompt": "A small online shop stores customers, orders and products. Its reports often combine all three, such as total sales per product per customer. Placing an order must reduce the stock count and record the order as one step, so that either both happen or neither does. Which kind of database fits best?",
+      "payload": {
+        "options": [
+          "A key-value store, which looks up each record by a single key",
+          "A relational database, with linked tables and multi-row transactions",
+          "A document store, which keeps each order as one self-contained record",
+          "A wide-column store, which spreads huge write volumes over many servers"
+        ],
+        "answer": "A relational database, with linked tables and multi-row transactions"
+      },
+      "explanation": "The data is made of separate things that refer to each other (customers place orders for products), reports combine them in many ways, and an order must change two records together. That is what a relational (SQL) database is built for: joins combine tables in any query, and a transaction makes several changes succeed or fail as one. A key-value store is fast for fetching one record by its key, but it has no joins or general queries across records, so every report would mean fetching and combining records in app code. A document store suits data that is mostly read as one whole piece. Modern document stores do support multi-document transactions (MongoDB since version 4.0) and some joins, so the shop could be built on one, but reports that combine records in many different ways are what relational databases are built for. A wide-column store is built for enormous write volumes across many machines, which a small shop does not have, and it gives up flexible joins to get there."
+    },
+    {
+      "external_id": "sd-022",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "object storage",
+      "prompt": "A video app lets users upload clips of up to 2 GB. The team plans to save each clip's bytes in a column of the main relational database, in the same row as its title and owner. What is the better design?",
+      "payload": {
+        "options": [
+          "Put the clips in object storage, and keep their details in the database",
+          "Keep the clips in the database, split into many rows of 1 MB each",
+          "Keep the clips in the database, and add an index on the clip column",
+          "Save each clip on the local disk of the app server that received the upload"
+        ],
+        "answer": "Put the clips in object storage, and keep their details in the database"
+      },
+      "explanation": "Object storage (services such as Amazon S3 or Cloudflare R2) is built to hold large files cheaply and durably, and it can hand them straight to users, often through a CDN, without passing through your app. The database then keeps what it is good at: small, searchable details such as the title, owner and the clip's storage key. Large files in the database make it bigger, slower to back up and slower to copy to replicas, and splitting a clip into 1 MB rows keeps all of those costs. An index helps find rows by a value; it does nothing for storing or serving large files. A file on one app server's disk is lost if that server is replaced, and the other servers cannot serve it."
+    },
+    {
+      "external_id": "sd-023",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "real-time updates",
+      "prompt": "A chat app's browser client asks the server for new messages every 10 seconds. Users say messages show up late, and most of those requests come back empty. Which change fixes both problems?",
+      "payload": {
+        "options": [
+          "Ask the server for new messages every second, instead of every 10 seconds",
+          "Cache the server's replies, so that empty requests are answered faster",
+          "Keep a connection open, so the server can send each message as it arrives",
+          "Compress the server's replies, so that each request has less data to download"
+        ],
+        "answer": "Keep a connection open, so the server can send each message as it arrives"
+      },
+      "explanation": "Asking again and again (polling) means a new message waits until the next request, and most requests find nothing new. If the client keeps a connection open instead, the server can push each message the moment it arrives, and no requests are wasted. WebSockets (two-way), server-sent events (server to client) and long polling (a request the server holds open until there is news) all work this way. Polling every second cuts the delay but makes ten times as many mostly empty requests. Caching or compressing the replies makes each request cheaper, but messages still wait for the next poll."
+    },
+    {
+      "external_id": "sd-024",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "capacity estimation",
+      "prompt": "A new API expects about 100 million requests a day. At the busiest time of day, traffic is about 3 times the daily average, and one server can handle 500 requests per second. Rounding up to whole servers and ignoring spares, roughly how many servers are needed at the busiest time?",
+      "payload": {
+        "options": [
+          "About 3",
+          "About 7",
+          "About 70",
+          "About 170"
+        ],
+        "answer": "About 7"
+      },
+      "explanation": "A day has 86,400 seconds, so 100 million requests a day is about 1,160 requests per second on average. The busiest time is 3 times that, about 3,470 per second, and at 500 per server that needs 6.9, so 7 servers. (Rounding a day to 100,000 seconds gives 6, still much closer to 7 than to any other option. In practice you would add a few spare servers in case some fail.) About 3 comes from planning for the average and forgetting the peak: 1,160 per second needs 2.3 servers, rounded up to 3. About 170 comes from dividing by the 3,600 seconds in an hour instead of the seconds in a day. About 70 is ten times too many, the kind of slip (such as treating 100 million as a billion) that rounding to powers of ten and sanity-checking each step helps catch."
+    },
+    {
+      "external_id": "sd-025",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "observability",
+      "prompt": "One user request passes through six services before it returns. Some of these requests take 5 seconds, and the team needs to find which service is spending the time on the slow ones. Which tool shows this most directly?",
+      "payload": {
+        "options": [
+          "A dashboard of each service's average CPU and memory use",
+          "A count of the error lines that each service logs over the last hour",
+          "A health check that calls each service once every minute",
+          "Distributed tracing, which times each service's part of a request"
+        ],
+        "answer": "Distributed tracing, which times each service's part of a request"
+      },
+      "explanation": "Distributed tracing gives each request an ID that travels with it through every service, and records how long each service spent on that request. For one slow request you can then see at a glance which service took most of the 5 seconds. Metrics such as CPU and memory are averages across all requests, so a problem that affects only some requests can hide in them. A slow request is not an error, so counting error lines will not find it. A health check shows whether a service is up, not how long it takes on real requests. Metrics, logs and traces work best together: metrics show that something is wrong, traces show where, and logs show the details."
+    },
+    {
+      "external_id": "sd-026",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "service discovery",
+      "prompt": "Your services run in containers that get a new IP address each time they restart or scale up. The checkout service calls the inventory service at an IP address written in its config file, and those calls keep breaking after deploys. What is the standard fix?",
+      "payload": {
+        "options": [
+          "Have checkout look up inventory's current addresses by name in a registry",
+          "Give each inventory container a fixed IP address that survives its restarts",
+          "Have a script rewrite checkout's config file with the new address",
+          "Have checkout retry each failed call until the old address answers"
+        ],
+        "answer": "Have checkout look up inventory's current addresses by name in a registry"
+      },
+      "explanation": "This is service discovery. Each inventory container registers its address under the name \"inventory\" when it starts and is removed when it stops. Checkout asks for that name each time (through DNS or a registry, often built into the platform) and gets the addresses of the containers running right now. A fixed address breaks down once you run several copies of a service and add or remove them as load changes. A script that rewrites the config file still leaves a gap after every change and does not handle copies being added or removed. Retrying the old address does not help, because nothing will answer there again."
+    },
+    {
+      "external_id": "sd-027",
+      "format": "multiple_choice",
+      "difficulty": "beginner",
+      "topic": "search",
+      "prompt": "A forum has 50 million posts. Its search runs a query that checks the text of every post for the search word, and each search takes 40 seconds. Adding a regular database index on the text column did not help. What is the usual fix?",
+      "payload": {
+        "options": [
+          "Cache each search's results, so a repeated search returns at once",
+          "Split the posts table across more servers, so each one scans fewer rows",
+          "Build a full-text index that maps each word to the posts containing it",
+          "Store every post in lowercase, so each text comparison runs faster"
+        ],
+        "answer": "Build a full-text index that maps each word to the posts containing it"
+      },
+      "explanation": "A full-text (inverted) index works like the index at the back of a book: for every word it lists the posts that contain it, so a search looks up the word and gets its matches without reading every post. Search engines such as Elasticsearch are built on it, and most databases offer one too. A regular index sorts whole values, so it helps find posts whose text starts with something, not posts with a word somewhere in the middle; that is why it did not help. Caching only speeds up searches that were already run. Splitting the posts across servers makes each scan smaller, but every search still reads all 50 million posts. Lowercasing makes matching case-insensitive; it does not avoid the full scan."
+    },
+    {
+      "external_id": "sd-028",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "availability",
+      "prompt": "A service's database is available 99% of the time. The team adds a second, independent copy of the database, and the service keeps working as long as at least one copy is up (switching between them is instant). If the two copies fail independently, roughly how available is the database layer now?",
+      "payload": {
+        "options": [
+          "About 98%",
+          "About 99%",
+          "About 99.9%",
+          "About 99.99%"
+        ],
+        "answer": "About 99.99%"
+      },
+      "explanation": "With two copies, the database layer is down only when both copies are down at the same time. Each is down 1% of the time, so both are down 1% × 1% = 0.01% of the time, which makes the layer about 99.99% available. About 98% comes from multiplying the availabilities (99% × 99%), which is the rule for parts that are all needed, one after another, such as a load balancer then an app then a database. About 99% assumes a spare adds nothing. About 99.9% puts the time both are down at a tenth of 1%, but it is 1% of 1%, a hundredth of 1%. Real gains are smaller than 99.99%, because copies often fail together (same data center, same bad deploy) and switching over is never quite instant."
+    },
+    {
+      "external_id": "sd-029",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "bloom filters",
+      "prompt": "A sign-up form checks whether a username is taken as the user types. To avoid a database query on every keystroke, the app first checks a Bloom filter: a small in-memory bit array that records a few hashed bits for every taken username. The filter reports a match for \"sam_k\". What should the app do?",
+      "payload": {
+        "options": [
+          "Tell the user \"sam_k\" is taken, since a match means the name is in use",
+          "Check the database, since a match can also come from other names' bits",
+          "Tell the user \"sam_k\" is free, since most matches are false alarms",
+          "Rebuild the filter first, since a match means its bits are out of date"
+        ],
+        "answer": "Check the database, since a match can also come from other names' bits"
+      },
+      "explanation": "Different usernames can set the same bits, so a Bloom filter can report a match for a name that was never added (a false positive). It cannot miss a name that was added, so as long as every taken name has been added, \"no match\" means the name is free and the database query can be skipped (the database's unique constraint still makes the final call at sign-up). A match only means \"possibly taken\", so the app must confirm it in the database. False positives are usually rare, because you choose the filter's size to keep them to a small percentage, so assuming a match is a false alarm is wrong too. A match does not mean the filter is out of date. (A real weakness is that a standard Bloom filter cannot remove names, so freed usernames need a periodic rebuild.)"
+    },
+    {
+      "external_id": "sd-030",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "hot keys",
+      "prompt": "A cache cluster spreads keys across 20 nodes by hashing each key. A celebrity's profile is read 200,000 times a second and has no expiry, so every read is a cache hit. Even so, the one node that holds that key is overloaded while the other 19 are mostly idle. Which fix helps most?",
+      "payload": {
+        "options": [
+          "Add more nodes to the cluster, so the load is spread over more machines",
+          "Keep copies of that one key on several nodes, and read from any copy",
+          "Switch to consistent hashing, so that keys are spread more evenly",
+          "Place keys on nodes by user ID instead of by a hash of the key"
+        ],
+        "answer": "Keep copies of that one key on several nodes, and read from any copy"
+      },
+      "explanation": "The problem is one hot key, not the cluster as a whole. However keys are placed, a single key lives on one node, so that node receives all 200,000 reads a second. Keeping several copies of the hot key (for example under the names profile:42#1 to profile:42#8 on different nodes), or a short-lived copy in each app server's memory, lets many machines share its reads. Adding nodes or changing the hashing scheme spreads different keys more evenly, but this one key still ends up on a single node. Placing keys by user ID has the same flaw, because the celebrity is still one user."
+    },
+    {
+      "external_id": "sd-031",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "circuit breakers",
+      "prompt": "A product page calls a recommendations service. That service starts hanging, so each call waits for a 10-second timeout. Soon every web server thread is stuck waiting, and the whole site stops responding, even though recommendations are optional. Which pattern prevents this?",
+      "payload": {
+        "options": [
+          "After a few failures, stop calling it for a while and show the page without it",
+          "Retry each timed-out call with backoff, so the recommendations appear in the end",
+          "Raise the timeout to 30 seconds, so that slow calls have time to finish",
+          "Give each web server more threads, so there are enough to wait on it"
+        ],
+        "answer": "After a few failures, stop calling it for a while and show the page without it"
+      },
+      "explanation": "This is a circuit breaker. After a few failures it \"opens\" and makes calls fail at once for a while, so the page is served straight away without recommendations and no threads pile up waiting. After a pause it lets a test call through, and if that works it closes again. The core problem is threads tied up waiting on a sick service; each wrong option makes that wait longer or more frequent. Retries add more waiting calls, a longer timeout holds each thread longer, and more threads just take a little longer to fill up. Separate thread pools for each dependency (bulkheads) and short timeouts are related defences."
+    },
+    {
+      "external_id": "sd-032",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "leader election",
+      "prompt": "A cluster of 5 nodes elects a leader, and a node becomes leader only with votes from a majority (at least 3 nodes). A network fault splits the cluster into a group of 3 and a group of 2 that cannot reach each other. The old leader is in the group of 2. What happens?",
+      "payload": {
+        "options": [
+          "Both groups elect a leader, and the two leaders merge their changes later",
+          "Neither group can elect a leader until all five nodes can talk again",
+          "The old leader stays in charge, since it has not crashed or restarted",
+          "The group of 3 elects a new leader, and the old one can no longer commit"
+        ],
+        "answer": "The group of 3 elects a new leader, and the old one can no longer commit"
+      },
+      "explanation": "Only one group can hold a majority, so only the group of 3 can elect a leader. The old leader is still running, but committing a write also needs a majority to confirm it, and it can reach only 2 nodes, so its writes cannot commit. That rule is what stops two leaders from both accepting writes (split brain). Algorithms such as Raft work this way. A majority does not need every node, so the group of 3 carries on without waiting. This is also why clusters use odd sizes: 5 nodes survive 2 failures, while 4 nodes survive only 1, the same as 3."
+    },
+    {
+      "external_id": "sd-033",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "id generation",
+      "prompt": "A posts table is being split across 8 database servers. Each server used to give out IDs from its own auto-increment counter, so two posts on different servers can now get the same ID. New IDs must be unique without asking any central service, and sorting by ID should roughly match creation order. Which scheme fits?",
+      "payload": {
+        "options": [
+          "A random 128-bit ID (UUID version 4), generated on each server",
+          "The current time in milliseconds, used as the whole ID",
+          "The time in the high bits, then a server number and a counter",
+          "One counter service that every server asks for the next ID"
+        ],
+        "answer": "The time in the high bits, then a server number and a counter"
+      },
+      "explanation": "Putting the time first makes IDs sort roughly by creation time. The server number keeps two servers from ever making the same ID, and the counter separates IDs made on the same server in the same millisecond. Twitter's Snowflake IDs work this way. UUID version 7 (RFC 9562) uses the same idea without a server number: a 48-bit millisecond timestamp first, then random bits, so it would also meet these requirements. Random UUIDs (version 4) are unique but in no useful order, and inserting them scatters writes across the index. A timestamp alone collides as soon as two posts are made in the same millisecond. A single counter service is the central dependency the requirements rule out: every insert would wait on it, and it could go down. Order across servers is only rough, because their clocks differ slightly."
+    },
+    {
+      "external_id": "sd-034",
+      "format": "multiple_choice",
+      "difficulty": "intermediate",
+      "topic": "slos",
+      "prompt": "A team is choosing what to measure for the checkout API's service level objective (SLO): a target, checked over each 30 days, for how well the API serves its users. Which measure fits best?",
+      "payload": {
+        "options": [
+          "The share of checkout requests that succeed in under one second",
+          "The average CPU use across all of the servers that run the checkout API",
+          "The number of checkout API servers that are up and running",
+          "The number of error lines that checkout logs in each hour"
+        ],
+        "answer": "The share of checkout requests that succeed in under one second"
+      },
+      "explanation": "An SLO should be set on something users actually feel, measured as good events out of all events: here, the share of checkout requests that both succeed and come back fast enough. The target might be 99.9% over 30 days, and the remaining 0.1% is the error budget: while it lasts the team can ship changes, and when it runs out they focus on reliability. CPU use and the number of running servers describe the machines, not the users: CPU can be high while every request is fine, and every server can be up while requests fail. A raw count of error lines rises and falls with traffic, and it misses requests that succeed but are too slow."
+    },
+    {
+      "external_id": "sd-035",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "durability",
+      "prompt": "A database writes each change to an append-only log on disk (a write-ahead log) before it changes its data files, and normally confirms a commit only after the log entry has been flushed to disk. To speed up writes, the team makes it confirm commits straight away and flush the log every 200 ms. What can now happen if the server loses power?",
+      "payload": {
+        "options": [
+          "Nothing is lost, because every confirmed change reaches the log a moment later",
+          "The data files can be left corrupt, with some transactions only partly applied",
+          "The database must be restored from its last backup, losing hours of changes",
+          "The most recent confirmed commits can be lost, but the data stays consistent"
+        ],
+        "answer": "The most recent confirmed commits can be lost, but the data stays consistent"
+      },
+      "explanation": "Durability comes from the log reaching the disk before the commit is confirmed. With the change, a commit is confirmed while its log entry may still be only in memory, so a power cut can lose the commits from roughly the last 200 ms, even though users were told they had succeeded. The rest of the design still holds: changes reach the data files on disk only after their log entries are on disk, so on restart the database replays the log and ends up at a consistent point just before the crash. Nothing is half applied and no backup is needed. \"Reaches the log a moment later\" is exactly the gap that a power cut hits. Many databases offer this trade. Postgres calls it asynchronous commit (synchronous_commit = off); there the window can reach three times the log writer's interval, 600 ms by default, and its docs describe the risk as data loss, not corruption. It is reasonable for data you can afford to lose, not for payments."
+    },
+    {
+      "external_id": "sd-036",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "distributed locks",
+      "prompt": "Workers take a lock with a 10-second lease before writing a shared file to storage, so that only one writes at a time. Worker A gets the lock, then freezes for 15 seconds in a long garbage-collection pause. Its lease expires, worker B takes the lock and writes, and then A wakes up and writes too, overwriting B's work. Which fix makes this safe?",
+      "payload": {
+        "options": [
+          "Make the lease 60 seconds long, so that it outlasts any pause",
+          "Have each worker check that it holds the lock just before writing",
+          "Run the lock service on 5 nodes instead of 1, so that the lock is more reliable",
+          "Give each lock grant a rising number, and have storage reject older numbers"
+        ],
+        "answer": "Give each lock grant a rising number, and have storage reject older numbers"
+      },
+      "explanation": "Worker A cannot tell that it was paused, so it still believes it holds the lock. The fix is a fencing token: the lock service hands out a number that goes up with every grant (A gets 33, B gets 34), each write carries its number, and the storage rejects any write with a lower number than one it has already seen. A's late write with 33 is refused. A longer lease only makes the problem rarer, because pauses (and network delays) can outlast any lease. Checking the lock just before writing leaves a gap between the check and the write, and the pause can land right there. A more reliable lock service does not help, because the lock service behaved correctly; the problem is a worker acting on an expired lock."
+    },
+    {
+      "external_id": "sd-037",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "clocks",
+      "prompt": "Two servers accept writes to the same record and settle conflicts with \"last write wins\": the version with the later timestamp, taken from each server's own clock, is kept. Server 1's clock runs 2 seconds fast. A user saves a change on server 1, and one second later saves a newer change on server 2. What happens when the two versions are compared?",
+      "payload": {
+        "options": [
+          "The newer change is kept, because it was saved one second later",
+          "The older change is kept, and the newer one is silently dropped",
+          "Both versions are kept, and the user is asked to pick one of them",
+          "Both writes are rejected, because their timestamps are too close"
+        ],
+        "answer": "The older change is kept, and the newer one is silently dropped"
+      },
+      "explanation": "Server 1 stamps the first save 2 seconds ahead, so it looks 1 second newer than the second save, which server 2 stamps correctly. Last write wins keeps the higher timestamp, so the user's real latest change is thrown away with no error. Clock sync (NTP) keeps servers close but never exactly equal, so wall-clock timestamps cannot be trusted to order events on different machines. Logical clocks (such as Lamport clocks) or version vectors order events by what each server has seen, and can detect when two writes were truly concurrent. Keeping both versions for the user to choose is what version vectors enable, but last write wins does not do it. Nothing rejects writes for being close in time."
+    },
+    {
+      "external_id": "sd-038",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "distributed transactions",
+      "prompt": "A trip booking runs as a saga across a flights service and a hotels service, each with its own database. The saga books the flight, which commits at once; if booking the hotel then fails, it cancels the flight. In the few seconds before one such cancellation, another customer is told the flight's last seat is taken and books elsewhere. Which statement best explains this?",
+      "payload": {
+        "options": [
+          "Each saga step commits on its own, so others see results that are later undone",
+          "The other customer was reading from a stale copy of the flights database",
+          "The hotel step failed too slowly; failing faster would rule this out",
+          "The saga should have booked the hotel first; the order of the steps caused this"
+        ],
+        "answer": "Each saga step commits on its own, so others see results that are later undone"
+      },
+      "explanation": "A saga replaces one big transaction with a series of local transactions, each committed straight away, plus compensating actions (such as cancelling the flight) to undo earlier steps if a later one fails. The price is isolation: between a step and its compensation, everyone else can see and act on a result that is about to be undone, as the second customer did. The seat really was booked, so this is not a stale copy. Failing faster shrinks the window but does not close it, and booking the hotel first just moves the same problem to hotel rooms. Designs reduce the harm instead, for example by marking the seat as \"held\" rather than sold until the whole trip is confirmed."
+    },
+    {
+      "external_id": "sd-039",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "event sourcing",
+      "prompt": "An order service uses event sourcing: it stores every change as an event (OrderPlaced, OrderShipped and so on) and builds the current state by applying the events in order. The code that applies each event also sends the customer's emails. After a bug fix, the team replays all past events to rebuild the state, and thousands of customers get old emails again. What design lets them replay safely?",
+      "payload": {
+        "options": [
+          "Take a snapshot of the state each night, so replays start from the snapshot",
+          "Replay inside one database transaction, so a failure rolls the emails back",
+          "Keep the code that applies events free of actions like sending emails",
+          "Run the replay into a copy of the database, then swap the copy in"
+        ],
+        "answer": "Keep the code that applies events free of actions like sending emails"
+      },
+      "explanation": "Replaying is meant to recompute state, so the code that applies events must do only that. Actions with effects outside the service, such as emails or payments, belong in a separate handler that reacts to new events as they are recorded and keeps track of which ones it has handled, so a replay never triggers them. A snapshot only shortens the replay; events after the snapshot would still resend their emails. A database transaction cannot take back an email once it has been sent. Replaying into a copy protects the live data, but the same code still sends the emails while it runs."
+    },
+    {
+      "external_id": "sd-040",
+      "format": "multiple_choice",
+      "difficulty": "advanced",
+      "topic": "multi-region",
+      "prompt": "A database copies each write to three regions and confirms it once a majority (2 of 3, counting the leader) has stored it. The leader is in Virginia. A round trip from Virginia takes about 60 ms to Oregon and about 80 ms to Frankfurt. Ignoring disk and processing time, about how long after the leader receives a write is it confirmed?",
+      "payload": {
+        "options": [
+          "About 140 ms",
+          "About 80 ms",
+          "About 60 ms",
+          "Under 5 ms"
+        ],
+        "answer": "About 60 ms"
+      },
+      "explanation": "The leader stores the write itself and sends it to both other regions at the same time. It needs one more copy to make a majority, so it can confirm as soon as the faster region (Oregon, about 60 ms away) replies, without waiting for Frankfurt. About 80 ms would mean waiting for every region, and about 140 ms would mean sending to the regions one after another. Under 5 ms is only possible if the leader confirms before any other region has the write, which a single regional outage could then lose. The trade-off is that Frankfurt may briefly lag behind, and if Oregon is down every write waits the full 80 ms for Frankfurt."
+    }
+  ]
+}
