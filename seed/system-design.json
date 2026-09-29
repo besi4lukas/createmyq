@@ -15,63 +15,63 @@
         "options": [
           "The cache notices the miss, loads the value from the database by itself, and returns it",
           "The app reads the value from the database, returns it, and writes it into the cache",
-          "The read fails, and the key only becomes readable after the next write to the database",
+          "The database notices the miss and pushes the value into the cache for the app to read",
           "The app returns an empty result and schedules a background job to warm the cache"
         ],
         "answer": "The app reads the value from the database, returns it, and writes it into the cache"
       },
-      "explanation": "In cache-aside the application owns the caching logic: on a miss it loads the value from the database and puts it in the cache so later reads hit. A cache that loads missing values by itself is a different pattern, read-through. A miss is not an error and does not return empty data. It just costs one database read."
+      "explanation": "In cache-aside the application owns the caching logic: on a miss it loads the value from the database itself and puts it in the cache, so later reads hit. A cache that loads missing values by itself is a different pattern, called read-through. The database does not know the cache exists, so it never pushes values into it. A miss is not an error and does not return empty data; it just costs one database read."
     },
     {
       "external_id": "sd-002",
       "format": "multiple_choice",
       "difficulty": "beginner",
       "topic": "scalability",
-      "prompt": "Your only web server is running at 100% CPU. Which of these is horizontal scaling?",
+      "prompt": "Your app runs on one server. Traffic is expected to grow ten times over the next year, and the site must stay up if any single machine fails. Which approach meets both needs?",
       "payload": {
         "options": [
-          "Running more copies of the app on more servers behind a load balancer",
-          "Moving the app onto a larger machine with more CPU cores, more memory and faster disks",
-          "Caching responses so the server does less work for each request it handles",
-          "Configuring the server process to run more worker threads on the same machine"
+          "Move the app to the largest server that your cloud provider offers",
+          "Run the app on several servers and spread requests with a load balancer",
+          "Add a cache in front of the server so that each request costs less work",
+          "Configure the server to run more worker threads on the same machine"
         ],
-        "answer": "Running more copies of the app on more servers behind a load balancer"
+        "answer": "Run the app on several servers and spread requests with a load balancer"
       },
-      "explanation": "Horizontal scaling (scaling out) means adding more machines and sharing the load between them. Moving to a bigger machine is vertical scaling (scaling up). Caching and more threads can help a busy server, but they get more out of the same machine rather than adding machines."
+      "explanation": "Running copies of the app on several machines behind a load balancer is horizontal scaling (scaling out). You can keep adding machines as traffic grows, and if one machine dies the load balancer sends its traffic to the others. Moving to a bigger machine is vertical scaling (scaling up): there is a limit to how big a machine can get, and it is still one machine that can fail. A cache and more threads get more out of the one server, but if that server goes down, the whole site goes down with it."
     },
     {
       "external_id": "sd-003",
       "format": "multiple_choice",
       "difficulty": "beginner",
       "topic": "cdn",
-      "prompt": "What is the main way a CDN makes a website faster for users around the world?",
+      "prompt": "Your site is hosted in Virginia, and users in Australia say pages load slowly. Most of each page is images and script files that are the same for every user. How would a CDN (content delivery network) help most?",
       "payload": {
         "options": [
-          "It compresses the site's database so that queries on the origin return faster",
-          "It replaces the origin server entirely, so the origin can be switched off",
-          "It serves cached copies of content from servers near each user",
-          "It runs the site's server-side code inside each visitor's browser instead of on a server"
+          "It would serve those files from servers close to the users in Australia",
+          "It would move your database to Australia so that its queries run faster",
+          "It would compress the files so they take less disk space on your server",
+          "It would take over your server's job, so the server could be switched off"
         ],
-        "answer": "It serves cached copies of content from servers near each user"
+        "answer": "It would serve those files from servers close to the users in Australia"
       },
-      "explanation": "A CDN keeps copies of content (images, scripts, whole pages) on edge servers in many locations, so most requests travel a short distance instead of all the way to the origin. The origin is still needed for cache misses and for content that cannot be cached. A CDN does nothing to the database, and it does not move server code into the browser."
+      "explanation": "A CDN keeps copies of files that are the same for everyone on \"edge\" servers in many countries. An Australian user then fetches them from a nearby server instead of from Virginia, which removes most of the delay, because distance is what makes each request slow. A CDN does not move or speed up your database, and saving disk space on your server does not make files reach users any faster. Your own server (the origin) is still needed for anything the CDN has not cached yet and for pages that differ per user."
     },
     {
       "external_id": "sd-004",
       "format": "multiple_choice",
       "difficulty": "beginner",
       "topic": "indexing",
-      "prompt": "You add a database index on a column that a slow query filters by. What is the usual trade-off?",
+      "prompt": "A query that filters on one column is slow, so you add a database index on that column. What is the usual trade-off?",
       "payload": {
         "options": [
           "Both reads and writes get faster, because the rows are now kept in sorted order",
-          "Reads get faster, but the table can no longer be updated while the index exists",
-          "Writes are unaffected; the only cost is that the query planner takes longer to decide",
-          "Reads that filter on it get faster, but writes must also update the index"
+          "Those reads get faster, but queries that filter on other columns get slower",
+          "Writes are unaffected; the only cost is the extra disk space the index uses",
+          "Those reads get faster, but inserts and updates must also update the index"
         ],
-        "answer": "Reads that filter on it get faster, but writes must also update the index"
+        "answer": "Those reads get faster, but inserts and updates must also update the index"
       },
-      "explanation": "An index lets the database find matching rows without scanning the whole table. The cost is that inserts, deletes and updates to the indexed column must also maintain the index, and the index takes extra storage. Writes do not get faster, and the table stays fully writable. Planning time is not the main cost."
+      "explanation": "An index lets the database find matching rows without scanning the whole table, like the index at the back of a book. The cost is that every insert, delete, and update to that column must also change the index, so writes do a little more work. The index does take disk space too, but that is not the only cost, and writes never get faster because of it. Queries on other columns are not slowed down; they simply do not use the new index."
     },
     {
       "external_id": "sd-005",
@@ -100,46 +100,46 @@
         "options": [
           "The queue sends the emails itself, faster than the email service ever could",
           "The queue guarantees each email lands in the customer's inbox exactly once",
-          "The order service enqueues the email job and returns; emails go out as the backlog drains",
-          "The queue lets the order service skip the email step whenever the email service is slow"
+          "The queue lets the order service skip the email step when the email service is slow",
+          "Orders stop waiting on emails; the email service works through the backlog later"
         ],
-        "answer": "The order service enqueues the email job and returns; emails go out as the backlog drains"
+        "answer": "Orders stop waiting on emails; the email service works through the backlog later"
       },
-      "explanation": "A queue decouples the two services: placing an order no longer waits on the email service, and a traffic spike becomes a backlog that drains over time instead of a pile of timeouts. The queue does not do the email service's work or make it faster. Queues do not give exactly-once delivery to an inbox, and nothing is skipped; the job waits in the queue until it is processed."
+      "explanation": "A queue decouples the two services. The order service drops an \"email this customer\" job on the queue and finishes the order straight away, so a slow email service no longer makes orders time out. A traffic spike becomes a backlog of jobs that the email service works through at its own pace. The queue does not send emails itself or make the email service faster. Queues do not promise exactly-once delivery, and nothing is skipped; each job waits in the queue until it is processed."
     },
     {
       "external_id": "sd-007",
       "format": "multiple_choice",
       "difficulty": "beginner",
       "topic": "latency",
-      "prompt": "Which of these typically takes the longest?",
+      "prompt": "A web app runs in California, but its database is in Europe. Each page runs 20 database queries, one after another, and takes over 3 seconds to load. The database says each query takes about 1 millisecond. What is the most effective fix?",
       "payload": {
         "options": [
-          "Reading 1 KB sequentially from main memory",
-          "One random read from an SSD",
-          "One network round trip between two servers in the same data center",
-          "One network round trip between California and Europe"
+          "Upgrade the database to a larger machine with faster disks",
+          "Move the app so it runs in the same region as the database",
+          "Add more app servers in California behind a load balancer",
+          "Add indexes to the columns that the queries filter on"
         ],
-        "answer": "One network round trip between California and Europe"
+        "answer": "Move the app so it runs in the same region as the database"
       },
-      "explanation": "Rough orders of magnitude: reading 1 KB from memory takes well under a microsecond, a random SSD read takes tens to hundreds of microseconds, a round trip inside a data center takes about half a millisecond, and a round trip between California and Europe takes around 150 milliseconds, limited by the speed of light in fibre. That gap is why systems cache data close to users and avoid chatty cross-region calls."
+      "explanation": "Each query has to travel across the Atlantic and back, which takes roughly 150 milliseconds. Twenty of those in a row add up to about 3 seconds, while the database's own work is only about 20 milliseconds in total. Running the app next to the database cuts each round trip to around a millisecond. A bigger database or new indexes would speed up the 1 millisecond of work, not the network wait. More app servers help when servers are overloaded, but every page would still wait on the same slow round trips. Sending the queries together in one batch would also help, because it pays for the round trip only once."
     },
     {
       "external_id": "sd-008",
       "format": "multiple_choice",
       "difficulty": "intermediate",
       "topic": "consistent hashing",
-      "prompt": "A cache cluster assigns each key to a node with hash(key) mod N. Why do teams switch to consistent hashing before adding an 11th node to a 10-node cluster?",
+      "prompt": "A cache cluster picks the node for each key with hash(key) mod N, where N is the number of nodes. Before growing from 10 to 11 nodes, the team switches to consistent hashing. Which problem does this avoid?",
       "payload": {
         "options": [
-          "With mod N most keys move to a new node, so most lookups miss; consistent hashing moves only about 1/11",
-          "Consistent hashing guarantees keys spread perfectly evenly across all nodes, with no need for virtual nodes",
-          "Consistent hashing stores a copy of every key on every node, so any node can answer any request",
-          "With mod N, a node cannot be added at all without first restarting every node in the cluster"
+          "Most keys would map to a different node, so most cache reads would suddenly miss",
+          "The new node would get no keys until every existing node had been restarted",
+          "Every key would be copied to every node, so memory use would grow with each node",
+          "The new node would receive most of the new keys and quickly become overloaded"
         ],
-        "answer": "With mod N most keys move to a new node, so most lookups miss; consistent hashing moves only about 1/11"
+        "answer": "Most keys would map to a different node, so most cache reads would suddenly miss"
       },
-      "explanation": "Changing N from 10 to 11 changes hash(key) mod N for roughly 90% of keys, so almost the whole cache effectively empties at once. Consistent hashing places nodes and keys on a ring, so the new node takes over only its share of the keys (about 1/11) and everything else stays put. On its own it does not balance load evenly, which is why real systems add virtual nodes. It does not copy every key to every node, and mod N does not require a restart; the problem is how many keys move."
+      "explanation": "Changing N from 10 to 11 changes hash(key) mod N for roughly 90% of keys. Each of those keys is now looked up on a node that does not have it, so almost the whole cache effectively empties at once and the database takes the full load. Consistent hashing places nodes and keys on a ring, so the new node takes over only its share (about 1 in 11 keys) and everything else stays put. Adding a node does not need restarts, and neither scheme copies every key to every node. Plain mod N spreads keys evenly across all nodes, so the new node is not overloaded; uneven spread is actually a weakness of basic consistent hashing, fixed with virtual nodes."
     },
     {
       "external_id": "sd-009",
@@ -149,14 +149,14 @@
       "prompt": "A client sends a \"charge $50\" request, gets no response before its timeout, and retries. How should the payment API make sure the customer is charged only once?",
       "payload": {
         "options": [
-          "Use HTTP POST for the charge, since the HTTP spec defines POST as idempotent",
-          "Tell clients never to retry a charge after a timeout, so that a duplicate request can never be sent",
-          "The client sends a unique idempotency key, and the server returns the stored result for repeats",
-          "Reject any charge whose amount matches the same customer's previous charge within the last minute"
+          "The client sends a unique ID per charge; the server returns the saved result for repeats",
+          "Use HTTP POST for the charge, since the HTTP spec defines POST as an idempotent method",
+          "Tell clients not to retry after a timeout, and to show the user an error instead",
+          "Reject any charge that matches the same customer's amount from the last minute"
         ],
-        "answer": "The client sends a unique idempotency key, and the server returns the stored result for repeats"
+        "answer": "The client sends a unique ID per charge; the server returns the saved result for repeats"
       },
-      "explanation": "After a timeout the client cannot know whether the first charge went through, so retries must be safe. An idempotency key lets the server recognise a repeat and return the original result instead of charging again. POST is not idempotent under the HTTP spec (GET, PUT and DELETE are). Never retrying means a charge that really failed is silently dropped, and blocking repeat amounts would reject genuine second purchases."
+      "explanation": "After a timeout the client cannot know whether the first charge went through, so retrying must be safe. If the client attaches a unique ID (an idempotency key) to each charge, the server can recognise a retry and return the original result instead of charging again. POST is not idempotent under the HTTP spec; GET, PUT and DELETE are. Not retrying leaves the user unsure whether they paid, and a charge that really failed is simply dropped. Blocking repeat amounts would wrongly reject a genuine second purchase."
     },
     {
       "external_id": "sd-010",
@@ -166,14 +166,14 @@
       "prompt": "An API uses a token bucket rate limiter with a capacity of 10 tokens, refilled at 1 token per second. Each request uses one token, and a request that finds the bucket empty is rejected. A client has been idle for a minute, then sends 15 requests at once. What happens?",
       "payload": {
         "options": [
-          "All 15 are allowed, because the client built up 60 tokens while it was idle",
-          "10 are allowed straight away and the other 5 are rejected",
+          "None are allowed, because the burst of 15 is larger than the capacity",
           "Only 1 is allowed, because the refill rate is 1 token per second",
-          "None are allowed, because the burst of 15 is larger than the capacity"
+          "10 are allowed straight away and the other 5 are rejected",
+          "All 15 are allowed, because the client built up 60 tokens while it was idle"
         ],
         "answer": "10 are allowed straight away and the other 5 are rejected"
       },
-      "explanation": "Tokens accumulate while the client is idle, but never beyond the bucket's capacity, so the bucket holds 10 tokens, not 60. The first 10 requests each take a token and succeed; the last 5 find it empty and are rejected. This is the point of a token bucket: it allows short bursts up to the capacity while holding the long-run rate to the refill rate. It does not cap every second at 1 request, and it does not reject the whole burst."
+      "explanation": "Tokens build up while the client is idle, but never beyond the bucket's capacity, so the bucket holds 10 tokens, not 60. The first 10 requests each take a token and succeed; the last 5 find the bucket empty and are rejected. This is the point of a token bucket: it allows short bursts up to the capacity while holding the long-run rate to the refill rate. It does not limit every second to 1 request, and it does not reject the whole burst."
     },
     {
       "external_id": "sd-011",
@@ -183,48 +183,48 @@
       "prompt": "A very popular cache entry expires. In the same instant thousands of requests miss the cache and all query the database for that one value, overloading it. Which fix targets this problem most directly?",
       "payload": {
         "options": [
-          "Shorten the entry's TTL so it is refreshed more often and never has a chance to get old",
+          "Shorten the entry's expiry time (TTL) so the value is refreshed much more often",
           "Switch the cache's eviction policy from LRU to LFU so popular keys are kept",
-          "Add more cache nodes, so that the load for the popular key is spread across several machines",
-          "Let a single request recompute the value while the others wait or are served the old one"
+          "Add more cache nodes, so the load for the popular key is spread across machines",
+          "Let a single request recompute the value while the others wait or get the old one"
         ],
-        "answer": "Let a single request recompute the value while the others wait or are served the old one"
+        "answer": "Let a single request recompute the value while the others wait or get the old one"
       },
-      "explanation": "This is a cache stampede (thundering herd). The fix is to make sure one request rebuilds the value while the rest wait for it or are served the stale copy. Refreshing slightly early at a random moment is a related fix. A shorter TTL makes expiries happen more often, so it makes things worse. The eviction policy decides what is removed when memory is full, not what happens at expiry, and more cache nodes do not stop every request from missing at once."
+      "explanation": "This is a cache stampede (also called a thundering herd). The fix is to make sure only one request rebuilds the value, using a lock, while the rest wait for it or are served the slightly stale copy. Refreshing a little before expiry, at a random moment, is a related fix. A shorter expiry time makes expiries happen more often, so it makes things worse. The eviction policy (LRU or LFU) decides what is removed when memory is full, not what happens when an entry expires. More cache nodes do not help, because every request misses at the same moment and goes to the database anyway."
     },
     {
       "external_id": "sd-012",
       "format": "multiple_choice",
       "difficulty": "intermediate",
       "topic": "sharding",
-      "prompt": "An events table is sharded by created_at, with each shard holding one day of data. There are 30 shards, yet writes are slow. What is the most likely cause?",
+      "prompt": "An events table is split across 30 database servers (shards) by date, and each shard holds one day of events. Writing new events is slow, and adding more shards has not helped. What is the most likely cause?",
       "payload": {
         "options": [
-          "Every new event goes to today's shard, so one shard takes almost all the writes",
-          "30 shards is too many, and each extra shard adds a fixed cost to every single write",
-          "Range sharding stops the database from using indexes on the sharded table",
-          "Range-sharded tables must copy every new write to all shards to stay consistent"
+          "All new events go to today's shard, so one server handles nearly all the writes",
+          "Each extra shard adds a fixed cost to every write, so 30 shards is simply too many",
+          "Every write must be copied to all 30 shards to keep the shards consistent",
+          "Each write must first check all 30 shards to find the one it belongs to"
         ],
-        "answer": "Every new event goes to today's shard, so one shard takes almost all the writes"
+        "answer": "All new events go to today's shard, so one server handles nearly all the writes"
       },
-      "explanation": "Sharding by time sends every new write to the newest shard, creating a hot spot: you have 30 shards, but only one is doing the write work. The usual fix is to shard by something spread evenly, such as a hash of a user or event ID, at the cost of making time-range queries touch several shards. Shard count, indexes and copying writes to every shard are not how range sharding works."
+      "explanation": "Sharding by date sends every new write to the newest shard, creating a hot spot: there are 30 servers, but only one is doing the write work, which is why adding shards changes nothing. The usual fix is to shard by something spread evenly, such as a hash of the user or event ID, at the cost of time-range queries having to read several shards. Shards do not add a per-shard cost to each write, a write goes to one shard rather than all of them, and the date alone tells the system which shard to use, so no search is needed."
     },
     {
       "external_id": "sd-013",
       "format": "multiple_choice",
       "difficulty": "intermediate",
-      "topic": "message queues",
-      "prompt": "A message queue promises at-least-once delivery. What must the consumer be built to cope with?",
+      "topic": "retries",
+      "prompt": "A service goes down for a minute. Its 500 clients each retry a failed call exactly 1 second later, again and again. When the service comes back, the flood of retries knocks it over again, and this repeats. Which change to the clients best breaks this cycle?",
       "payload": {
         "options": [
-          "Some messages being silently lost and never delivered at all",
-          "The same message being delivered more than once",
-          "The broker changing a message's contents while it is in transit",
-          "Nothing extra, because at-least-once means each message is processed exactly once"
+          "Retry straight away instead, so that no request spends time sitting idle",
+          "Make each call's timeout longer, raising it from 2 seconds to 10 seconds",
+          "Wait longer after each failure, plus a random extra delay per client",
+          "Send each retry to the service twice, in case one copy gets lost"
         ],
-        "answer": "The same message being delivered more than once"
+        "answer": "Wait longer after each failure, plus a random extra delay per client"
       },
-      "explanation": "At-least-once means the broker keeps redelivering until the consumer acknowledges the message. If a consumer finishes the work but crashes before acknowledging, the message comes back, so processing must be idempotent or deduplicate by message ID. Silently losing messages is the risk of at-most-once delivery. It is not exactly-once, and brokers do not rewrite message contents."
+      "explanation": "The retries are in sync: all 500 clients fire at the same moments, so the recovering service is hit by all of them at once (a retry storm). Exponential backoff doubles the wait after each failure (1 s, 2 s, 4 s and so on), which cuts the total load. Jitter adds a random amount to each wait, so the clients spread out instead of arriving together. Retrying straight away or sending duplicates adds even more load. A longer timeout changes how long each client waits for an answer, not how many requests hit the service at once. A circuit breaker, which stops calling a failing service for a while, is a related fix."
     },
     {
       "external_id": "sd-014",
@@ -235,13 +235,13 @@
       "payload": {
         "options": [
           "Raise the page size to 100, so users need fewer pages and run into fewer repeats",
-          "Add an index on the post timestamp, so each page query runs faster",
-          "Sort the posts again on the client, so they display in a stable order",
+          "Add an index on the post timestamp, so that each page query runs faster",
+          "Sort the posts again on the client, so they always display in a stable order",
           "Switch to cursor pagination: fetch the 20 posts older than the last one seen"
         ],
         "answer": "Switch to cursor pagination: fetch the 20 posts older than the last one seen"
       },
-      "explanation": "With offsets, every new post at the top pushes older posts down, so the next page's offset lands on items the user already saw. A cursor anchors the next page to the last item returned (for example its timestamp plus ID), so inserts above it do not shift anything. It is also faster on deep pages, because the database does not have to count past all the skipped rows. Bigger pages only make repeats rarer, an index only speeds up the query, and client-side sorting cannot remove duplicates."
+      "explanation": "With offsets, every new post at the top pushes older posts down, so the next page's offset lands on items the user already saw. A cursor anchors the next page to the last item returned (for example its timestamp plus ID), so new posts above it do not shift anything. It is also faster on deep pages, because the database does not have to count past all the skipped rows. Bigger pages only make repeats rarer, an index only speeds up the query, and sorting on the client cannot remove duplicates that the server sent."
     },
     {
       "external_id": "sd-015",
@@ -251,72 +251,72 @@
       "prompt": "A database is replicated across two data centers. The network link between them fails, but clients on both sides keep sending reads and writes. What choice does the CAP theorem say the system faces?",
       "payload": {
         "options": [
-          "Pick any two of consistency, availability and partition tolerance, for example by giving up partition tolerance",
-          "No choice is needed: with synchronous replication it stays both consistent and available",
-          "Stay available and let the two sides diverge, or stay consistent and refuse some requests",
-          "Trade lower latency against higher throughput until the link between the sites is restored"
+          "Give up partition tolerance, since CAP lets you pick any two of the three properties",
+          "None: with synchronous replication it can stay both consistent and available",
+          "Trade lower latency against higher throughput until the link is restored",
+          "Stay available and let the two sides diverge, or stay consistent and refuse some requests"
         ],
         "answer": "Stay available and let the two sides diverge, or stay consistent and refuse some requests"
       },
-      "explanation": "CAP says that during a network partition a replicated system must choose between staying consistent (refusing requests that could return stale or conflicting data) and staying available (answering anyway and reconciling later). Partitions are not optional in a distributed system, so \"pick any two\" by dropping partition tolerance is a common misreading. Synchronous replication cannot complete across a broken link, so it blocks, which gives up availability. Latency versus throughput is not the CAP trade-off; PACELC adds that, even without a partition, systems trade latency against consistency."
+      "explanation": "CAP says that during a network partition a replicated system must choose between staying consistent (refusing requests that could return stale or conflicting data) and staying available (answering anyway and reconciling later). A broken link is not something you can opt out of, so \"pick any two\" by dropping partition tolerance is a common misreading. Synchronous replication cannot complete across a broken link, so writes block, which gives up availability. Latency versus throughput is not the CAP trade-off; the related PACELC model adds that, even without a partition, systems trade latency against consistency."
     },
     {
       "external_id": "sd-016",
       "format": "multiple_choice",
       "difficulty": "advanced",
       "topic": "quorums",
-      "prompt": "A key-value store keeps N = 3 replicas of every key and uses strict quorums: a write succeeds once W replicas acknowledge it, and a read asks R replicas. Which setting guarantees every read contacts at least one replica holding the latest successful write?",
+      "prompt": "A key-value store keeps 3 copies (replicas) of every key. A write succeeds once W replicas confirm it, and a read asks R replicas and keeps the newest value. You need every read to see the latest successful write, and writes must keep working when one replica is down. Which setting meets both needs?",
       "payload": {
         "options": [
-          "W = 1, R = 1",
-          "W = 2, R = 1",
           "W = 1, R = 2",
-          "W = 2, R = 2"
+          "W = 2, R = 1",
+          "W = 2, R = 2",
+          "W = 3, R = 1"
         ],
         "answer": "W = 2, R = 2"
       },
-      "explanation": "Reads are guaranteed to overlap writes when R + W > N. Here 2 + 2 = 4 > 3, so any 2 replicas that are read must include at least one of the 2 that acknowledged the write. Every other option sums to 3 or less, so a read can land entirely on replicas that missed the latest write. Overlap alone is not full linearizability; sloppy quorums and concurrent writes need more care."
+      "explanation": "A read is guaranteed to reach at least one replica holding the latest write when R + W is greater than the number of replicas (3). W = 2, R = 2 gives 4, so any 2 replicas you read must include one of the 2 that confirmed the write, and with one replica down there are still 2 left to confirm writes and 2 to answer reads. W = 3, R = 1 also overlaps (3 + 1 = 4), but every write needs all 3 replicas, so a single failure stops writes. W = 1, R = 2 and W = 2, R = 1 add up to only 3, so a read can land entirely on replicas that missed the latest write. Overlap alone is not full linearizability; concurrent writes and \"sloppy\" quorums that borrow other nodes need extra care."
     },
     {
       "external_id": "sd-017",
       "format": "multiple_choice",
       "difficulty": "advanced",
       "topic": "back-pressure",
-      "prompt": "Producers add 1,000 jobs per second to an unbounded in-memory queue, but the workers can only finish 800 per second, and this goes on indefinitely. What happens, and what is the sound fix?",
+      "prompt": "Producers add 1,000 jobs per second to an in-memory queue with no size limit. Workers can finish only 800 per second. This lasts for hours, and adding workers is not possible right now. What is the sound fix?",
       "payload": {
         "options": [
-          "The queue and latency grow until memory runs out; bound the queue and push back on producers, or add workers",
-          "The queue absorbs the gap indefinitely; that is the purpose of an unbounded queue, so producers never have to slow down",
-          "Workers speed up automatically as the queue gets longer, so the system settles at a stable queue length",
-          "The queue drops the oldest jobs once memory gets tight, so the system stays healthy without any changes"
+          "Move the queue to a machine with much more memory so it can hold the backlog",
+          "Keep the queue on disk instead of in memory, so it can hold far more jobs",
+          "Limit the queue's size, and reject or slow down producers when it is full",
+          "Put jobs that have waited too long back on the queue so they are retried"
         ],
-        "answer": "The queue and latency grow until memory runs out; bound the queue and push back on producers, or add workers"
+        "answer": "Limit the queue's size, and reject or slow down producers when it is full"
       },
-      "explanation": "When arrivals exceed the service rate for good, a queue cannot help: it grows by 200 jobs every second, every job waits longer, and an in-memory queue eventually exhausts memory. Back-pressure means bounding the queue and making producers feel it, by blocking, rejecting with a retry signal, or shedding load, unless you can add capacity. Queues only smooth out temporary bursts. Workers do not speed up by themselves, and an unbounded queue never drops anything, which is exactly why it fails."
+      "explanation": "When jobs arrive faster than they can be finished, the queue grows by 200 jobs every second (720,000 an hour) and every job waits longer than the one before. More memory or a disk-backed queue only delays the crash while wait times keep climbing; a queue can absorb short bursts, not a lasting gap. Back-pressure fixes this: cap the queue, and when it is full make producers block, back off, or get a \"try again later\" error, so the overload is visible and the system stays healthy. Re-adding old jobs puts even more work into a queue that is already too long. The long-term fix is more worker capacity or less incoming work."
     },
     {
       "external_id": "sd-018",
       "format": "multiple_choice",
       "difficulty": "advanced",
       "topic": "dual writes",
-      "prompt": "When an order is saved, the service must also publish an OrderCreated event to a message broker. The code commits the database transaction, then publishes. If the process crashes between those two steps, what goes wrong and what fixes it?",
+      "prompt": "When an order is saved, the service must also publish an OrderCreated event to a message broker. The code commits the database transaction, then publishes. If the process crashes between those two steps, the order is saved but the event is never sent. Which design prevents this?",
       "payload": {
         "options": [
-          "The event is published twice; fix it by publishing the event before committing the transaction",
-          "The event is never sent; save it to an outbox table in the same transaction and publish it from there",
-          "The order is rolled back automatically; wrap the commit and the publish in a try/catch block",
-          "The event is lost; fix it by retrying the publish in a loop until the broker accepts it"
+          "Publish the event first, and commit the database transaction after that",
+          "Save the event to an outbox table in the same transaction; publish it from there",
+          "Wrap the publish in a try/catch block that retries it until the broker accepts it",
+          "Have the broker confirm each event before the order request returns"
         ],
-        "answer": "The event is never sent; save it to an outbox table in the same transaction and publish it from there"
+        "answer": "Save the event to an outbox table in the same transaction; publish it from there"
       },
-      "explanation": "The commit and the publish are two separate operations with no shared transaction, so a crash between them leaves an order that no other service ever hears about. The transactional outbox fixes this: the event is written to an outbox table in the same transaction as the order, so both exist or neither does, and a separate process publishes outbox rows, retrying until it succeeds (consumers must tolerate duplicates). Publishing first just flips the failure into an event for an order that was never saved. A committed order is not rolled back, and a retry loop in a process that has crashed never runs."
+      "explanation": "The commit and the publish are two separate operations with no shared transaction, so a crash between them loses the event. The transactional outbox fixes this: the event is written to an outbox table in the same database transaction as the order, so both exist or neither does. A separate process then reads the outbox and publishes each event, retrying until it succeeds (so consumers must cope with the occasional duplicate). Publishing first just flips the failure into an event for an order that was never saved. A try/catch retry and a broker confirmation both run inside the process, so they do nothing if the process crashes before publishing."
     },
     {
       "external_id": "sd-019",
       "format": "multiple_choice",
       "difficulty": "advanced",
       "topic": "tail latency",
-      "prompt": "Each user request fans out to 100 backend servers in parallel and must wait for all of them. Each server is fast 99% of the time, but 1% of its responses are slow, independently of the others. Roughly what share of user requests will be slow?",
+      "prompt": "Each user request fans out to 100 backend servers in parallel and must wait for all of them. Each server answers slowly 1% of the time, independently of the others. Roughly what share of user requests will be slow?",
       "payload": {
         "options": [
           "About 1%",
@@ -326,7 +326,7 @@
         ],
         "answer": "About 63%"
       },
-      "explanation": "A user request is fast only if all 100 responses are fast: 0.99^100 ≈ 0.37, so about 63% of requests hit at least one slow server. This is why fan-out systems watch p99 and p99.9 latency rather than averages, and use techniques such as hedged requests to cut the tail. The 1% answer ignores the fan-out, and 99% comes from adding 1% a hundred times, which overcounts because the chances of independent events do not simply add."
+      "explanation": "A user request is fast only if all 100 responses are fast: 0.99^100 is about 0.37, so about 63% of requests hit at least one slow server. This is why systems that fan out watch p99 and p99.9 latency rather than averages, and use techniques such as hedged requests (sending a backup request if the first is slow) to cut the tail. The 1% answer ignores the fan-out, and 99% comes from adding 1% a hundred times, which overcounts because the chances of independent events do not simply add up."
     },
     {
       "external_id": "sd-020",
@@ -337,13 +337,13 @@
       "payload": {
         "options": [
           "Send that user's reads to the primary for a short time after they write",
-          "Add more read replicas, so each one has less work and finishes applying changes sooner",
+          "Add more read replicas, so each one has less work and applies changes sooner",
           "Put a cache in front of the replica, so the name is served from memory instead",
-          "Retry the read on the same replica until it returns successfully"
+          "Set the replica's isolation level to read committed, so it skips stale rows"
         ],
         "answer": "Send that user's reads to the primary for a short time after they write"
       },
-      "explanation": "This is replication lag breaking read-your-writes consistency. A common fix is to route a user's reads to the primary for a short window after they write, or until the replica has applied that write, while everyone else keeps using replicas. More replicas do not reduce lag and add work for the primary. A cache in front of the replica can hold the stale value even longer. The stale read already succeeded, so retrying it proves nothing."
+      "explanation": "This is replication lag breaking read-your-writes consistency: the replica has not applied the change yet. A common fix is to route a user's reads to the primary for a short window after they write, or until the replica has caught up to that write, while everyone else keeps using replicas. More replicas do not reduce lag and add work for the primary, which has to feed each of them. A cache in front of the replica can hold the stale value even longer. Isolation levels control what concurrent transactions see on one database; they cannot make a replica return a change it has not received yet."
     }
   ]
 }

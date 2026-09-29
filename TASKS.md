@@ -48,7 +48,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-6 Write the first 20 System Design questions** ✍️ · 2h · depends: none
   Spread across Beginner / Intermediate / Advanced. _Can move to an evening before the sprint._
   **Done when:** 20 questions exist as JSON with answer, explanation, difficulty and format. **Human writes these, not Claude.**
-  _Status:_ in review. Written by Claude at the user's request (the user chose to skip the ✍️ rule for this ticket); needs a human review for accuracy before it is ticked. `seed/system-design.json`: category `system-design`, 20 multiple-choice questions (`sd-001`…`sd-020`), 7 beginner / 7 intermediate / 6 advanced, 18 topics. MC only because the vertical slice is "one category, one format" and STM-11 is MC. Payload is `{ options: string[4], answer: <exact option text> }`, which STM-7's Zod schema should enforce.
+  _Status:_ in review. Written by Claude at the user's request (the user chose to skip the ✍️ rule for this ticket); needs a human review for accuracy before it is ticked. `seed/system-design.json`: category `system-design`, 20 multiple-choice questions (`sd-001`…`sd-020`), 7 beginner / 7 intermediate / 6 advanced, 19 topics. Revised after an item-writing review (Haladyna/Downing/Rodriguez, NBME, Bloom); sd-013 now covers retries/backoff. MC only because the vertical slice is "one category, one format" and STM-11 is MC. Payload is `{ options: string[4], answer: <exact option text> }`, which STM-7's Zod schema should enforce.
 
 - [ ] **STM-7 Seed script** · 1h · depends: STM-4, STM-6
   Loads a question JSON file into the bank, with validation.
