@@ -58,7 +58,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [x] **STM-8 Quiz assembly endpoint** 🔍 · 2h · depends: STM-7
   Category, difficulty and length in, sampled questions out. Excludes anything the user saw in the last 30 days, with a documented fallback when the pool runs dry.
   **Done when:** two consecutive calls return different sets, and the exclusion window provably works.
-  _Status:_ in review (PR #8, not merged). `GET /api/quiz?category=<slug>&difficulty=<beginner|intermediate|advanced>&length=<5|10|20>` in `worker/quiz/assemble.ts`: one read-only query over approved MC questions, private-source filter (FR-10a), questions from the user's finished sessions in the last 30 days last, oldest-seen first as the fallback, random otherwise. Returns id/format/difficulty/topic/prompt/options (no answer, no explanation), `short: true` when the pool is smaller than the length. 400 bad input, 404 unknown category or empty pool. Verified end to end on throwaway Neon branch `stm-8-assembly-test`.
+  _Status:_ done (PR #8, deploy run 36632087441). `GET /api/quiz?category=<slug>&difficulty=<beginner|intermediate|advanced>&length=<5|10|20>` in `worker/quiz/assemble.ts`: one read-only query over approved MC questions, private-source filter (FR-10a), questions from the user's finished sessions in the last 30 days last, oldest-seen first as the fallback, random otherwise. Returns id/format/difficulty/topic/prompt/options (no answer, no explanation), `short: true` when the pool is smaller than the length. 400 bad input, 404 unknown category or empty pool. Verified end to end on throwaway Neon branch `stm-8-assembly-test`.
 
 ## Day 3: The quiz loop (9h, over budget; STM-12 spills to Day 4)
 
