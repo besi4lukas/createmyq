@@ -11,7 +11,9 @@
  *
  * Keys:
  *   quiz:active          the quiz in progress (at most one)
- *   quiz:done:<quizId>   a finished quiz, kept until STM-10 has flushed it
+ *   quiz:done:<quizId>   a finished quiz, kept until Postgres has confirmed it (STM-10)
+ *   quiz:last            the most recently flushed quiz, so a retried finish still gets its result (STM-10)
+ *   flush:retries        consecutive failed alarm passes, for the backoff (STM-10)
  *   prefs                preferences
  *
  * Every quiz has a public `quizId` (random, opaque) that the client sends back
@@ -24,9 +26,11 @@
  */
 import { DurableObject } from "cloudflare:workers";
 import { z } from "zod";
+import { withDb } from "../db/client";
 import { sessionMode } from "../db/schema";
 import { questionDifficultySchema, questionFormatSchema } from "../questions/payload";
 import type { AssembledQuestion } from "../quiz/assemble";
+import { writeFinishedSession } from "../quiz/flush";
 
 // ---------------------------------------------------------------------------
 // Preferences (FR-23). STM-24 adds the daily generation counter next to these.
@@ -74,6 +78,12 @@ type StoredAnswer = {
 type Quiz = {
   /** Public id the client names the quiz by (answer, finish). */
   quizId: string;
+  /**
+   * users.id of the owner (sessions.user_id). Added in STM-10; quizzes started
+   * before that don't have it and fall back to the object's name, which is the
+   * same users.id (`idFromName(users.id)`).
+   */
+  userId?: string;
   /** Generated at start; sessions.idempotency_key. Server side only. */
   idempotencyKey: string;
   kind: "category";
@@ -92,13 +102,30 @@ type Quiz = {
   answers: StoredAnswer[];
 };
 
-export type StartInput = Pick<Quiz, "categoryId" | "category" | "difficulty" | "mode" | "length"> & {
+export type StartInput = Pick<Quiz, "userId" | "categoryId" | "category" | "difficulty" | "mode" | "length"> & {
   questions: AssembledQuestion[];
 };
 
+/** A quiz under `quiz:done:*`: finished and scored. What the flush writes. */
+export type FinishedQuiz = Quiz & { finishedAt: string; score: number };
+
 const ACTIVE = "quiz:active";
-const doneKey = (quizId: string) => `quiz:done:${quizId}`;
+const DONE_PREFIX = "quiz:done:";
+const doneKey = (quizId: string) => `${DONE_PREFIX}${quizId}`;
+const LAST = "quiz:last";
+const RETRIES = "flush:retries";
 const PREFS = "prefs";
+
+// Alarm backoff for flushes that failed: 5 s, 10 s, 20 s … capped at 10 min,
+// forever. Never give up: the entry stays until Postgres takes it.
+const RETRY_BASE_MS = 5_000;
+const RETRY_CAP_MS = 10 * 60_000;
+/** From this many failed passes in a row (~30 min) every failure logs as STUCK. */
+const STUCK_AFTER = 10;
+/** One flush attempt (connect + transaction) gives up after this long. */
+const FLUSH_TIMEOUT_MS = 20_000;
+const retryDelay = (failedPasses: number) =>
+  Math.min(RETRY_BASE_MS * 2 ** Math.max(0, failedPasses - 1), RETRY_CAP_MS);
 
 // ---------------------------------------------------------------------------
 // What leaves the object
@@ -188,6 +215,28 @@ export type AnswerOutcome =
 // ---------------------------------------------------------------------------
 
 export class UserSession extends DurableObject<Env> {
+  /**
+   * Flushes in progress in this instance, by quizId (single flight). The flush
+   * awaits network I/O, and input gates do NOT hold other events back during
+   * a socket read, so finish(), flush() and alarm() can interleave there. Every
+   * caller for the same quiz shares one promise, so there is only ever one
+   * writer, and only that writer deletes the entry, after its COMMIT.
+   * In memory on purpose: if the instance dies, so does its in-flight flush.
+   */
+  private readonly inFlight = new Map<string, Promise<boolean>>();
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    // Safety net for entries with no alarm behind them (quizzes finished before
+    // STM-10 shipped, or anything else unforeseen): whenever this object wakes
+    // with unflushed quizzes and no alarm, schedule one now.
+    ctx.blockConcurrencyWhile(async () => {
+      if (this.pendingQuizIds().length > 0 && (await ctx.storage.getAlarm()) === null) {
+        await ctx.storage.setAlarm(Date.now());
+      }
+    });
+  }
+
   private get kv() {
     return this.ctx.storage.kv;
   }
@@ -278,19 +327,134 @@ export class UserSession extends DurableObject<Env> {
   finish(quizId: string): { ok: true; alreadyFinished: boolean; result: QuizResult } | { ok: false; code: "no_quiz" } {
     const quiz = this.active();
     if (quiz?.quizId !== quizId) {
-      const done = this.kv.get<Quiz>(doneKey(quizId));
+      // Not flushed yet, or the most recent one that was (a retried finish
+      // whose first response got lost still gets its result back).
+      const last = this.kv.get<Quiz>(LAST);
+      const done = this.kv.get<Quiz>(doneKey(quizId)) ?? (last?.quizId === quizId ? last : undefined);
       return done ? { ok: true, alreadyFinished: true, result: toResult(done) } : { ok: false, code: "no_quiz" };
     }
 
     quiz.finishedAt = new Date().toISOString();
     quiz.score = quiz.answers.filter((a) => a.correct).length;
-    // Both writes happen in this one synchronous call, so they commit together.
+    // These three writes happen in one synchronous turn with no await between
+    // them, so they commit atomically (write coalescing), and the output gate
+    // holds our reply until they are durable. So the finished quiz never exists
+    // without its safety-net alarm. The route then calls flush() for the fast
+    // path; if that fails or never runs, this alarm retries. Moving an earlier
+    // pending alarm back by up to RETRY_BASE_MS is harmless.
     this.kv.put(doneKey(quiz.quizId), quiz);
     this.kv.delete(ACTIVE);
-    // TODO(STM-10): flush quiz:done:* to Postgres in one transaction
-    // (ON CONFLICT (idempotency_key) DO NOTHING), retry via alarm on failure,
-    // and delete quiz:done:<key> only after the commit is confirmed.
+    void this.ctx.storage.setAlarm(Date.now() + RETRY_BASE_MS);
     return { ok: true, alreadyFinished: false, result: toResult(quiz) };
+  }
+
+  // -------------------------------------------------------------------------
+  // Flush to Postgres (STM-10)
+  // -------------------------------------------------------------------------
+
+  private pendingQuizIds(): string[] {
+    return [...this.kv.list({ prefix: DONE_PREFIX })].map(([key]) => key.slice(DONE_PREFIX.length));
+  }
+
+  /**
+   * Write finished quiz `quizId` to Postgres, then delete it here. Resolves
+   * true when Postgres has it (now or earlier; also when there is no such
+   * entry), false when the write failed and the entry is kept for the alarm.
+   * Never throws. The route awaits this right after finish().
+   */
+  flush(quizId: string): Promise<boolean> {
+    const running = this.inFlight.get(quizId);
+    if (running) return running;
+    const quiz = this.kv.get<FinishedQuiz>(doneKey(quizId));
+    if (!quiz) return Promise.resolve(true); // flushed earlier (or never finished)
+
+    const attempt = this.writeThenDelete(quiz).finally(() => this.inFlight.delete(quizId));
+    this.inFlight.set(quizId, attempt);
+    return attempt;
+  }
+
+  private async writeThenDelete(quiz: FinishedQuiz): Promise<boolean> {
+    const started = Date.now();
+    try {
+      const userId = quiz.userId ?? this.ctx.id.name;
+      if (!userId) throw new Error("quiz has no userId and the object has no name");
+      // Bounded, so a hung connection can't hold the single-flight slot forever.
+      // If it times out but commits later anyway, the next attempt hits ON
+      // CONFLICT; only an attempt that saw its own commit (or conflict) deletes.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const inserted = await Promise.race([
+        withDb(this.env, this.ctx, (db) => writeFinishedSession(db, userId, quiz)),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`flush timed out after ${FLUSH_TIMEOUT_MS} ms`)), FLUSH_TIMEOUT_MS);
+        }),
+      ]).finally(() => clearTimeout(timer));
+      // Only now, after COMMIT resolved, is our copy deleted. A crash between
+      // the two leaves the entry; the next attempt hits ON CONFLICT and lands here.
+      // Both writes are in one synchronous turn, so they commit together.
+      const last = this.kv.get<FinishedQuiz>(LAST);
+      if (!last || last.finishedAt <= quiz.finishedAt) this.kv.put(LAST, quiz); // newest finish wins
+      this.kv.delete(doneKey(quiz.quizId));
+      console.log(
+        JSON.stringify({ event: "session_flush_ok", quizId: quiz.quizId, inserted, ms: Date.now() - started }),
+      );
+      return true;
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "session_flush_failed",
+          quizId: quiz.quizId,
+          error: err instanceof Error ? err.message : String(err),
+          // Drizzle wraps driver errors ("Failed query: …"); the real reason is the cause.
+          cause: err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined,
+          ms: Date.now() - started,
+        }),
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Retry every unflushed quiz, each independently (one bad entry never blocks
+   * the others). Alarms are at-least-once and may overlap a flush() from a
+   * request; the single-flight map and the idempotency key make both harmless.
+   *
+   * It never throws: the runtime only retries a throwing alarm 6 times, and
+   * this must retry forever. Instead, while anything is left, it schedules the
+   * next pass itself with exponential backoff (5 s … 10 min cap). There is one
+   * alarm per object, so one pass covers every entry.
+   */
+  async alarm(info?: AlarmInvocationInfo): Promise<void> {
+    const pending = this.pendingQuizIds();
+    let failed = 0;
+    for (const quizId of pending) {
+      if (!(await this.flush(quizId))) failed++;
+    }
+    if (failed === 0) this.kv.delete(RETRIES);
+    // Re-read: a quiz finished while we were awaiting is pending too.
+    const left = this.pendingQuizIds().length;
+    if (left === 0) return;
+
+    // Back off only on real failures; a newcomer just gets the base delay.
+    const passes = failed > 0 ? (this.kv.get<number>(RETRIES) ?? 0) + 1 : 0;
+    if (failed > 0) this.kv.put(RETRIES, passes);
+    const delayMs = failed > 0 ? retryDelay(passes) : RETRY_BASE_MS;
+    // One alarm per object: keep whichever is earlier, so a newer finish()'s
+    // alarm is never pushed back by this pass's backoff.
+    const next = Date.now() + delayMs;
+    const existing = await this.ctx.storage.getAlarm();
+    if (existing === null || existing > next) await this.ctx.storage.setAlarm(next);
+    if (failed === 0) return;
+    const log = {
+      event: passes >= STUCK_AFTER ? "session_flush_STUCK" : "session_flush_retry_scheduled",
+      object: this.ctx.id.toString(),
+      pending: left,
+      failedThisPass: failed,
+      failedPasses: passes,
+      nextInMs: delayMs,
+      runtimeRetryCount: info?.retryCount ?? 0,
+    };
+    // STUCK: a friend's results have been waiting ~30 min or more. Loud on purpose.
+    (passes >= STUCK_AFTER ? console.error : console.warn)(JSON.stringify(log));
   }
 
   getPrefs(): Prefs {
