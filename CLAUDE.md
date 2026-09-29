@@ -59,6 +59,7 @@ Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a 
 ```
 src/                  React app (browser only, never import from worker/)
 worker/index.ts       Hono app, basePath /api
+worker/quiz/assemble.ts  quiz assembly (STM-8): GET /api/quiz?category=&difficulty=&length=
 worker/questions/payload.ts  Zod schemas for questions.payload per format (imported by the Worker and scripts/)
 scripts/              operator scripts, run with tsx, type-checked by tsconfig.node.json (seed.ts, seed-file.ts)
 wrangler.jsonc        Worker config and bindings (bindings are added by the ticket that needs them)
@@ -103,7 +104,7 @@ Claim lock → Extract → Fingerprint (stop if the bank exists) → Classify (s
 
 ## Limits and targets
 
-PDF ≤ 50 pages and ≤ 20 MB. Sign-in is a Clerk email code; a session lasts 7 days (fixed on Clerk's free plan). Quiz lengths 5/10/20. Exclude questions seen in the last 30 days until the pool is exhausted. Quiz start < 1 s, MC answer < 300 ms, cached source < 2 s, generation ~90 s typical. Cost < $15/month, < $0.15 per source.
+PDF ≤ 50 pages and ≤ 20 MB. Sign-in is a Clerk email code; a session lasts 7 days (fixed on Clerk's free plan). Quiz lengths 5/10/20. Exclude questions seen in the last 30 days until the pool is exhausted. Fallback (STM-8, one query in `worker/quiz/assemble.ts`): unseen questions first at random, then the least recently seen; "seen" = in one of the user's *finished* sessions; a pool smaller than the length returns all of it with `short: true`. Quiz start < 1 s, MC answer < 300 ms, cached source < 2 s, generation ~90 s typical. Cost < $15/month, < $0.15 per source.
 
 ## Security
 
