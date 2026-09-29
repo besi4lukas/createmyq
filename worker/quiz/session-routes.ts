@@ -6,8 +6,8 @@
  *
  *   POST /api/session          start a quiz (409 + the quiz if one is in progress)
  *   GET  /api/session          the quiz in progress, for resume ({ quiz: null } if none)
- *   POST /api/session/answer   { index, option } → graded in the object
- *   POST /api/session/finish   score + full review
+ *   POST /api/session/answer   { quizId, index, option } → graded in the object
+ *   POST /api/session/finish   { quizId } → score + full review
  *   GET  /api/prefs, PUT /api/prefs
  */
 import { Hono, type Context } from "hono";
@@ -38,7 +38,10 @@ const startBody = z.strictObject({
   mode: quizModeSchema,
 });
 
+const quizId = z.uuid();
+
 const answerBody = z.strictObject({
+  quizId,
   index: z.number().int().min(0).max(19),
   option: z.number().int().min(0).max(3),
 });
@@ -83,13 +86,18 @@ sessionRoutes.get("/session", async (c) => c.json({ quiz: await userSession(c).g
 
 sessionRoutes.post("/session/answer", async (c) => {
   const input = answerBody.safeParse(await body(c));
-  if (!input.success) return c.json({ error: "Send the question index and the option you picked (0 to 3)." }, 400);
+  if (!input.success) {
+    return c.json({ error: "Send the quiz id, the question index and the option you picked (0 to 3)." }, 400);
+  }
 
-  const out = await userSession(c).answer(input.data.index, input.data.option);
+  const { quizId, index, option } = input.data;
+  const out = await userSession(c).answer(quizId, index, option);
   if (out.ok) return c.json(out);
   switch (out.code) {
     case "no_quiz":
       return c.json({ error: "There is no quiz in progress.", code: out.code }, 404);
+    case "not_current_quiz":
+      return c.json({ error: "That quiz is no longer in progress.", code: out.code }, 409);
     case "out_of_order":
       return c.json({ error: "That is not the current question.", code: out.code, currentIndex: out.currentIndex }, 409);
     case "bad_option":
@@ -97,9 +105,14 @@ sessionRoutes.post("/session/answer", async (c) => {
   }
 });
 
+const finishBody = z.strictObject({ quizId });
+
 sessionRoutes.post("/session/finish", async (c) => {
-  const out = await userSession(c).finish();
-  if (!out.ok) return c.json({ error: "There is no quiz to finish.", code: out.code }, 404);
+  const input = finishBody.safeParse(await body(c));
+  if (!input.success) return c.json({ error: "Send the id of the quiz to finish." }, 400);
+
+  const out = await userSession(c).finish(input.data.quizId);
+  if (!out.ok) return c.json({ error: "There is no such quiz to finish.", code: out.code }, 404);
   return c.json({ alreadyFinished: out.alreadyFinished, result: out.result });
 });
 

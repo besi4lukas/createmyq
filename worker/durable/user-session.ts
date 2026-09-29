@@ -11,9 +11,13 @@
  *
  * Keys:
  *   quiz:active          the quiz in progress (at most one)
- *   quiz:done:<key>      a finished quiz, kept until STM-10 has flushed it
- *   quiz:last            idempotency key of the most recently finished quiz
+ *   quiz:done:<quizId>   a finished quiz, kept until STM-10 has flushed it
  *   prefs                preferences
+ *
+ * Every quiz has a public `quizId` (random, opaque) that the client sends back
+ * with each answer and with finish, so a late retry meant for an earlier quiz
+ * can never land on the one in progress. The idempotency key is separate and
+ * never leaves the object.
  *
  * The snapshot holds the full question (answer and explanation included). It
  * never leaves the object except through `toPublic*` / the finish review.
@@ -68,7 +72,9 @@ type StoredAnswer = {
 
 /** Everything STM-10 needs to write sessions, session_questions and answers. */
 type Quiz = {
-  /** Generated at start; sessions.idempotency_key. */
+  /** Public id the client names the quiz by (answer, finish). */
+  quizId: string;
+  /** Generated at start; sessions.idempotency_key. Server side only. */
   idempotencyKey: string;
   kind: "category";
   categoryId: string;
@@ -91,8 +97,7 @@ export type StartInput = Pick<Quiz, "categoryId" | "category" | "difficulty" | "
 };
 
 const ACTIVE = "quiz:active";
-const LAST = "quiz:last";
-const doneKey = (idempotencyKey: string) => `quiz:done:${idempotencyKey}`;
+const doneKey = (quizId: string) => `quiz:done:${quizId}`;
 const PREFS = "prefs";
 
 // ---------------------------------------------------------------------------
@@ -125,6 +130,7 @@ function publicAnswer(quiz: Quiz, index: number) {
 
 function toPublicQuiz(quiz: Quiz) {
   return {
+    quizId: quiz.quizId,
     category: quiz.category,
     difficulty: quiz.difficulty,
     mode: quiz.mode,
@@ -141,6 +147,7 @@ export type PublicQuiz = ReturnType<typeof toPublicQuiz>;
 /** Finish: the score and every question with its answer, in both modes (FR-16, FR-19). */
 function toResult(quiz: Quiz) {
   return {
+    quizId: quiz.quizId,
     category: quiz.category,
     difficulty: quiz.difficulty,
     mode: quiz.mode,
@@ -174,7 +181,7 @@ export type AnswerOutcome =
       currentIndex: number;
       done: boolean;
     }
-  | { ok: false; code: "no_quiz" | "out_of_order" | "bad_option"; currentIndex?: number };
+  | { ok: false; code: "no_quiz" | "not_current_quiz" | "out_of_order" | "bad_option"; currentIndex?: number };
 
 // ---------------------------------------------------------------------------
 // The object
@@ -207,6 +214,7 @@ export class UserSession extends DurableObject<Env> {
 
     const quiz: Quiz = {
       ...input,
+      quizId: crypto.randomUUID(),
       idempotencyKey: crypto.randomUUID(),
       kind: "category",
       startedAt: new Date().toISOString(),
@@ -219,8 +227,10 @@ export class UserSession extends DurableObject<Env> {
   }
 
   /**
-   * Answer question `index` with option `option`, graded here against the
-   * snapshot (multiple choice is graded in code, FR-15).
+   * Answer question `index` of quiz `quizId` with option `option`, graded here
+   * against the snapshot (multiple choice is graded in code, FR-15). An answer
+   * naming any quiz other than the one in progress (e.g. a stale retry from a
+   * finished quiz) is rejected with `not_current_quiz` and changes nothing.
    *
    * Idempotent by index: questions are answered strictly in order, so
    * `index < currentIndex` means it was already answered. A repeat (double
@@ -228,9 +238,10 @@ export class UserSession extends DurableObject<Env> {
    * with `duplicate: true`, even if it names a different option: an answer is
    * never changed or re-asked once given. `index > currentIndex` is rejected.
    */
-  answer(index: number, option: number): AnswerOutcome {
+  answer(quizId: string, index: number, option: number): AnswerOutcome {
     const quiz = this.active();
     if (!quiz) return { ok: false, code: "no_quiz" };
+    if (quiz.quizId !== quizId) return { ok: false, code: "not_current_quiz" };
 
     const currentIndex = quiz.answers.length;
     const done = (n: number) => n >= quiz.questions.length;
@@ -254,28 +265,27 @@ export class UserSession extends DurableObject<Env> {
   }
 
   /**
-   * Finish the quiz in progress: score it and move it from `quiz:active` to
-   * `quiz:done:<idempotencyKey>`, where it stays until Postgres confirms the
-   * flush (STM-10). Nothing is deleted. A finished-but-unflushed quiz does not
-   * block a new one: it no longer needs the user, only the flush.
+   * Finish quiz `quizId`: score it and move it from `quiz:active` to
+   * `quiz:done:<quizId>`, where it stays until Postgres confirms the flush
+   * (STM-10). Nothing is deleted. A finished-but-unflushed quiz does not block
+   * a new one: it no longer needs the user, only the flush.
    *
    * Finishing with unanswered questions is allowed (they count as not correct).
-   * Calling finish again with nothing in progress returns the last result with
-   * `alreadyFinished: true`, so a retried finish is harmless.
+   * If `quizId` names an already-finished quiz, its stored result comes back
+   * with `alreadyFinished: true` and the quiz in progress (if any) is not
+   * touched, so a retried finish is harmless even after a new quiz started.
    */
-  finish(): { ok: true; alreadyFinished: boolean; result: QuizResult } | { ok: false; code: "no_quiz" } {
+  finish(quizId: string): { ok: true; alreadyFinished: boolean; result: QuizResult } | { ok: false; code: "no_quiz" } {
     const quiz = this.active();
-    if (!quiz) {
-      const lastKey = this.kv.get<string>(LAST);
-      const last = lastKey ? this.kv.get<Quiz>(doneKey(lastKey)) : undefined;
-      return last ? { ok: true, alreadyFinished: true, result: toResult(last) } : { ok: false, code: "no_quiz" };
+    if (quiz?.quizId !== quizId) {
+      const done = this.kv.get<Quiz>(doneKey(quizId));
+      return done ? { ok: true, alreadyFinished: true, result: toResult(done) } : { ok: false, code: "no_quiz" };
     }
 
     quiz.finishedAt = new Date().toISOString();
     quiz.score = quiz.answers.filter((a) => a.correct).length;
-    // All three writes happen in this one synchronous call, so they commit together.
-    this.kv.put(doneKey(quiz.idempotencyKey), quiz);
-    this.kv.put(LAST, quiz.idempotencyKey);
+    // Both writes happen in this one synchronous call, so they commit together.
+    this.kv.put(doneKey(quiz.quizId), quiz);
     this.kv.delete(ACTIVE);
     // TODO(STM-10): flush quiz:done:* to Postgres in one transaction
     // (ON CONFLICT (idempotency_key) DO NOTHING), retry via alarm on failure,
