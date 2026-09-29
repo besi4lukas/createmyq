@@ -7,7 +7,7 @@
  *   POST /api/session          start a quiz (409 + the quiz if one is in progress)
  *   GET  /api/session          the quiz in progress, for resume ({ quiz: null } if none)
  *   POST /api/session/answer   { quizId, index, option } → graded in the object
- *   POST /api/session/finish   { quizId } → score + full review
+ *   POST /api/session/finish   { quizId } → score + full review, then flush to Postgres (STM-10)
  *   GET  /api/prefs, PUT /api/prefs
  */
 import { Hono, type Context } from "hono";
@@ -70,7 +70,15 @@ sessionRoutes.post("/session", async (c) => {
   const questions = await assembleQuiz(c.var.db, c.var.user.id, { category, difficulty, length, categoryId });
   if (questions.length === 0) return c.json({ error: "There are no questions at this difficulty yet." }, 404);
 
-  const { started, quiz } = await stub.start({ categoryId, category, difficulty, length, mode, questions });
+  const { started, quiz } = await stub.start({
+    userId: c.var.user.id,
+    categoryId,
+    category,
+    difficulty,
+    length,
+    mode,
+    questions,
+  });
   if (!started) return quizInProgress(c, quiz);
   return c.json({ quiz }, 201);
 });
@@ -106,14 +114,29 @@ sessionRoutes.post("/session/answer", async (c) => {
 });
 
 const finishBody = z.strictObject({ quizId });
+/** How long finish waits for the Postgres flush before answering anyway (STM-10). */
+const FINISH_WAIT_MS = 5_000;
 
 sessionRoutes.post("/session/finish", async (c) => {
   const input = finishBody.safeParse(await body(c));
   if (!input.success) return c.json({ error: "Send the id of the quiz to finish." }, 400);
 
-  const out = await userSession(c).finish(input.data.quizId);
+  const stub = userSession(c);
+  const out = await stub.finish(input.data.quizId);
   if (!out.ok) return c.json({ error: "There is no such quiz to finish.", code: out.code }, 404);
-  return c.json({ alreadyFinished: out.alreadyFinished, result: out.result });
+  // STM-10: finish() has already stored the result durably in the object and
+  // set a retry alarm. Awaiting the flush here means that, normally, the
+  // session is in Postgres before we answer (results/history and the 30-day
+  // exclusion see it at once). If it fails, the user still gets their result
+  // (saved: false) and the alarm keeps retrying. flush() never throws. We wait
+  // at most FINISH_WAIT_MS: past that the flush carries on in the object (or
+  // the alarm redoes it) and the user shouldn't be kept waiting for it.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const saved = await Promise.race([
+    stub.flush(input.data.quizId),
+    new Promise<false>((resolve) => (timer = setTimeout(() => resolve(false), FINISH_WAIT_MS))),
+  ]).finally(() => clearTimeout(timer));
+  return c.json({ alreadyFinished: out.alreadyFinished, saved, result: out.result });
 });
 
 sessionRoutes.get("/prefs", async (c) => c.json({ prefs: await userSession(c).getPrefs() }));
