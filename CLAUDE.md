@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-CreateMyQ (the product is called **Stumper**) is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
+**CreateMyQ** is an invite-only quiz app for 50–100 friends and family. A user picks a built-in category, or uploads a PDF / article URL / YouTube link, and gets a quiz. Then they see what they got wrong and why. There is one subject area, software engineering, and off-topic sources are refused.
 
 Source docs: *CreateMyQ Paper First Design* (the "design tab") and *Build tickets*. Tickets are tracked in [TASKS.md](TASKS.md).
 
@@ -22,6 +22,7 @@ Source docs: *CreateMyQ Paper First Design* (the "design tab") and *Build ticket
 | Durable Objects: per-user session + prefs; per-content-hash generation lock | STM-9, STM-16 |
 | R2 (uploads), Queues + Workflows (generation) | STM-13, STM-15 |
 | Jev classifier behind a `Classifier` interface; model calls via AI Gateway | STM-21, STM-18 |
+| Clerk (email code sign-in, dev instance for now); `@clerk/react` + `@clerk/backend` | STM-5 |
 | Sentry + Workers Logs | STM-27 |
 
 No Next.js, no second host, no CORS. The frontend and API share one origin and one deploy.
@@ -90,18 +91,22 @@ Claim lock → Extract → Fingerprint (stop if the bank exists) → Classify (s
 ## User-facing messages (use these exact strings)
 
 - No text extracted: "I could not read this file. Scanned PDFs are not supported yet."
-- Off-topic: "This looks like {detected}. Stumper only covers software engineering right now."
+- Off-topic: "This looks like {detected}. CreateMyQ only covers software engineering right now."
 - Too few questions: the job fails and says the source was too thin.
 - Daily cap: "You have hit today's limit. It resets at midnight."
 - Spend ceiling crossed: generation is disabled and the message says why.
 
 ## Limits and targets
 
-PDF ≤ 50 pages and ≤ 20 MB. Magic link valid 15 min, single use. Session cookie 30 days. Quiz lengths 5/10/20. Exclude questions seen in the last 30 days until the pool is exhausted. Quiz start < 1 s, MC answer < 300 ms, cached source < 2 s, generation ~90 s typical. Cost < $15/month, < $0.15 per source.
+PDF ≤ 50 pages and ≤ 20 MB. Sign-in is a Clerk email code; a session lasts 7 days (fixed on Clerk's free plan). Quiz lengths 5/10/20. Exclude questions seen in the last 30 days until the pool is exhausted. Quiz start < 1 s, MC answer < 300 ms, cached source < 2 s, generation ~90 s typical. Cost < $15/month, < $0.15 per source.
 
 ## Security
 
-- Every `/api` route requires a valid session except the sign-in endpoints.
+- Every `/api` route requires a valid session except `GET /api/health`. New routes are protected by default (`PUBLIC` in `worker/auth/session.ts`).
+- Sign-in is Clerk, email code only. The SPA sends the Clerk session token as `Authorization: Bearer …`; the Worker ignores the `__session` cookie and verifies the token networkless with the secret `CLERK_JWT_KEY` (JWKS public key, PEM) and `azp` = the request's origin. No `CLERK_SECRET_KEY` in the Worker. A missing key fails closed (500).
+- Invite-only, two layers: Clerk runs in **Restricted** mode (strangers can't create accounts), and the `invites` table is the allowlist and the source of truth. The verified email comes from a custom session-token claim `{"email": "{{user.primary_email_address}}"}`; an email not in `invites` gets 403 `not_invited`. The `users` row is created on the first request (no webhooks).
+- **Adding a person = an `invites` row + a Clerk user** (Dashboard → Users → Create user). Removing one = both too.
+- This departs from the design doc's FR-2/FR-3 (magic link, 30-day cookie) by the user's decision (2026-09-28). `magic_links` and `auth_sessions` are unused.
 - Users read only their own sessions, answers, preferences and private sources.
 - Uploads go browser → R2 via short-lived signed URL, never through the API.
 - Secrets: `wrangler secret put` in prod, `.dev.vars` locally (gitignored). Never commit secrets.

@@ -23,6 +23,9 @@
       "id": "02d4ca5e5664448bb41400bfff148cf7"
     }
   ]
+  // STM-5: sign-in is Clerk. The Worker verifies session tokens with the secret
+  // CLERK_JWT_KEY (Clerk dashboard → API keys → JWKS Public Key, PEM). It is a
+  // secret, not a var: `npx wrangler secret put CLERK_JWT_KEY` in prod, .dev.vars locally.
   // Bindings arrive with their tickets, not before:
   //   STM-9  Durable Object: user session
   //   STM-13 R2 bucket for uploads

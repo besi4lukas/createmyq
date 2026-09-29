@@ -4,3 +4,8 @@
 
 # Keep a .dev.vars file even if it's empty: without one, wrangler falls back to .env
 # and would expose every .env/.env.local variable to the Worker (and to `wrangler types`).
+
+# STM-5: Clerk JWKS public key (Clerk dashboard → API keys → JWKS Public Key, PEM).
+# The Worker verifies session tokens with it, networkless. Keep the line breaks inside
+# double quotes. Production: pbpaste | npx wrangler secret put CLERK_JWT_KEY
+# CLERK_JWT_KEY="<paste the whole PEM here, BEGIN/END lines and line breaks included>"
