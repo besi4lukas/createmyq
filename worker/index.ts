@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { requireSession, type AppEnv } from "./auth/session";
-import { categories } from "./db/schema";
-import { assembleQuery, assembleQuiz, toPublicQuestion } from "./quiz/assemble";
+import { assembleQuery, assembleQuiz, findCategoryId, toPublicQuestion } from "./quiz/assemble";
+import { sessionRoutes } from "./quiz/session-routes";
+
+// Durable Object classes must be exported from the Worker entry.
+export { UserSession } from "./durable/user-session";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -39,13 +42,10 @@ app.get("/quiz", async (c) => {
   }
   const { category, difficulty, length } = input.data;
 
-  const [cat] = await c.var.db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(eq(categories.slug, category));
-  if (!cat) return c.json({ error: "That category does not exist." }, 404);
+  const categoryId = await findCategoryId(c.var.db, category);
+  if (!categoryId) return c.json({ error: "That category does not exist." }, 404);
 
-  const picked = await assembleQuiz(c.var.db, c.var.user.id, { ...input.data, categoryId: cat.id });
+  const picked = await assembleQuiz(c.var.db, c.var.user.id, { ...input.data, categoryId });
   if (picked.length === 0) {
     return c.json({ error: "There are no questions at this difficulty yet." }, 404);
   }
@@ -58,6 +58,9 @@ app.get("/quiz", async (c) => {
     questions: picked.map(toPublicQuestion),
   });
 });
+
+// STM-9: the quiz in progress and preferences, held in the user's Durable Object.
+app.route("/", sessionRoutes);
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 

@@ -60,6 +60,8 @@ Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a 
 src/                  React app (browser only, never import from worker/)
 worker/index.ts       Hono app, basePath /api
 worker/quiz/assemble.ts  quiz assembly (STM-8): GET /api/quiz?category=&difficulty=&length=
+worker/quiz/session-routes.ts  STM-9 routes: POST/GET /api/session, POST /api/session/answer, POST /api/session/finish, GET/PUT /api/prefs
+worker/durable/user-session.ts  UserSession DO (STM-9), one per user via idFromName(users.id); exported from worker/index.ts
 worker/questions/payload.ts  Zod schemas for questions.payload per format (imported by the Worker and scripts/)
 scripts/              operator scripts, run with tsx, type-checked by tsconfig.node.json (seed.ts, seed-file.ts)
 wrangler.jsonc        Worker config and bindings (bindings are added by the ticket that needs them)
@@ -70,7 +72,7 @@ drizzle.config.ts     drizzle-kit config
 tsconfig.*.json       app / worker / node projects, referenced from tsconfig.json
 ```
 
-Expected additions as tickets land: `worker/durable/` (DOs), `worker/workflows/`, `worker/classifier/`, `seed/` (question JSON), `scripts/` (operator scripts: seed, invite, cost report, benchmark), `fixtures/eval/` (gate eval set).
+Expected additions as tickets land: more DOs in `worker/durable/`, `worker/workflows/`, `worker/classifier/`, `seed/` (question JSON), `scripts/` (operator scripts: seed, invite, cost report, benchmark), `fixtures/eval/` (gate eval set).
 
 ## Where state lives (the rule)
 
@@ -80,6 +82,9 @@ Expected additions as tickets land: `worker/durable/` (DOs), `worker/workflows/`
 
 ### DO → Postgres flush (the one place data can be lost)
 On finish the DO writes the whole session in **one transaction** with an **idempotency key**. On failure it keeps the data and retries via **alarm**. **Nothing is deleted from the DO until Postgres confirms.** Calling finish twice must produce exactly one row. Losing a friend's results is the one unacceptable bug.
+
+### UserSession DO (STM-9)
+Sync KV storage (`ctx.storage.kv`), every method synchronous, so nothing interleaves. Keys: `quiz:active` (at most one quiz in progress: full snapshot incl. answers, `answers[]` in order, public `quizId` and private `idempotencyKey` made at start), `quiz:done:<quizId>` (finished, awaiting flush), `prefs`. Answer and finish must name the `quizId`, so a stale retry can't land on a newer quiz (answer → 409 `not_current_quiz`; finish of an already-finished quiz → its stored result, `alreadyFinished: true`). The route assembles (it already holds the DB connection) and hands the snapshot to `start()`. Starting while a quiz is in progress → 409 `quiz_in_progress` with that quiz (resume, FR-18); the way out is finish, which may be early. Answers are strictly in order and idempotent by index (a repeat returns the stored answer, `duplicate: true`). Practice returns verdict + explanation per answer; Exam returns only the choice until finish; finish returns score + full review in both. **STM-10 seam:** `finish()` moves the quiz to `quiz:done:<quizId>` (marked `TODO(STM-10)`); the flush drains those and deletes each only after Postgres commits.
 
 ## Data model invariants
 
