@@ -52,7 +52,8 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 
 - [ ] **STM-7 Seed script** · 1h · depends: STM-4, STM-6
   Loads a question JSON file into the bank, with validation.
-  **Done when:** 20 approved questions are in the DB and rerunning the script does not duplicate them.
+  **Done when:** all questions in the file (40 in `seed/system-design.json`) are in the DB as approved, and rerunning the script does not duplicate them.
+  _Status:_ in review (PR open). `npm run db:seed -- <file> [--dry-run]` (`scripts/seed.ts`). Validates the whole file with Zod before connecting (payload schema in `worker/questions/payload.ts`, file schema in `scripts/seed-file.ts`), then one transaction: upsert category by slug, upsert questions by `external_id` as origin `seed`, status `approved`. Re-runs update changed content only and never touch `status`, so a flagged or retired question stays hidden. Reports inserted / updated / unchanged; `--dry-run` rolls the transaction back. Verified on throwaway Neon branch `stm-7-seed-test` (deleted): 40 inserted with every field matching the JSON, rerun 0/0/40, one edited explanation → updated 1, a corrupted file reports all 7 problems and writes nothing, dry run writes nothing, a `pending_review` question stays hidden after re-seeds. Not yet run against `production`.
 
 - [ ] **STM-8 Quiz assembly endpoint** 🔍 · 2h · depends: STM-7
   Category, difficulty and length in, sampled questions out. Excludes anything the user saw in the last 30 days, with a documented fallback when the pool runs dry.
