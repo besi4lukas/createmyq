@@ -71,7 +71,7 @@
         ],
         "answer": "Those reads get faster, but inserts and updates must also update the index"
       },
-      "explanation": "An index lets the database find matching rows without scanning the whole table, like the index at the back of a book. The cost is that every insert, delete, and update to that column must also change the index, so writes do a little more work. The index does take disk space too, but that is not the only cost, and writes never get faster because of it. Queries on other columns are not slowed down; they simply do not use the new index."
+      "explanation": "An index lets the database find matching rows without scanning the whole table, like the index at the back of a book. The cost is that every insert and delete, and every update that changes the indexed column, must also change the index, so those writes do a little more work. The index takes disk space too, but that is not the only cost. Adding an index does not reorder the table's rows, and it does not make writes faster in general (at most, an update or delete that filters on that column finds its rows sooner, but it still pays to maintain the index). Queries on other columns are not slowed down; they simply do not use the new index."
     },
     {
       "external_id": "sd-005",
@@ -105,7 +105,7 @@
         ],
         "answer": "Orders stop waiting on emails; the email service works through the backlog later"
       },
-      "explanation": "A queue decouples the two services. The order service drops an \"email this customer\" job on the queue and finishes the order straight away, so a slow email service no longer makes orders time out. A traffic spike becomes a backlog of jobs that the email service works through at its own pace. The queue does not send emails itself or make the email service faster. Queues do not promise exactly-once delivery, and nothing is skipped; each job waits in the queue until it is processed."
+      "explanation": "A queue decouples the two services. The order service drops an \"email this customer\" job on the queue and finishes the order straight away, so a slow email service no longer makes orders time out. A traffic spike becomes a backlog of jobs that the email service works through at its own pace. The queue does not send emails itself or make the email service faster. Most queues deliver each job at least once, so an email can occasionally go out twice, and no queue controls what happens in a customer's inbox. Nothing is skipped either; each job waits in the queue until it is processed."
     },
     {
       "external_id": "sd-007",
@@ -248,17 +248,17 @@
       "format": "multiple_choice",
       "difficulty": "advanced",
       "topic": "network partitions",
-      "prompt": "A database keeps a full copy of its data in two data centers, and clients on both sides read and write it. The network link between the data centers fails, so neither side can check with the other, but clients on both sides keep sending requests. Until the link is repaired, what must the system accept?",
+      "prompt": "A database keeps a full copy of its data in two data centers, and clients on both sides read and write it. The business requires that both sides always give the same answer for the same data. The network link between the data centers fails, so neither side can check with the other, but clients on both sides keep sending requests. Until the link is repaired, what must the system accept?",
       "payload": {
         "options": [
           "Nothing, as long as each write is copied to both sides before it is confirmed",
           "Only slower responses, while each side keeps serving up-to-date data",
-          "Either some requests are refused, or the two sides may give different answers",
+          "Refused requests on at least one side, until the link is repaired",
           "Lost data, since writes made while the link is down are dropped when it returns"
         ],
-        "answer": "Either some requests are refused, or the two sides may give different answers"
+        "answer": "Refused requests on at least one side, until the link is repaired"
       },
-      "explanation": "While the two sides cannot talk, a side that gets a request can either answer it on its own, and risk the two copies drifting apart because each side misses the other's writes, or refuse any request it cannot safely answer without the other side. No design avoids this choice; systems differ in which they pick and where. Many keep one side fully working and make only the other side refuse. This is the trade-off the CAP theorem describes. Copying each write to both sides before confirming it cannot finish while the link is down, so those writes wait or fail, which is the \"refuse\" choice. A broken link does not just slow things down: there is no route to the other side, so a side cannot know it has the latest data. Lost data is not inevitable either: systems that keep answering merge the two sides when the link returns."
+      "explanation": "Because the two sides must always agree, a side cannot answer on its own: it might miss a write the other side accepted, and the two copies would drift apart. So a side has to refuse any request it cannot safely answer without the other side (or hold it until the link returns, which to the client is the same thing). Many systems let one side, chosen in advance, keep working and make only the other side refuse. This is the trade-off the CAP theorem describes: during a network partition a system gives up either consistency or availability, and this business has chosen consistency. A system that kept answering on both sides would stay available but could give different answers until the link is back. Copying each write to both sides before confirming it cannot finish while the link is down, so those writes wait or fail: that is refusing requests, not avoiding the cost. A broken link does not just slow things down: there is no route to the other side, so a side cannot know it has the latest data. Lost data is not required either: writes that were refused were never accepted, so there is nothing to drop when the link returns."
     },
     {
       "external_id": "sd-016",
@@ -320,13 +320,13 @@
       "payload": {
         "options": [
           "About 1%",
-          "About 10%",
+          "About 37%",
           "About 63%",
-          "About 99%"
+          "About 100%"
         ],
         "answer": "About 63%"
       },
-      "explanation": "A user request is fast only if all 100 responses are fast: 0.99^100 is about 0.37, so about 63% of requests hit at least one slow server. This is why systems that fan out watch p99 and p99.9 latency rather than averages, and use techniques such as hedged requests (sending a backup request if the first is slow) to cut the tail. The 1% answer ignores the fan-out, and 99% comes from adding 1% a hundred times, which overcounts because the chances of independent events do not simply add up."
+      "explanation": "A user request is fast only if all 100 responses are fast. The chance of that is 0.99^100, about 0.37, so about 63% of requests hit at least one slow server. About 37% is that share of fast requests, not the slow ones. About 1% is the chance for a single server and ignores the fan-out. About 100% comes from adding 1% a hundred times, which overcounts because the chances of independent events cannot simply be added. This is why systems that fan out watch p99 and p99.9 latency rather than averages, and use techniques such as hedged requests (sending a backup request if the first is slow) to cut the tail."
     },
     {
       "external_id": "sd-020",
@@ -360,7 +360,7 @@
         ],
         "answer": "A relational database, with linked tables and multi-row transactions"
       },
-      "explanation": "The data is made of separate things that refer to each other (customers place orders for products), reports combine them in many ways, and an order must change two records together. That is what a relational (SQL) database is built for: joins combine tables in any query, and a transaction makes several changes succeed or fail as one. A key-value store is fast for fetching one record by its key, but it cannot answer a question that spans many records. A document store suits data that is mostly read as one whole piece; cross-document reports and updates are possible in many of them but are not their strength. A wide-column store is built for enormous write volumes across many machines, which a small shop does not have, and it gives up flexible joins to get there."
+      "explanation": "The data is made of separate things that refer to each other (customers place orders for products), reports combine them in many ways, and an order must change two records together. That is what a relational (SQL) database is built for: joins combine tables in any query, and a transaction makes several changes succeed or fail as one. A key-value store is fast for fetching one record by its key, but it has no joins or general queries across records, so every report would mean fetching and combining records in app code. A document store suits data that is mostly read as one whole piece. Modern document stores do support multi-document transactions (MongoDB since version 4.0) and some joins, so the shop could be built on one, but reports that combine records in many different ways are what relational databases are built for. A wide-column store is built for enormous write volumes across many machines, which a small shop does not have, and it gives up flexible joins to get there."
     },
     {
       "external_id": "sd-022",
@@ -401,7 +401,7 @@
       "format": "multiple_choice",
       "difficulty": "beginner",
       "topic": "capacity estimation",
-      "prompt": "A new API expects about 100 million requests a day. At the busiest time of day, traffic is about 3 times the daily average, and one server can handle 500 requests per second. Roughly how many servers are needed at the busiest time?",
+      "prompt": "A new API expects about 100 million requests a day. At the busiest time of day, traffic is about 3 times the daily average, and one server can handle 500 requests per second. Rounding up to whole servers and ignoring spares, roughly how many servers are needed at the busiest time?",
       "payload": {
         "options": [
           "About 3",
@@ -411,7 +411,7 @@
         ],
         "answer": "About 7"
       },
-      "explanation": "A day has 86,400 seconds, or roughly 100,000, so 100 million requests a day is about 1,200 requests per second on average. The busiest time is 3 times that, about 3,500 per second, and at 500 per server that needs about 7 servers (in practice you would add a few spare ones in case some fail). About 3 comes from planning for the average and forgetting the peak. About 170 comes from dividing by the 3,600 seconds in an hour instead of the seconds in a day. About 70 is a slipped zero, which is why it helps to round to powers of ten and sanity-check each step."
+      "explanation": "A day has 86,400 seconds, so 100 million requests a day is about 1,160 requests per second on average. The busiest time is 3 times that, about 3,470 per second, and at 500 per server that needs 6.9, so 7 servers. (Rounding a day to 100,000 seconds gives 6, still much closer to 7 than to any other option. In practice you would add a few spare servers in case some fail.) About 3 comes from planning for the average and forgetting the peak: 1,160 per second needs 2.3 servers, rounded up to 3. About 170 comes from dividing by the 3,600 seconds in an hour instead of the seconds in a day. About 70 is ten times too many, the kind of slip (such as treating 100 million as a billion) that rounding to powers of ten and sanity-checking each step helps catch."
     },
     {
       "external_id": "sd-025",
@@ -474,12 +474,12 @@
         "options": [
           "About 98%",
           "About 99%",
-          "About 99.5%",
+          "About 99.9%",
           "About 99.99%"
         ],
         "answer": "About 99.99%"
       },
-      "explanation": "With two copies, the database layer is down only when both copies are down at the same time. Each is down 1% of the time, so both are down 1% × 1% = 0.01% of the time, which makes the layer about 99.99% available. About 98% comes from multiplying the availabilities (99% × 99%), which is the rule for parts that are all needed, one after another, such as a load balancer then an app then a database. About 99% assumes a spare adds nothing, and 99.5% averages the two. Real gains are smaller than 99.99%, because copies often fail together (same data center, same bad deploy) and switching over is never quite instant."
+      "explanation": "With two copies, the database layer is down only when both copies are down at the same time. Each is down 1% of the time, so both are down 1% × 1% = 0.01% of the time, which makes the layer about 99.99% available. About 98% comes from multiplying the availabilities (99% × 99%), which is the rule for parts that are all needed, one after another, such as a load balancer then an app then a database. About 99% assumes a spare adds nothing. About 99.9% puts the time both are down at a tenth of 1%, but it is 1% of 1%, a hundredth of 1%. Real gains are smaller than 99.99%, because copies often fail together (same data center, same bad deploy) and switching over is never quite instant."
     },
     {
       "external_id": "sd-029",
@@ -564,7 +564,7 @@
         ],
         "answer": "The time in the high bits, then a server number and a counter"
       },
-      "explanation": "Putting the time first makes IDs sort roughly by creation time. The server number keeps two servers from ever making the same ID, and the counter separates IDs made on the same server in the same millisecond. Twitter's Snowflake IDs work this way, and UUID version 7 uses the same idea: a timestamp first, then mostly random bits. Random UUIDs (version 4) are unique but in no useful order, and inserting them scatters writes across the index. A timestamp alone collides as soon as two posts are made in the same millisecond. A single counter service is the central dependency the requirements rule out: every insert would wait on it, and it could go down. Order across servers is only rough, because their clocks differ slightly."
+      "explanation": "Putting the time first makes IDs sort roughly by creation time. The server number keeps two servers from ever making the same ID, and the counter separates IDs made on the same server in the same millisecond. Twitter's Snowflake IDs work this way. UUID version 7 (RFC 9562) uses the same idea without a server number: a 48-bit millisecond timestamp first, then random bits, so it would also meet these requirements. Random UUIDs (version 4) are unique but in no useful order, and inserting them scatters writes across the index. A timestamp alone collides as soon as two posts are made in the same millisecond. A single counter service is the central dependency the requirements rule out: every insert would wait on it, and it could go down. Order across servers is only rough, because their clocks differ slightly."
     },
     {
       "external_id": "sd-034",
@@ -594,11 +594,11 @@
           "Nothing is lost, because every confirmed change reaches the log a moment later",
           "The data files can be left corrupt, with some transactions only partly applied",
           "The database must be restored from its last backup, losing hours of changes",
-          "Up to 200 ms of confirmed commits can be lost, but the data stays consistent"
+          "The most recent confirmed commits can be lost, but the data stays consistent"
         ],
-        "answer": "Up to 200 ms of confirmed commits can be lost, but the data stays consistent"
+        "answer": "The most recent confirmed commits can be lost, but the data stays consistent"
       },
-      "explanation": "Durability comes from the log reaching the disk before the commit is confirmed. With the change, a commit is confirmed while its log entry may still be only in memory, so a power cut can lose up to about 200 ms of commits that users were told had succeeded. The rest of the design still holds: changes reach the data files on disk only after their log entries are on disk, so on restart the database replays the log and ends up at a consistent point just before the crash. Nothing is half applied and no backup is needed. \"Reaches the log a moment later\" is exactly the gap that a power cut hits. Many databases offer this trade (Postgres calls it asynchronous commit); it is reasonable for data you can afford to lose, not for payments."
+      "explanation": "Durability comes from the log reaching the disk before the commit is confirmed. With the change, a commit is confirmed while its log entry may still be only in memory, so a power cut can lose the commits from roughly the last 200 ms, even though users were told they had succeeded. The rest of the design still holds: changes reach the data files on disk only after their log entries are on disk, so on restart the database replays the log and ends up at a consistent point just before the crash. Nothing is half applied and no backup is needed. \"Reaches the log a moment later\" is exactly the gap that a power cut hits. Many databases offer this trade. Postgres calls it asynchronous commit (synchronous_commit = off); there the window can reach three times the log writer's interval, 600 ms by default, and its docs describe the risk as data loss, not corruption. It is reasonable for data you can afford to lose, not for payments."
     },
     {
       "external_id": "sd-036",
