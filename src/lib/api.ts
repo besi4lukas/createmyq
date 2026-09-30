@@ -53,3 +53,8 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
   }
   return data as T;
 }
+
+/** A message that is safe to show for any error. */
+export function friendlyError(err: unknown): string {
+  return err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+}
