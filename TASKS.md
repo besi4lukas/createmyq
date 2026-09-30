@@ -75,6 +75,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-11 Quiz UI** · 2.5h · depends: STM-9
   One question at a time, multiple choice, progress, Practice and Exam modes, number keys to select, Enter to submit.
   **Done when:** a full quiz can be taken on a phone with no mouse.
+  _Status:_ built, in review (branch `stm-11-quiz-ui`). Screens from the Claude Design prototype (Nocturne tokens in `src/index.css`): sign in (Clerk, restyled), not invited, home (greeting, resume card, built-in category), setup (difficulty/length/mode prefilled from `/api/prefs`), question (layout C: counter, tags, options, Practice reveal with explanation, Exam lock-in), and a placeholder result (score + every answer) until STM-12. Verified at 390×844 on throwaway Neon branch `stm-11-quiz-ui-test` (deleted): full 5-question Practice and Exam quizzes keyboard only (Tab, arrows, 1-4, Enter), refresh mid-quiz resumes at Q4 with 3 answers, short-quiz notice for advanced/20 (12 questions), offline answer shows a friendly error and Enter retries, 409 on start resumes the running quiz, every tap target ≥ 44px, reduced-motion guard served, sign in / not invited / sign out work.
 
 - [ ] **STM-12 Results screen** · 1.5h · depends: STM-10
   Score, per-topic breakdown, every question with the correct answer and explanation.

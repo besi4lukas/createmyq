@@ -2,18 +2,195 @@
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
-/* All theme variables live here and only here (design tab: "Colour, spacing and type
-   live as theme variables in one file"). STM-26 fills this out. */
-@theme {
-  --color-surface: #fbfaf7;
-  --color-ink: #1c1b19;
-  --color-ink-muted: #6b6860;
-  --font-display: ui-serif, Georgia, serif;
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+/*
+ * The theme: every colour, radius, shadow and type size lives here and only here
+ * (design tab: "Colour, spacing and type live as theme variables in one file").
+ * Values come from the Nocturne design system via the Claude Design handoff
+ * (theme.css). Components use the Tailwind names below (bg-surface, text-accent-300,
+ * border-wrong-bd, text-meta, rounded-lg, shadow-sm...), never raw values.
+ *
+ * Dark is the default. <html data-theme="light"> switches to light. The ramps are
+ * inverted in light so a step keeps its ROLE in both themes: 900 = subtle tinted
+ * fill, 800 = tag fill, 500-600 = borders, 300 = text on a tint, 100 = strong text.
+ * (The theme switch itself arrives with the Preferences screen.)
+ */
+:root {
+  --bg: #161826;
+  --surface: #232532;
+  --text: #e9e9ed;
+  --accent: #9184d9;
+  --divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  --neutral-100: #f3f5fe; --neutral-200: #e4e7f5; --neutral-300: #cfd3e5;
+  --neutral-400: #b2b6ca; --neutral-500: #9397ab; --neutral-600: #75798c;
+  --neutral-700: #595d6c; --neutral-800: #3f424d; --neutral-900: #292b31;
+
+  --accent-100: #f5f4ff; --accent-200: #e7e5fe; --accent-300: #d2cefd;
+  --accent-400: #b5abfc; --accent-500: #968ae0; --accent-600: #796cbf;
+  --accent-700: #5d5294; --accent-800: #423a6a; --accent-900: #2b2741;
+
+  --wrong: oklch(0.78 0.11 30);
+  --wrong-bg: oklch(0.28 0.04 30);
+  --wrong-bd: oklch(0.58 0.09 30);
+
+  --elev-sm: 0 0 0 1px #3f424d;
+  --elev-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --elev-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+  color-scheme: dark;
 }
 
-body {
-  background-color: var(--color-surface);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
+[data-theme="light"] {
+  --bg: #f5f5f9;
+  --surface: #ffffff;
+  --text: #1c1d26;
+  --accent: #6457b3;
+  --divider: color-mix(in srgb, #1c1d26 13%, transparent);
+
+  --neutral-100: #1f2127; --neutral-200: #33363f; --neutral-300: #4a4e5c;
+  --neutral-400: #5e6273; --neutral-500: #7a7e91; --neutral-600: #a3a7b8;
+  --neutral-700: #c4c7d4; --neutral-800: #dcdee8; --neutral-900: #ebecf3;
+
+  --accent-100: #231f3a; --accent-200: #332c5a; --accent-300: #4a3f8a;
+  --accent-400: #5a4ea6; --accent-500: #6e61b8; --accent-600: #9387d6;
+  --accent-700: #b8b0ec; --accent-800: #d8d3f7; --accent-900: #ecebfc;
+
+  --wrong: oklch(0.5 0.15 30);
+  --wrong-bg: oklch(0.96 0.025 30);
+  --wrong-bd: oklch(0.74 0.1 30);
+
+  --elev-sm: 0 0 0 1px #dcdee8;
+  --elev-md: 0 0 0 1px #d0d3de, 0 6px 18px rgba(20, 22, 40, 0.08);
+  --elev-lg: 0 0 0 1px #c4c7d4, 0 16px 40px rgba(20, 22, 40, 0.14);
+  color-scheme: light;
+}
+
+@theme inline {
+  /* Only these colours exist: Tailwind's default palette is switched off so a raw
+     colour can't sneak into a component. */
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: color-mix(in srgb, var(--text) 55%, transparent);
+  --color-label: color-mix(in srgb, var(--text) 70%, transparent);
+  --color-accent: var(--accent);
+  --color-divider: var(--divider);
+  --color-wrong: var(--wrong);
+  --color-wrong-bg: var(--wrong-bg);
+  --color-wrong-bd: var(--wrong-bd);
+
+  --color-neutral-100: var(--neutral-100); --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300); --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500); --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700); --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+
+  --color-accent-100: var(--accent-100); --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300); --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500); --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700); --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+
+  /* Inter 400/500/600, self-hosted (main.tsx), with system fallbacks. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Type scale (px, from the handoff). Headings never go above weight 500. */
+  --text-*: initial;
+  --text-tag: 11px;
+  --text-meta: 12px;
+  --text-small: 13px;
+  --text-ui: 14px;
+  --text-body: 15px;
+  --text-body--line-height: 1.55;
+  --text-title: 17px;
+  --text-h4: 20px;
+  --text-q-phone: 22px;
+  --text-q: 26px;
+  --text-h2-phone: 26px;
+  --text-h2: 32px;
+  --text-h1: 34px;
+  --text-counter: 44px;
+  --text-score: 96px;
+
+  /* Radii: md for buttons, inputs, options and cards; lg for the question card. */
+  --radius-*: initial;
+  --radius-sm: 4px;
+  --radius-tag: 6px;
+  --radius-badge: 7px;
+  --radius-md: 8px;
+  --radius-panel: 10px;
+  --radius-tile: 12px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* sm = 1px edge on resting cards, md = raised card and toast, lg = dialogs.
+     selected = the 1px accent ring on a chosen segmented option. */
+  --shadow-*: initial;
+  --shadow-sm: var(--elev-sm);
+  --shadow-md: var(--elev-md);
+  --shadow-lg: var(--elev-lg);
+  --shadow-selected: inset 0 0 0 1px var(--accent);
+  --shadow-glow: 0 0 32px color-mix(in srgb, var(--accent) 35%, transparent);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Checking dots: the one looping animation on the question screen. */
+  --animate-dot: dot 1s infinite;
+  @keyframes dot {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
+}
+
+@layer base {
+  html, body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, var(--accent-900), transparent 60%) no-repeat,
+      var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+  body {
+    min-height: 100dvh;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 { font-weight: 500; line-height: 1.12; letter-spacing: -0.015em; }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  button:not(:disabled), [role="button"]:not(:disabled), label:has(> input:not(:disabled)) { cursor: pointer; }
+
+  /* Reduced motion: every transition and animation off, state changes are instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Section labels (h6 in the design): 13px uppercase, muted. */
+@utility section-label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Card kicker: 10px uppercase accent. */
+@utility kicker {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Fading rule: freestanding horizontal rules fade out over 48px at each end. */
+@utility rule-fade {
+  background: linear-gradient(to right, transparent, var(--divider) 48px, var(--divider) calc(100% - 48px), transparent)
+    no-repeat bottom / 100% 1px;
 }
