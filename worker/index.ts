@@ -3,7 +3,8 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { sql } from "drizzle-orm";
 import { requireSession, type AppEnv } from "./auth/session";
-import { assembleQuery, assembleQuiz, findCategoryId, toPublicQuestion } from "./quiz/assemble";
+import { apiError } from "./http";
+import { quizRoutes } from "./quiz/quiz-routes";
 import { sessionRoutes } from "./quiz/session-routes";
 
 // Durable Object classes must be exported from the Worker entry.
@@ -30,47 +31,21 @@ app.get("/health/db", async (c) => {
 
 app.get("/me", (c) => c.json({ user: { id: c.var.user.id, email: c.var.user.email } }));
 
-// STM-8: a fresh quiz from the bank. Read-only; see worker/quiz/assemble.ts.
-// e.g. GET /api/quiz?category=system-design&difficulty=beginner&length=10
-app.get("/quiz", async (c) => {
-  const input = assembleQuery.safeParse(c.req.query());
-  if (!input.success) {
-    return c.json(
-      { error: "Pick a category, a difficulty (beginner, intermediate or advanced) and a length of 5, 10 or 20." },
-      400,
-    );
-  }
-  const { category, difficulty, length } = input.data;
-
-  const categoryId = await findCategoryId(c.var.db, category);
-  if (!categoryId) return c.json({ error: "That category does not exist." }, 404);
-
-  const picked = await assembleQuiz(c.var.db, c.var.user.id, { ...input.data, categoryId });
-  if (picked.length === 0) {
-    return c.json({ error: "There are no questions at this difficulty yet." }, 404);
-  }
-  return c.json({
-    category,
-    difficulty,
-    length,
-    // true when the whole pool is smaller than the requested length (see assemble.ts)
-    short: picked.length < length,
-    questions: picked.map(toPublicQuestion),
-  });
-});
+// STM-8: a fresh quiz from the bank (worker/quiz/quiz-routes.ts).
+app.route("/", quizRoutes);
 
 // STM-9: the quiz in progress and preferences, held in the user's Durable Object.
 app.route("/", sessionRoutes);
 
-app.notFound((c) => c.json({ error: "Not found" }, 404));
+app.notFound((c) => apiError(c, 404, "Not found"));
 
 app.onError((err, c) => {
   // Deliberate rejections from middleware (e.g. csrf's 403) keep their status.
   if (err instanceof HTTPException && err.status < 500) {
-    return c.json({ error: err.status === 403 ? "Request blocked." : "Bad request." }, err.status);
+    return apiError(c, err.status, err.status === 403 ? "Request blocked." : "Bad request.");
   }
   console.error(err);
-  return c.json({ error: "Something went wrong" }, 500);
+  return apiError(c, 500, "Something went wrong");
 });
 
 export default app;

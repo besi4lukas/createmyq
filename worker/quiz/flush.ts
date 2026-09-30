@@ -18,7 +18,7 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { answers, sessionQuestions, sessions } from "../db/schema";
-import type { FinishedQuiz } from "../durable/user-session";
+import type { FinishedQuiz } from "./session-state";
 import { questionDifficultySchema } from "../questions/payload";
 
 /** `true` if this call inserted the session, `false` if it was already there. */

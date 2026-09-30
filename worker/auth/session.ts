@@ -3,6 +3,7 @@ import { verifyToken } from "@clerk/backend";
 import { eq, sql } from "drizzle-orm";
 import { withDb, type Db } from "../db/client";
 import { invites, users } from "../db/schema";
+import { apiError } from "../http";
 
 export type SessionUser = { id: string; email: string };
 export type AppEnv = { Bindings: Env; Variables: { user: SessionUser; db: Db } };
@@ -14,7 +15,7 @@ export type AppEnv = { Bindings: Env; Variables: { user: SessionUser; db: Db } }
  */
 const PUBLIC = new Set(["GET /api/health"]);
 
-const unauthorized = (c: Context) => c.json({ error: "Please sign in." }, 401);
+const unauthorized = (c: Context) => apiError(c, 401, "Please sign in.");
 
 /**
  * Sign-in is Clerk (email code). The SPA sends the Clerk session token as
@@ -38,7 +39,7 @@ export const requireSession: MiddlewareHandler<AppEnv> = async (c, next) => {
   const jwtKey = (c.env as { CLERK_JWT_KEY?: string }).CLERK_JWT_KEY;
   if (!jwtKey) {
     console.error("CLERK_JWT_KEY is not set; refusing every signed-in route");
-    return c.json({ error: "Something went wrong" }, 500);
+    return apiError(c, 500, "Something went wrong");
   }
 
   let claims: Record<string, unknown>;
@@ -63,7 +64,7 @@ export const requireSession: MiddlewareHandler<AppEnv> = async (c, next) => {
   return withDb(c.env, c.executionCtx, async (db) => {
     const user = await findOrCreateUser(db, email);
     if (!user) {
-      return c.json({ error: "This email is not on the invite list.", code: "not_invited" }, 403);
+      return apiError(c, 403, "This email is not on the invite list.", { code: "not_invited" });
     }
     c.set("user", user);
     c.set("db", db);
