@@ -4,27 +4,17 @@
  * by a human reviewer), not from the classifier.
  */
 import { z } from "zod";
-import {
-  multipleChoicePayload,
-  nonBlank,
-  questionDifficultySchema,
-  shortAnswerPayload,
-} from "../worker/questions/payload";
+import { nonBlank, questionDifficultySchema, withFormatPayload } from "../worker/questions/payload";
 
 const slug = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a lowercase-kebab slug");
 
-const questionBase = z.strictObject({
+export const seedQuestion = withFormatPayload({
   external_id: nonBlank,
   difficulty: questionDifficultySchema,
   topic: nonBlank,
   prompt: nonBlank,
   explanation: nonBlank,
 });
-
-export const seedQuestion = z.discriminatedUnion("format", [
-  questionBase.extend({ format: z.literal("multiple_choice"), payload: multipleChoicePayload }),
-  questionBase.extend({ format: z.literal("short_answer"), payload: shortAnswerPayload }),
-]);
 
 /**
  * Duplicate external_ids. `when: () => true` makes it run even when individual
