@@ -1,65 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAuth } from "@clerk/react";
 import { Loading } from "./components/Bits";
 import { Toast, useToast } from "./components/Toast";
 import { TopBar } from "./components/TopBar";
-import { ApiError, api, setNotInvitedHandler, setTokenGetter, setUnauthorizedHandler } from "./lib/api";
 import type { Quiz, QuizResult } from "./lib/quiz";
 import { navigate, pathOf, useRoute } from "./lib/router";
+import { useMe } from "./lib/useMe";
 import { NotInvited, Problem, SignInScreen } from "./screens/AuthScreens";
 import { HomeScreen } from "./screens/HomeScreen";
 import { QuizScreen } from "./screens/QuizScreen";
 import { ResultScreen } from "./screens/ResultScreen";
 import { SetupScreen } from "./screens/SetupScreen";
 
-type User = { id: string; email: string };
-type Me =
-  | { status: "loading" }
-  | { status: "ok"; user: User }
-  | { status: "not-invited" }
-  | { status: "error"; message: string };
-
 /** Page gutters: 20px on a phone, 56px on desktop. */
 const page = "px-5 pb-12 sm:px-14";
 
 export default function App() {
-  const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
-  const [me, setMe] = useState<Me>({ status: "loading" });
-
-  // Registered before the /me effect below, so the first call carries the token.
-  useEffect(() => {
-    setTokenGetter(() => getToken());
-    setUnauthorizedHandler(() => void signOut());
-    setNotInvitedHandler(() => setMe({ status: "not-invited" }));
-  }, [getToken, signOut]);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    let cancelled = false;
-    api<{ user: User }>("/me")
-      .then(({ user }) => !cancelled && setMe({ status: "ok", user }))
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.code === "not_invited") return; // handler set it
-        if (err instanceof ApiError && err.status === 401) return; // handler signs out
-        setMe({
-          status: "error",
-          message: err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
-        });
-      });
-    return () => {
-      cancelled = true;
-      setMe({ status: "loading" });
-    };
-  }, [isLoaded, isSignedIn]);
+  const { isLoaded, isSignedIn, me, signOut } = useMe();
 
   let body;
   if (!isLoaded) body = <Loading />;
   else if (!isSignedIn) body = <SignInScreen />;
   else if (me.status === "loading") body = <Loading />;
-  else if (me.status === "ok") return <SignedIn onSignOut={() => signOut()} />;
-  else if (me.status === "not-invited") body = <NotInvited onSignOut={() => signOut()} />;
-  else body = <Problem message={me.message} onSignOut={() => signOut()} />;
+  else if (me.status === "ok") return <SignedIn onSignOut={signOut} />;
+  else if (me.status === "not-invited") body = <NotInvited onSignOut={signOut} />;
+  else body = <Problem message={me.message} onSignOut={signOut} />;
 
   return <main className={`${page} min-h-dvh`}>{body}</main>;
 }
@@ -129,6 +93,8 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
     case "results":
       screen = result ? <ResultScreen result={result} /> : null;
       break;
+    default:
+      screen = route satisfies never; // every route has a screen
   }
 
   return (

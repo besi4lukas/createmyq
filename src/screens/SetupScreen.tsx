@@ -1,14 +1,16 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, ChatCircleText, SlidersHorizontal, Timer } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { ErrorNotice, Loading } from "../components/Bits";
 import { Segmented } from "../components/Segmented";
 import { navigate } from "../lib/router";
+import { friendlyError } from "../lib/api";
 import {
   CATEGORIES,
+  DIFFICULTIES,
   DIFFICULTY_LABEL,
   MODE_LABEL,
-  friendlyError,
+  QUIZ_LENGTHS,
   getPrefs,
   startQuiz,
   type Difficulty,
@@ -17,6 +19,7 @@ import {
   type Quiz,
   type QuizLength,
 } from "../lib/quiz";
+import { useAsync } from "../lib/useAsync";
 
 const MODE_HELP: Record<Mode, string> = {
   practice: "See the answer and why after every question.",
@@ -33,18 +36,7 @@ export function SetupScreen({
   onStarted: (quiz: Quiz, resumed: boolean) => void;
 }) {
   const cat = CATEGORIES.find((c) => c.slug === category);
-  const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    getPrefs()
-      .then((p) => !cancelled && setPrefs(p))
-      .catch((err: unknown) => !cancelled && setLoadError(friendlyError(err)));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const prefs = useAsync(getPrefs);
 
   if (!cat) {
     return (
@@ -66,7 +58,7 @@ export function SetupScreen({
           Filled in from your preferences. Change anything for this quiz.
         </p>
       </div>
-      {loadError && (
+      {prefs.status === "error" && (
         <ErrorNotice
           action={
             <Button variant="secondary" onClick={() => window.location.reload()}>
@@ -74,11 +66,11 @@ export function SetupScreen({
             </Button>
           }
         >
-          {loadError}
+          {prefs.message}
         </ErrorNotice>
       )}
-      {!prefs && !loadError && <Loading />}
-      {prefs && <SetupForm category={cat.slug} prefs={prefs} onStarted={onStarted} />}
+      {prefs.status === "loading" && <Loading />}
+      {prefs.status === "ok" && <SetupForm category={cat.slug} prefs={prefs.data} onStarted={onStarted} />}
     </Column>
   );
 }
@@ -122,7 +114,7 @@ function SetupForm({
         label="Difficulty"
         value={difficulty}
         onChange={setDifficulty}
-        options={(["beginner", "intermediate", "advanced"] as const).map((d) => ({
+        options={DIFFICULTIES.map((d) => ({
           value: d,
           label: DIFFICULTY_LABEL[d],
         }))}
@@ -131,7 +123,7 @@ function SetupForm({
         label="Length"
         value={length}
         onChange={setLength}
-        options={([5, 10, 20] as const).map((n) => ({ value: n, label: String(n) }))}
+        options={QUIZ_LENGTHS.map((n) => ({ value: n, label: String(n) }))}
       />
       <Segmented
         label="Feedback"

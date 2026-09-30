@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { SignIn } from "@clerk/react";
 import { SignOut, WarningCircle } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { LogoMark } from "../components/Bits";
+import { useSignOut } from "../lib/useSignOut";
 
 /**
  * Clerk's prebuilt sign-in, themed from the CSS variables in index.css (no
@@ -59,16 +60,9 @@ export function SignInScreen() {
 }
 
 export function SignOutButton({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
-  const [busy, setBusy] = useState(false);
+  const { busy, signOut } = useSignOut(onSignOut);
   return (
-    <Button
-      variant="secondary"
-      disabled={busy}
-      onClick={() => {
-        setBusy(true);
-        onSignOut().catch(() => setBusy(false));
-      }}
-    >
+    <Button variant="secondary" disabled={busy} onClick={signOut}>
       <SignOut aria-hidden="true" className="size-4" />
       {busy ? "Signing out…" : "Sign out"}
     </Button>

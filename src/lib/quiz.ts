@@ -4,9 +4,14 @@
  */
 import { ApiError, api } from "./api";
 
-export type Difficulty = "beginner" | "intermediate" | "advanced";
-export type Mode = "practice" | "exam";
-export type QuizLength = 5 | 10 | 20;
+/** The choices, in display order. Types derive from these (one list each). */
+export const DIFFICULTIES = ["beginner", "intermediate", "advanced"] as const;
+export const QUIZ_LENGTHS = [5, 10, 20] as const;
+export const MODES = ["practice", "exam"] as const;
+
+export type Difficulty = (typeof DIFFICULTIES)[number];
+export type Mode = (typeof MODES)[number];
+export type QuizLength = (typeof QUIZ_LENGTHS)[number];
 
 export type Question = {
   index: number;
@@ -129,8 +134,3 @@ export const finishQuiz = (quizId: string) =>
   api<{ alreadyFinished: boolean; result: QuizResult }>("/session/finish", { body: { quizId } }).then(
     (r) => r.result,
   );
-
-/** A message that is safe to show for any error. */
-export function friendlyError(err: unknown): string {
-  return err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
-}

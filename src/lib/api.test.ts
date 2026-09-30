@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, api, setNotInvitedHandler, setTokenGetter, setUnauthorizedHandler } from "./api";
+import { ApiError, api, friendlyError, setNotInvitedHandler, setTokenGetter, setUnauthorizedHandler } from "./api";
 
 const fetchMock = vi.fn<typeof fetch>();
 const json = (status: number, body: unknown) =>
@@ -79,5 +79,12 @@ describe("api()", () => {
     fetchMock.mockResolvedValueOnce(json(403, { error: "Request blocked." }));
     await caught(api("/me"));
     expect(onNotInvited).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("friendlyError", () => {
+  it("shows an ApiError's message and hides anything else", () => {
+    expect(friendlyError(new ApiError(409, "In progress"))).toBe("In progress");
+    expect(friendlyError(new TypeError("x is undefined"))).toBe("Something went wrong. Please try again.");
   });
 });
