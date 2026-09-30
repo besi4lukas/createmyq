@@ -58,6 +58,11 @@ Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a 
 
 ```
 src/                  React app (browser only, never import from worker/)
+src/index.css         the theme: every colour, type size, radius and shadow (Nocturne tokens, see "Frontend")
+src/lib/              api.ts (fetch + Clerk token), quiz.ts (typed quiz API), router.ts (tiny History API router)
+src/components/       our own small primitives (Button, Segmented, Tag, Toast, TopBar); shadcn copies go in src/components/ui/
+src/screens/          one file per screen (Auth, Home, Setup, Quiz, Result placeholder)
+src/quiz/             question-screen parts: OptionList, RevealPanel, useQuizKeys
 worker/index.ts       Hono app, basePath /api
 worker/quiz/assemble.ts  quiz assembly (STM-8): GET /api/quiz?category=&difficulty=&length=
 worker/quiz/session-routes.ts  STM-9 routes: POST/GET /api/session, POST /api/session/answer, POST /api/session/finish, GET/PUT /api/prefs
@@ -73,6 +78,15 @@ tsconfig.*.json       app / worker / node projects, referenced from tsconfig.jso
 ```
 
 Expected additions as tickets land: more DOs in `worker/durable/`, `worker/workflows/`, `worker/classifier/`, `seed/` (question JSON), `scripts/` (operator scripts: seed, invite, cost report, benchmark), `fixtures/eval/` (gate eval set).
+
+## Frontend (STM-11)
+
+- Design source: the Claude Design handoff (Nocturne design system, "CreateMyQ Prototype"). Question layout C (Split), results layout B (Big number).
+- **Tokens only.** `src/index.css` switches Tailwind's default palette, type scale, radii and shadows off (`--color-*: initial` etc.) and defines ours: `bg`, `surface`, `text`, `muted`, `label`, `accent`, `divider`, `wrong`/`wrong-bg`/`wrong-bd`, `neutral-100…900`, `accent-100…900`; `text-tag|meta|small|ui|body|title|h4|q|h2|h1|counter|score`; `rounded-sm|tag|badge|md|panel|tile|lg`; `shadow-sm|md|lg|selected|glow`. No raw colours in components. Light theme tokens exist under `[data-theme="light"]`; the switch arrives with the Preferences screen.
+- Primary buttons are outlined, never filled. Headings max weight 500. Inter 400/500/600 self-hosted via `@fontsource/inter`; icons are `@phosphor-icons/react`.
+- Choice controls are native radio inputs (`Segmented`, `OptionList`): keyboard and screen-reader behaviour for free, so no Radix yet.
+- Motion: only an opacity fade on options and the checking dots; the reduced-motion guard in `index.css` turns every transition and animation off. Transitions and the reveal animation are STM-26.
+- Routes: `/`, `/setup/<category>`, `/quiz`, `/results` (in memory only; a refresh goes home). `/quiz` always resumes from `GET /api/session`.
 
 ## Where state lives (the rule)
 

@@ -4,6 +4,8 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public code?: string,
+    /** The whole JSON body, for errors that carry data (e.g. 409 quiz_in_progress + the quiz). */
+    public data?: unknown,
   ) {
     super(message);
   }
@@ -47,7 +49,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
   if (res.status === 401) onUnauthorized();
   if (res.status === 403 && data.code === "not_invited") onNotInvited();
   if (!res.ok) {
-    throw new ApiError(res.status, data.error ?? "Something went wrong. Please try again.", data.code);
+    throw new ApiError(res.status, data.error ?? "Something went wrong. Please try again.", data.code, data);
   }
   return data as T;
 }

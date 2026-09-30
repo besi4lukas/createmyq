@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
-import { SignIn, useAuth } from "@clerk/react";
-import {
-  ApiError,
-  api,
-  setNotInvitedHandler,
-  setTokenGetter,
-  setUnauthorizedHandler,
-} from "./lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "@clerk/react";
+import { Loading } from "./components/Bits";
+import { Toast, useToast } from "./components/Toast";
+import { TopBar } from "./components/TopBar";
+import { ApiError, api, setNotInvitedHandler, setTokenGetter, setUnauthorizedHandler } from "./lib/api";
+import type { Quiz, QuizResult } from "./lib/quiz";
+import { navigate, pathOf, useRoute } from "./lib/router";
+import { NotInvited, Problem, SignInScreen } from "./screens/AuthScreens";
+import { HomeScreen } from "./screens/HomeScreen";
+import { QuizScreen } from "./screens/QuizScreen";
+import { ResultScreen } from "./screens/ResultScreen";
+import { SetupScreen } from "./screens/SetupScreen";
 
 type User = { id: string; email: string };
 type Me =
@@ -15,21 +19,8 @@ type Me =
   | { status: "not-invited" }
   | { status: "error"; message: string };
 
-const button =
-  "min-h-11 rounded-lg bg-ink px-5 text-surface font-medium disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-
-// Clerk's prebuilt sign-in, with every tap target at least 44px.
-const signInAppearance = {
-  elements: {
-    formButtonPrimary: "min-h-11",
-    formFieldInput: "min-h-11",
-    otpCodeFieldInput: "min-h-11",
-    formResendCodeLink: "min-h-11",
-    identityPreviewEditButton: "min-h-11 min-w-11",
-    alternativeMethodsBlockButton: "min-h-11",
-    footerActionLink: "min-h-11 inline-flex items-center",
-  },
-};
+/** Page gutters: 20px on a phone, 56px on desktop. */
+const page = "px-5 pb-12 sm:px-14";
 
 export default function App() {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
@@ -63,83 +54,90 @@ export default function App() {
   }, [isLoaded, isSignedIn]);
 
   let body;
-  if (!isLoaded) body = <p className="text-ink-muted">Loading…</p>;
-  else if (!isSignedIn) {
-    body = (
-      <div className="flex flex-col gap-4">
-        <h2 className="text-lg">CreateMyQ is invite only</h2>
-        <SignIn routing="hash" appearance={signInAppearance} />
-      </div>
-    );
-  } else if (me.status === "loading") body = <p className="text-ink-muted">Loading…</p>;
-  else if (me.status === "ok") body = <Home user={me.user} onSignOut={() => signOut()} />;
+  if (!isLoaded) body = <Loading />;
+  else if (!isSignedIn) body = <SignInScreen />;
+  else if (me.status === "loading") body = <Loading />;
+  else if (me.status === "ok") return <SignedIn onSignOut={() => signOut()} />;
   else if (me.status === "not-invited") body = <NotInvited onSignOut={() => signOut()} />;
   else body = <Problem message={me.message} onSignOut={() => signOut()} />;
 
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4">
-      <h1 className="font-display text-4xl text-ink">CreateMyQ</h1>
-      {body}
-    </main>
-  );
+  return <main className={`${page} min-h-dvh`}>{body}</main>;
 }
 
-function SignOutButton({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
-  const [busy, setBusy] = useState(false);
-  return (
-    <button
-      type="button"
-      className={button}
-      disabled={busy}
-      onClick={() => {
-        setBusy(true);
-        onSignOut().catch(() => setBusy(false));
-      }}
-    >
-      {busy ? "Signing out…" : "Sign out"}
-    </button>
-  );
-}
+/** The signed-in app: top bar, the current screen, and the toast. */
+function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
+  const route = useRoute();
+  const { message, show } = useToast();
+  // Handed from screen to screen in memory: the quiz just started, the result just made.
+  const [started, setStarted] = useState<Quiz | null>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
 
-function Home({ user, onSignOut }: { user: User; onSignOut: () => Promise<unknown> }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <p>
-        Signed in as <span className="font-medium">{user.email}</span>
-      </p>
-      <p className="text-ink-muted">Quizzes are coming soon.</p>
-      <SignOutButton onSignOut={onSignOut} />
-    </div>
-  );
-}
+  // The quiz handed over at start is only fresh right after starting. Back and
+  // forward can revisit /quiz much later, so the quiz screen then fetches it.
+  useEffect(() => {
+    const forget = () => setStarted(null);
+    window.addEventListener("popstate", forget);
+    return () => window.removeEventListener("popstate", forget);
+  }, []);
 
-function NotInvited({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <p role="alert" className="text-lg">
-        <span aria-hidden="true">⚠ </span>
-        This email is not on the invite list yet.
-      </p>
-      <p className="text-ink-muted">
-        CreateMyQ is invite only. Ask whoever invited you to add this address, or sign out and
-        use the email they invited.
-      </p>
-      <SignOutButton onSignOut={onSignOut} />
-    </div>
+  const onStarted = useCallback(
+    (quiz: Quiz, resumed: boolean) => {
+      setStarted(quiz);
+      if (resumed) show("You already had a quiz going, so we picked it back up.");
+      navigate({ name: "quiz" });
+    },
+    [show],
   );
-}
 
-function Problem({ message, onSignOut }: { message: string; onSignOut: () => Promise<unknown> }) {
+  const onFinished = useCallback((r: QuizResult) => {
+    setStarted(null);
+    setResult(r);
+    navigate({ name: "results" }, { replace: true });
+  }, []);
+
+  const onLeave = useCallback(() => {
+    setStarted(null);
+    navigate({ name: "home" });
+    show("Saved. Resume from home any time.");
+  }, [show]);
+
+  // A new screen: move focus to its content so Tab starts there, not at the top
+  // of a page that no longer exists. The quiz screen focuses its question itself.
+  const mainRef = useRef<HTMLElement>(null);
+  const path = pathOf(route);
+  useEffect(() => {
+    if (path !== "/quiz") mainRef.current?.focus({ preventScroll: true });
+  }, [path]);
+
+  // A refresh on /results has nothing to show: the result lived in memory.
+  const resultsMissing = route.name === "results" && !result;
+  useEffect(() => {
+    if (resultsMissing) navigate({ name: "home" }, { replace: true });
+  }, [resultsMissing]);
+
+  let screen;
+  switch (route.name) {
+    case "home":
+      screen = <HomeScreen />;
+      break;
+    case "setup":
+      screen = <SetupScreen key={route.category} category={route.category} onStarted={onStarted} />;
+      break;
+    case "quiz":
+      screen = <QuizScreen started={started} onFinished={onFinished} onLeave={onLeave} />;
+      break;
+    case "results":
+      screen = result ? <ResultScreen result={result} /> : null;
+      break;
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      <p role="alert">
-        <span aria-hidden="true">⚠ </span>
-        {message}
-      </p>
-      <button type="button" className={button} onClick={() => window.location.reload()}>
-        Try again
-      </button>
-      <SignOutButton onSignOut={onSignOut} />
+    <div className="min-h-dvh">
+      <TopBar onHome={route.name === "home"} onSignOut={onSignOut} />
+      <main ref={mainRef} tabIndex={-1} className={`${page} pt-2 outline-none`}>
+        {screen}
+      </main>
+      <Toast message={message} />
     </div>
   );
 }
