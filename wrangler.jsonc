@@ -29,12 +29,32 @@
     "bindings": [{ "name": "USER_SESSION", "class_name": "UserSession" }]
   },
   // Never edit or remove an applied migration; add a new tag instead.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UserSession"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UserSession"] }],
+  // STM-13: PDF uploads. The browser PUTs straight to R2 with a presigned URL
+  // (S3 API, signed in worker/uploads/presign.ts); the Worker only signs and
+  // then HEADs the object through this binding. `remote: true` so local dev
+  // reads the same bucket the presigned URL writes to: the dev bucket
+  // (preview_bucket_name), never production. Bucket CORS must allow PUT from
+  // the app origin(s); see CLAUDE.md.
+  "r2_buckets": [
+    {
+      "binding": "UPLOADS",
+      "bucket_name": "createmyq-uploads",
+      "preview_bucket_name": "createmyq-uploads-dev",
+      "remote": true
+    }
+  ],
+  // Signing needs the account's S3 endpoint and the bucket's name (the binding
+  // doesn't expose it). .dev.vars sets UPLOADS_BUCKET_NAME=createmyq-uploads-dev.
+  // The R2 API token is two secrets: R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.
+  "vars": {
+    "R2_ACCOUNT_ID": "037430f3820d50ee00c0ee8ed692bc00",
+    "UPLOADS_BUCKET_NAME": "createmyq-uploads"
+  }
   // STM-5: sign-in is Clerk. The Worker verifies session tokens with the secret
   // CLERK_JWT_KEY (Clerk dashboard → API keys → JWKS Public Key, PEM). It is a
   // secret, not a var: `npx wrangler secret put CLERK_JWT_KEY` in prod, .dev.vars locally.
   // Bindings arrive with their tickets, not before:
-  //   STM-13 R2 bucket for uploads
   //   STM-15 Queue + Workflow
   //   STM-16 Durable Object: generation lock
   //   STM-18 AI Gateway

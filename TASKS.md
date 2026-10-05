@@ -87,6 +87,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-13 Upload path** · 2h · depends: STM-5
   Worker issues a short-lived signed R2 URL, the browser PUTs directly, and a source row is created with status.
   **Done when:** a 20 MB PDF uploads without passing through the API, and the row appears.
+  Status: in review (branch `stm-13-upload-path`). Verified on a throwaway Neon branch with a local dev server: the 20 MB upload's PUT goes from the browser straight to `<account>.r2.cloudflarestorage.com` (signed, 5-min, content-type + content-length bound), never /api; complete with the object present creates one `sources` row (owner, `uploads/<users.id>/<id>.pdf`, `uploaded`, private) even when called twice; > 20 MB (413) and non-PDF (400) show friendly messages; another user's id is 404 on complete and GET. Signature checked against a hand-written SigV4 in tests. Not yet verified against real R2: R2 is not enabled on the account (needs the bucket, CORS and an R2 API token first).
 
 - [ ] **STM-14 Text extraction** · 2.5h · depends: STM-13
   PDF through unpdf (50-page and 20 MB caps), article URLs, YouTube captions. Normalise and fingerprint.

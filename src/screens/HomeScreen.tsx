@@ -1,10 +1,12 @@
-import { ArrowRight, PlayPause } from "@phosphor-icons/react";
+import { useRef } from "react";
+import { ArrowRight, PlayPause, UploadSimple } from "@phosphor-icons/react";
 import { useUser } from "@clerk/react";
 import { Button } from "../components/Button";
 import { ErrorNotice } from "../components/Bits";
 import { navigate } from "../lib/router";
 import { CATEGORIES, DIFFICULTY_LABEL, categoryName, getActiveQuiz, type Quiz } from "../lib/quiz";
 import { useAsync } from "../lib/useAsync";
+import { useUpload } from "../lib/uploads";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -52,7 +54,55 @@ export function HomeScreen() {
           </div>
         ))}
       </section>
+
+      <UploadSection />
     </div>
+  );
+}
+
+/**
+ * STM-13: upload a PDF straight to storage and show the source's status. Only
+ * the signed-URL path; generation progress and the library come later.
+ */
+function UploadSection() {
+  const input = useRef<HTMLInputElement>(null);
+  const { state, upload } = useUpload();
+  const busy = state.status === "uploading";
+
+  return (
+    <section aria-labelledby="your-own" className="flex max-w-[486px] flex-col gap-3">
+      <h2 id="your-own" className="section-label">
+        Your own
+      </h2>
+      <div className="flex flex-col gap-2 rounded-md bg-surface p-4.5">
+        <div className="kicker">PDF, up to 20 MB</div>
+        <h3 className="text-title leading-tight">Upload a PDF</h3>
+        <input
+          ref={input}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void upload(file);
+          }}
+        />
+        <div className="mt-1.5">
+          <Button disabled={busy} onClick={() => input.current?.click()}>
+            <UploadSimple aria-hidden="true" className="size-4" />
+            Choose a PDF
+          </Button>
+        </div>
+        <div role="status" className="text-small text-muted">
+          {state.status === "uploading" && `Uploading ${state.filename}…`}
+          {state.status === "done" && `Uploaded ${state.source.title ?? "your PDF"}. Status: ${state.source.status}.`}
+        </div>
+        {state.status === "error" && <ErrorNotice>{state.message}</ErrorNotice>}
+      </div>
+    </section>
   );
 }
 

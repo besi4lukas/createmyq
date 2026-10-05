@@ -6,6 +6,7 @@ import { requireSession, type AppEnv } from "./auth/session";
 import { apiError } from "./http";
 import { quizRoutes } from "./quiz/quiz-routes";
 import { sessionRoutes } from "./quiz/session-routes";
+import { uploadRoutes } from "./uploads/upload-routes";
 
 // Durable Object classes must be exported from the Worker entry.
 export { UserSession } from "./durable/user-session";
@@ -36,6 +37,9 @@ app.route("/", quizRoutes);
 
 // STM-9: the quiz in progress and preferences, held in the user's Durable Object.
 app.route("/", sessionRoutes);
+
+// STM-13: presigned R2 uploads; the file itself never passes through /api.
+app.route("/", uploadRoutes);
 
 app.notFound((c) => apiError(c, 404, "Not found"));
 
