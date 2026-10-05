@@ -5,15 +5,20 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
+# Nothing by default; each job asks only for what it uses.
+permissions: {}
 
 jobs:
   check:
-    name: Typecheck, lint, build
+    name: Typecheck, lint, test, build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          # No later step pushes, so don't leave the token in .git/config.
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -21,6 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm test
       # The Clerk publishable key is baked into the SPA at build time. It is public
       # (pk_…), so it lives in a repo variable, not a secret.
       - run: npm run build
@@ -36,8 +42,13 @@ jobs:
     concurrency:
       group: deploy-production
       cancel-in-progress: false
+    # Cloudflare credentials come from secrets; the GitHub token only reads the repo.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24

@@ -1,38 +1,19 @@
-import { useEffect, useState } from "react";
 import { ArrowRight, PlayPause } from "@phosphor-icons/react";
 import { useUser } from "@clerk/react";
 import { Button } from "../components/Button";
 import { ErrorNotice } from "../components/Bits";
 import { navigate } from "../lib/router";
-import {
-  CATEGORIES,
-  DIFFICULTY_LABEL,
-  categoryName,
-  friendlyError,
-  getActiveQuiz,
-  type Quiz,
-} from "../lib/quiz";
+import { CATEGORIES, DIFFICULTY_LABEL, categoryName, getActiveQuiz, type Quiz } from "../lib/quiz";
+import { useAsync } from "../lib/useAsync";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
   return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening";
 }
 
-type Active = { status: "loading" } | { status: "ok"; quiz: Quiz | null } | { status: "error"; message: string };
-
 export function HomeScreen() {
   const { user } = useUser();
-  const [active, setActive] = useState<Active>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    getActiveQuiz()
-      .then((quiz) => !cancelled && setActive({ status: "ok", quiz }))
-      .catch((err: unknown) => !cancelled && setActive({ status: "error", message: friendlyError(err) }));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const active = useAsync(getActiveQuiz);
 
   const name = user?.firstName?.trim();
 
@@ -46,7 +27,7 @@ export function HomeScreen() {
         <p className="mt-1.5 text-muted">Take a built-in quiz and see what you actually know.</p>
       </div>
 
-      {active.status === "ok" && active.quiz && <ResumeCard quiz={active.quiz} />}
+      {active.status === "ok" && active.data && <ResumeCard quiz={active.data} />}
       {active.status === "error" && (
         <ErrorNotice>
           We could not check for a quiz in progress. {active.message}

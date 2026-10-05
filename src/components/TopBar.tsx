@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { House, SignOut } from "@phosphor-icons/react";
-import { navigate } from "../lib/router";
+import { linkTo } from "../lib/router";
+import { useSignOut } from "../lib/useSignOut";
 import { LogoMark } from "./Bits";
 
 const navButton =
@@ -11,15 +11,11 @@ const navButton =
  * (STM-25, FR-23); until Preferences lands, Sign out lives here.
  */
 export function TopBar({ onHome, onSignOut }: { onHome: boolean; onSignOut: () => Promise<unknown> }) {
-  const [signingOut, setSigningOut] = useState(false);
+  const { busy: signingOut, signOut } = useSignOut(onSignOut);
   return (
     <header className="flex items-center gap-1.5 px-5 py-3 sm:px-14">
       <a
-        href="/"
-        onClick={(e) => {
-          e.preventDefault();
-          navigate({ name: "home" });
-        }}
+        {...linkTo({ name: "home" })}
         className="mr-auto flex min-h-11 items-center gap-[9px] rounded-md text-text"
       >
         <LogoMark />
@@ -27,12 +23,8 @@ export function TopBar({ onHome, onSignOut }: { onHome: boolean; onSignOut: () =
       </a>
       <nav aria-label="Main" className="flex items-center gap-1.5">
         <a
-          href="/"
+          {...linkTo({ name: "home" })}
           aria-current={onHome ? "page" : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate({ name: "home" });
-          }}
           className={`${navButton} ${onHome ? "bg-accent/12 text-accent hover:bg-accent/12" : "text-neutral-300"}`}
         >
           <House aria-hidden="true" className="size-4.5" />
@@ -41,10 +33,7 @@ export function TopBar({ onHome, onSignOut }: { onHome: boolean; onSignOut: () =
         <button
           type="button"
           disabled={signingOut}
-          onClick={() => {
-            setSigningOut(true);
-            onSignOut().catch(() => setSigningOut(false));
-          }}
+          onClick={signOut}
           className={`${navButton} text-neutral-300 disabled:opacity-45`}
         >
           <SignOut aria-hidden="true" className="size-4.5" />

@@ -60,6 +60,17 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/** Props for an in-app link: a real href (open in new tab, copy link) and client-side navigation on click. */
+export function linkTo(route: Route) {
+  return {
+    href: pathOf(route),
+    onClick: (e: { preventDefault: () => void }) => {
+      e.preventDefault();
+      navigate(route);
+    },
+  };
+}
+
 const getPath = () => window.location.pathname;
 
 /** The current route. Re-renders on navigate() and on back/forward. */

@@ -10,13 +10,14 @@ import { z } from "zod";
 import type { Db } from "../db/client";
 import { categories } from "../db/schema";
 import { questionDifficultySchema, multipleChoicePayload } from "../questions/payload";
+import { categorySlugSchema } from "./schemas";
 
 /** A question is "seen" if it was in one of the user's sessions finished this recently. */
 export const SEEN_WINDOW_DAYS = 30;
 
 /** Query string for `GET /api/quiz`. Lengths come from FR-5. */
 export const assembleQuery = z.object({
-  category: z.string().regex(/^[a-z0-9-]{1,64}$/),
+  category: categorySlugSchema,
   difficulty: questionDifficultySchema,
   length: z.enum(["5", "10", "20"]).transform(Number),
 });
@@ -116,4 +117,24 @@ export function toPublicQuestion(q: AssembledQuestion) {
     prompt: q.prompt,
     options: q.payload.options,
   };
+}
+
+export type Picked =
+  | { ok: true; categoryId: string; questions: AssembledQuestion[] }
+  | { ok: false; error: string };
+
+/**
+ * Category lookup + assembly, as both GET /api/quiz and POST /api/session need
+ * it. `ok: false` is a 404 for the route: an unknown category, or an empty pool.
+ */
+export async function pickQuestions(
+  db: Db,
+  userId: string,
+  params: Omit<AssembleParams, "categoryId">,
+): Promise<Picked> {
+  const categoryId = await findCategoryId(db, params.category);
+  if (!categoryId) return { ok: false, error: "That category does not exist." };
+  const questions = await assembleQuiz(db, userId, { ...params, categoryId });
+  if (questions.length === 0) return { ok: false, error: "There are no questions at this difficulty yet." };
+  return { ok: true, categoryId, questions };
 }

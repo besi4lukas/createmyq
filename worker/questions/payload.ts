@@ -53,11 +53,26 @@ export const shortAnswerPayload = z.never({
   error: "short_answer payloads are not defined yet (the beta ships multiple choice only)",
 });
 
-/** `{ format, payload }` checked together, discriminated by format. */
-export const formatAndPayload = z.discriminatedUnion("format", [
-  z.object({ format: z.literal("multiple_choice"), payload: multipleChoicePayload }),
-  z.object({ format: z.literal("short_answer"), payload: shortAnswerPayload }),
-]);
+/**
+ * The payload schema of every question format. `satisfies` makes a new value
+ * in the Postgres `question_format` enum a compile error until its payload is
+ * defined here.
+ */
+export const payloadByFormat = {
+  multiple_choice: multipleChoicePayload,
+  short_answer: shortAnswerPayload,
+} satisfies Record<z.infer<typeof questionFormatSchema>, z.ZodType>;
+
+/**
+ * A strict object of `shape` plus `{ format, payload }`, discriminated by
+ * format, so each payload is checked against its own format's schema. The one
+ * place a new format joins the union (the seed file builds on it).
+ */
+export function withFormatPayload<Shape extends z.ZodRawShape>(shape: Shape) {
+  return z.discriminatedUnion("format", [
+    z.strictObject({ ...shape, format: z.literal("multiple_choice"), payload: payloadByFormat.multiple_choice }),
+    z.strictObject({ ...shape, format: z.literal("short_answer"), payload: payloadByFormat.short_answer }),
+  ]);
+}
 
 export type MultipleChoicePayload = z.infer<typeof multipleChoicePayload>;
-export type FormatAndPayload = z.infer<typeof formatAndPayload>;

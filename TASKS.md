@@ -174,6 +174,7 @@ These are in the design tab's "What ships in beta" or FR list, but no ticket abo
 - [ ] Account deletion that keeps generated questions but strips the link (security NFR). Also deletes the person's Clerk user.
 - [ ] Operator script to add invites. Needed before STM-28. It inserts the `invites` row and creates the Clerk user (Backend API, `CLERK_SECRET_KEY` on the operator's machine only).
 - [ ] 🗄️ Drop the unused `magic_links` and `auth_sessions` tables (left over from the magic-link design; STM-5 moved to Clerk).
+- [ ] Design-principles refactor (no ticket; behaviour-preserving, branch `refactor-design-principles`). Pure quiz rules out of the UserSession DO (`worker/quiz/session-state.ts`), shared request/prefs schemas, thin routes with one error helper, one payload map per question format, frontend screens split into hooks + views, least-privilege CI, and vitest (`npm test`, in CI) as the safety net. API contract, STM-8 SQL, STM-9/STM-10 invariants and the UI are unchanged (verified on a throwaway Neon branch and by before/after screenshots). Not deployed until merged.
 
 ## Risks being watched
 

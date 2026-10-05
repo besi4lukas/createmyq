@@ -23,6 +23,8 @@ export async function withDb<T>(
     await client.connect();
     return await fn(drizzle({ client, schema }));
   } finally {
+    // Deliberately silent: the result is already decided, and a socket that
+    // fails to close cleanly is dropped by the runtime anyway.
     ctx.waitUntil(client.end().catch(() => {}));
   }
 }
