@@ -80,6 +80,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-12 Results screen** · 1.5h · depends: STM-10
   Score, per-topic breakdown, every question with the correct answer and explanation.
   **Done when:** finishing a quiz lands here, and the session is visible in Postgres.
+  _Status:_ in review (PR pending, not merged). Layout B from the Claude Design prototype: big percent, headline, summary, By topic table, every question with verdict icon + word, the user's answer, the correct answer and the explanation; Another round / Home. Derived from the finish response's `review[]` in `src/lib/results.ts` (vitest), no API change. Focus lands on the results heading (`data-autofocus`). Unanswered questions show "Not answered" and count as not correct. Deferred: "Review what I missed" (STM-25), count-up (STM-26). Refresh on `/results` still goes home (recommendation: restore from the DO's `quiz:last`). Verified on throwaway Neon branch `stm-12-results-test` (deleted): Practice and Exam finishes land on results, UI score/topics/answers match `sessions`/`session_questions`/`answers` and the bank, keyboard-only, 390×844 phone.
 
 ## Day 4: Getting material in (8.5h)
 
