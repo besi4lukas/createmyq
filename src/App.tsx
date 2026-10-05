@@ -66,11 +66,15 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
   }, [show]);
 
   // A new screen: move focus to its content so Tab starts there, not at the top
-  // of a page that no longer exists. The quiz screen focuses its question itself.
+  // of a page that no longer exists. A screen can name its own target with
+  // data-autofocus (the results heading, so the score is read first). The quiz
+  // screen focuses its question itself.
   const mainRef = useRef<HTMLElement>(null);
   const path = pathOf(route);
   useEffect(() => {
-    if (path !== "/quiz") mainRef.current?.focus({ preventScroll: true });
+    if (path === "/quiz") return;
+    const target = mainRef.current?.querySelector<HTMLElement>("[data-autofocus]") ?? mainRef.current;
+    target?.focus({ preventScroll: true });
   }, [path]);
 
   // A refresh on /results has nothing to show: the result lived in memory.

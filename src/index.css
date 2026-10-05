@@ -111,6 +111,7 @@
   --text-h1: 34px;
   --text-counter: 44px;
   --text-score: 96px;
+  --text-score-lg: 140px;
 
   /* Radii: md for buttons, inputs, options and cards; lg for the question card. */
   --radius-*: initial;
@@ -131,6 +132,10 @@
   --shadow-lg: var(--elev-lg);
   --shadow-selected: inset 0 0 0 1px var(--accent);
   --shadow-glow: 0 0 32px color-mix(in srgb, var(--accent) 35%, transparent);
+
+  /* The results score's glow (Results B). */
+  --text-shadow-*: initial;
+  --text-shadow-glow: 0 0 48px color-mix(in srgb, var(--accent) 45%, transparent);
 
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -192,5 +197,17 @@
 /* Fading rule: freestanding horizontal rules fade out over 48px at each end. */
 @utility rule-fade {
   background: linear-gradient(to right, transparent, var(--divider) 48px, var(--divider) calc(100% - 48px), transparent)
+    no-repeat bottom / 100% 1px;
+}
+
+/* Table row rule: the same fade, fainter (text at 8%), as in the design's table. */
+@utility rule-fade-faint {
+  background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in srgb, var(--text) 8%, transparent) 48px,
+      color-mix(in srgb, var(--text) 8%, transparent) calc(100% - 48px),
+      transparent
+    )
     no-repeat bottom / 100% 1px;
 }

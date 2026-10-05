@@ -60,9 +60,9 @@ Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a 
 ```
 src/                  React app (browser only, never import from worker/)
 src/index.css         the theme: every colour, type size, radius and shadow (Nocturne tokens, see "Frontend")
-src/lib/              api.ts (fetch + Clerk token, ApiError, friendlyError), quiz.ts (typed quiz API, DIFFICULTIES/QUIZ_LENGTHS/MODES), router.ts (tiny History API router, linkTo), hooks: useAsync (load on mount), useMe (Clerk + /api/me), useSignOut
+src/lib/              api.ts (fetch + Clerk token, ApiError, friendlyError), quiz.ts (typed quiz API, DIFFICULTIES/QUIZ_LENGTHS/MODES), results.ts (STM-12: verdictOf, scorePercent, headlineFor, topicBreakdown, summarize; pure, from review[]), router.ts (tiny History API router, linkTo), hooks: useAsync (load on mount), useMe (Clerk + /api/me), useSignOut
 src/components/       our own small primitives (Button, Segmented, Tag, Toast, TopBar); shadcn copies go in src/components/ui/
-src/screens/          one file per screen (Auth, Home, Setup, Quiz, Result placeholder): views that compose hooks
+src/screens/          one file per screen (Auth, Home, Setup, Quiz, Result): views that compose hooks
 src/quiz/             question-screen parts: OptionList, RevealPanel, useQuizKeys, useActiveQuiz (load/resume), useQuizRunner (phase machine, calls, keyboard, focus)
 worker/index.ts       Hono app, basePath /api: middleware and route wiring only
 worker/http.ts        apiError(c, status, message, extra?) (every error body is { error, code?, … }), readJson(c)
@@ -95,6 +95,8 @@ Expected additions as tickets land: more DOs in `worker/durable/`, `worker/workf
 - Choice controls are native radio inputs (`Segmented`, `OptionList`): keyboard and screen-reader behaviour for free, so no Radix yet.
 - Motion: only an opacity fade on options and the checking dots; the reduced-motion guard in `index.css` turns every transition and animation off. Transitions and the reveal animation are STM-26.
 - Routes: `/`, `/setup/<category>`, `/quiz`, `/results` (in memory only; a refresh goes home). `/quiz` always resumes from `GET /api/session`.
+- Focus on a new screen: App focuses `<main>`, or the element marked `data-autofocus` inside it (the results heading). The quiz screen focuses its question itself.
+- Results (STM-12, layout B): big percent (96px phone / 140px desktop, glow), headline by score, "{c} of {n} right[, {k} not answered], {category}, {Difficulty}", a By topic table (topic → "x of y" + Solid / Getting there / Revisit), and every question with its verdict (icon + word: Correct / Not quite / Not answered), "You said", "Answer" when not correct, and the explanation. Everything is derived from the finish response's `review[]` during render (`src/lib/results.ts`); no API change. Unanswered questions count as not correct, as in the server's score. Actions: Another round, Home. "Review what I missed" is STM-25, the count-up STM-26.
 
 ## Where state lives (the rule)
 
