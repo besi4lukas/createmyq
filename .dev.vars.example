@@ -9,3 +9,11 @@
 # The Worker verifies session tokens with it, networkless. Keep the line breaks inside
 # double quotes. Production: pbpaste | npx wrangler secret put CLERK_JWT_KEY
 # CLERK_JWT_KEY="<paste the whole PEM here, BEGIN/END lines and line breaks included>"
+
+# STM-13: R2 API token for presigning upload URLs (Cloudflare dashboard → R2 →
+# Manage API tokens → Object Read & Write, scoped to createmyq-uploads and
+# createmyq-uploads-dev). Production: npx wrangler secret put R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+# Local dev signs for (and, via the remote binding, reads) the dev bucket, never production.
+# R2_ACCESS_KEY_ID=
+# R2_SECRET_ACCESS_KEY=
+# UPLOADS_BUCKET_NAME=createmyq-uploads-dev

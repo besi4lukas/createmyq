@@ -74,6 +74,7 @@ worker/quiz/schemas.ts  request + prefs Zod schemas, shared by the routes and th
 worker/quiz/session-state.ts  the quiz as data and its pure rules: newQuiz, grade (switch per format), answerQuiz, scoreQuiz, toPublicQuiz, toResult
 worker/durable/user-session.ts  UserSession DO (STM-9), one per user via idFromName(users.id); storage, flush, alarm; exported from worker/index.ts
 worker/quiz/flush.ts   STM-10: writeFinishedSession(), the one-transaction write of a finished quiz (called only by the DO)
+worker/uploads/        STM-13: upload-rules.ts (pure: schemas, size/type checks, key `uploads/<users.id>/<sourceId>.pdf`, 5-min TTL), presign.ts (aws4fetch SigV4 presigned PUT, signs Content-Type + Content-Length), upload-routes.ts (POST /api/uploads, POST /api/uploads/complete, GET /api/uploads/:id)
 worker/questions/payload.ts  Zod schemas for questions.payload per format; payloadByFormat + withFormatPayload(shape) is the one place a format joins the union
 worker/testing/       test-only: cloudflare:workers stub (aliased in vitest.config.ts) and a fake DO state; *.test.ts sit next to the code
 scripts/              operator scripts, run with tsx, type-checked by tsconfig.node.json (seed.ts, seed-file.ts, pg-fault-proxy.ts: dev-only flush fault injection)
@@ -152,6 +153,8 @@ PDF ≤ 50 pages and ≤ 20 MB. Sign-in is a Clerk email code; a session lasts 7
 - This departs from the design doc's FR-2/FR-3 (magic link, 30-day cookie) by the user's decision (2026-09-28). `magic_links` and `auth_sessions` are unused.
 - Users read only their own sessions, answers, preferences and private sources.
 - Uploads go browser → R2 via short-lived signed URL, never through the API.
+  How STM-13 does it: `POST /api/uploads {filename,size,contentType}` rejects non-PDF (400 `not_pdf`) and > 20 MB (413 `too_large`) before signing, then returns `{sourceId, uploadUrl, headers, expiresAt}`. No row yet. The browser PUTs to R2 (S3 endpoint, URL valid 5 min, signature binds Content-Type and Content-Length). `POST /api/uploads/complete {sourceId, filename}` HEADs the object through the `UPLOADS` binding, re-checks type/size (deletes a bad object), and inserts the `sources` row (`status 'uploaded'`, `kind 'pdf'`, private, `content_hash` null) + its `source_uploads` row, idempotently. The key is built from the session's users.id, so another user's sourceId is a 404.
+  R2 setup: bucket `createmyq-uploads` (prod) and `createmyq-uploads-dev` (local dev; the binding is `remote: true` with `preview_bucket_name`). Secrets `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (an R2 API token, Object Read & Write on both buckets); `.dev.vars` also sets `UPLOADS_BUCKET_NAME=createmyq-uploads-dev`. Each bucket's CORS allows `PUT` with header `Content-Type` from the app origin(s) (`http://localhost:5173` for dev, the workers.dev origin for prod).
 - Secrets: `wrangler secret put` in prod, `.dev.vars` locally (gitignored). Never commit secrets.
 
 ## Working agreement
