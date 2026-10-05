@@ -1,0 +1,13 @@
+// Dev-only Worker for checking STM-14 extraction inside workerd. NEVER deploy it.
+//   npx wrangler dev -c scripts/extract-harness/wrangler.jsonc --port 8799           (local workerd)
+//   npx wrangler dev -c scripts/extract-harness/wrangler.jsonc --port 8799 --remote  (Cloudflare's network: real egress IPs)
+// No bindings, no secrets, no database. With --remote, request bodies over ~1 MB fail in
+// wrangler's preview proxy (a dev-tool limit, not the Worker's), so check big PDFs locally.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "createmyq-extract-harness",
+  "main": "./index.ts",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false
+}
