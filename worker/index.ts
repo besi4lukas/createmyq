@@ -7,9 +7,12 @@ import { apiError } from "./http";
 import { quizRoutes } from "./quiz/quiz-routes";
 import { sessionRoutes } from "./quiz/session-routes";
 import { uploadRoutes } from "./uploads/upload-routes";
+import { startGenerationRuns } from "./workflows/queue";
 
 // Durable Object classes must be exported from the Worker entry.
 export { UserSession } from "./durable/user-session";
+// Workflow classes too (STM-15).
+export { GenerationWorkflow } from "./workflows/generation";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -52,4 +55,8 @@ app.onError((err, c) => {
   return apiError(c, 500, "Something went wrong");
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // STM-15: the generation queue's consumer starts one Workflow run per source.
+  queue: startGenerationRuns,
+} satisfies ExportedHandler<Env>;

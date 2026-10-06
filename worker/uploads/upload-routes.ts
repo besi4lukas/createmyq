@@ -3,7 +3,8 @@
  * routes only sign, verify and record. See upload-rules.ts for the flow.
  *
  *   POST /api/uploads           { filename, size, contentType } → { sourceId, uploadUrl, expiresAt }
- *   POST /api/uploads/complete  { sourceId, filename } → HEAD the object, create the source row
+ *   POST /api/uploads/complete  { sourceId, filename } → HEAD the object, create the source row,
+ *                               and queue it for generation (STM-15)
  *   GET  /api/uploads/:id       the caller's own upload, with its status
  *
  * Keys are built from the session's users.id, never from the request, so
@@ -17,6 +18,7 @@ import type { AppEnv } from "../auth/session";
 import type { Db } from "../db/client";
 import { sourceUploads, sources } from "../db/schema";
 import { apiError, readJson } from "../http";
+import type { GenerationMessage } from "../workflows/queue";
 import { presignPut, type R2Credentials } from "./presign";
 import {
   PDF_CONTENT_TYPE,
@@ -110,6 +112,11 @@ uploadRoutes.post("/uploads/complete", async (c) => {
 
   const source = await findOwnSource(c.var.db, userId, sourceId);
   if (!source) return notFound(c);
+  // Queue it while it is still waiting. A retried complete may send twice; the
+  // consumer starts one run per source either way (worker/workflows/queue.ts).
+  if (source.status === "uploaded") {
+    await c.env.GENERATION_QUEUE.send({ sourceId } satisfies GenerationMessage);
+  }
   return c.json({ source });
 });
 
