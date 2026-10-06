@@ -50,12 +50,33 @@
   "vars": {
     "R2_ACCOUNT_ID": "037430f3820d50ee00c0ee8ed692bc00",
     "UPLOADS_BUCKET_NAME": "createmyq-uploads"
-  }
+  },
+  // STM-15: making questions runs in the background, never in a request or a
+  // user's Durable Object. POST /api/uploads/complete sends { sourceId } to the
+  // queue; the consumer (worker/workflows/queue.ts) starts one GenerationWorkflow
+  // run per source. Both queues must exist before deploy:
+  //   npx wrangler queues create createmyq-generation
+  //   npx wrangler queues create createmyq-generation-dlq
+  "queues": {
+    "producers": [{ "binding": "GENERATION_QUEUE", "queue": "createmyq-generation" }],
+    "consumers": [
+      {
+        "queue": "createmyq-generation",
+        // One message per batch: each upload starts its run at once.
+        "max_batch_size": 1,
+        "max_retries": 5,
+        // Nothing reads the DLQ yet; it keeps the message for an operator.
+        "dead_letter_queue": "createmyq-generation-dlq"
+      }
+    ]
+  },
+  "workflows": [
+    { "name": "createmyq-generation", "binding": "GENERATION_WORKFLOW", "class_name": "GenerationWorkflow" }
+  ]
   // STM-5: sign-in is Clerk. The Worker verifies session tokens with the secret
   // CLERK_JWT_KEY (Clerk dashboard → API keys → JWKS Public Key, PEM). It is a
   // secret, not a var: `npx wrangler secret put CLERK_JWT_KEY` in prod, .dev.vars locally.
   // Bindings arrive with their tickets, not before:
-  //   STM-15 Queue + Workflow
   //   STM-16 Durable Object: generation lock
   //   STM-18 AI Gateway
 }
