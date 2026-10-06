@@ -92,6 +92,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-14 Text extraction** · 2.5h · depends: STM-13
   PDF through unpdf (50-page and 20 MB caps), article URLs, YouTube captions. Normalise and fingerprint.
   **Done when:** all three source types produce clean text, and a scanned PDF fails with "I could not read this file. Scanned PDFs are not supported yet."
+  Status: in review (branch `stm-14-text-extraction`). Verified 2026-10-05 in Node, local workerd and on Cloudflare's network (`wrangler dev --remote` harness): MapReduce paper (13 pages, 55,135 chars, page footers stripped), a generated 50-page PDF passes and 51 pages / the real 66-page "Out of the Tar Pit" are refused, an image-only PDF and an 18.5 MB image-only PDF read from the dev R2 bucket fail with exactly the scanned-PDF message; martinfowler.com/articles/microservices.html (34,183 chars, headings kept), MDN, jvns.ca, Wikipedia; YouTube with uploaded captions (JSConf event loop talk, 22,170 chars), auto captions only (3 videos), and a video with no captions ("This video has no English captions…"). Fingerprints identical in Node and workerd. Not wired into anything yet (STM-15); `content_hash` is written by STM-16. Once imported by the Worker, the bundle grows from 661 KB (153 KB gzip) to ~3.25 MB (~825 KB gzip), pdf.js as a lazy chunk.
 
 - [ ] **STM-15 Queue + Workflow skeleton** 🔍 · 2.5h · depends: STM-14
   Per-step retries, stubbed generation.
