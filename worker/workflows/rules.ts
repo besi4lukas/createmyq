@@ -6,8 +6,8 @@ import type { sourceStatus } from "../db/schema";
 
 export type SourceStatus = (typeof sourceStatus.enumValues)[number];
 
-/** The statuses the Workflow writes. ready / refused arrive with STM-18 and STM-22. */
-export type RunStatus = "processing" | "failed" | "duplicate";
+/** The statuses the Workflow writes. refused arrives with STM-22. */
+export type RunStatus = "processing" | "failed" | "duplicate" | "ready";
 
 /**
  * Where each status may be entered from. The UPDATE in generation.ts only
@@ -17,6 +17,7 @@ export type RunStatus = "processing" | "failed" | "duplicate";
  * processing: from uploaded (first run) or processing (the step re-ran).
  * failed:     only from processing, so a run never fails someone else's result.
  * duplicate:  from processing (the fingerprint step) or duplicate (it re-ran).
+ * ready:      only from processing (the store step; a re-run after it committed writes nothing).
  *
  * The one other move, failed → processing when a later upload retries a bank,
  * is made only by the lock holder (lock-rules.ts: mayReopen).
@@ -25,6 +26,7 @@ const ALLOWED_FROM: Record<RunStatus, SourceStatus[]> = {
   processing: ["uploaded", "processing"],
   failed: ["processing"],
   duplicate: ["processing", "duplicate"],
+  ready: ["processing"],
 };
 
 export function allowedFrom(to: RunStatus): SourceStatus[] {
@@ -55,11 +57,7 @@ export function fitsInStepResult(text: string): boolean {
 // User-facing messages, stored in sources.error.
 export const TOO_MUCH_TEXT = "This source has too much text for one quiz. Try a shorter one.";
 export const GENERATION_FAILED = "Something went wrong while making your quiz. Please upload the file again.";
-// TODO(STM-18): remove once generation is real. The run ends here for now, so
-// the user sees a clear message instead of a source that is never ready.
-export const GENERATION_NOT_LIVE = "Making quizzes from your own files is not switched on yet.";
-
-/** TODO(STM-18): replace with real generation. Deterministic, no model calls. */
-export function stubQuestions(fingerprint: string, count = 20): { stem: string }[] {
-  return Array.from({ length: count }, (_, i) => ({ stem: `Stub question ${i + 1} for ${fingerprint.slice(0, 8)}` }));
-}
+/** Fewer than MIN_QUESTIONS (generate.ts) passed every check. */
+export const TOO_THIN = "This source was too thin to make a quiz from. Try a longer or more detailed one.";
+/** GENERATION_ENABLED is not "true" (wrangler.jsonc): the kill switch until STM-24's spend ceiling. */
+export const GENERATION_OFF = "Making quizzes from your own files is switched off for now.";

@@ -5,7 +5,8 @@
  * that has not returned. Earlier steps are not run again. So every step must be
  * safe to run twice (it may fail half way and be retried).
  *
- *   start → extract → fingerprint → claim lock → classify → chunk → generate → filter → store → release lock
+ *   start → extract → fingerprint → claim lock → generation enabled → classify → chunk
+ *     → generate chunk n (one per picked chunk, side by side) → filter → store → release lock
  *
  * The lock comes after the fingerprint because it is keyed by it (STM-16, see
  * lock-rules.ts). Fingerprint writes content_hash; the UNIQUE constraint makes
@@ -13,10 +14,11 @@
  * finished, the run then asks the bank's GenerationLock; only the holder goes
  * on, and from then on it writes to the bank, not to its own source.
  *
- * Real: start, extract, fingerprint, claim lock, store, release lock. The rest
- * are stubs with the ticket that fills them in. Any failure ends with the
- * source (or the bank, for the lock holder) marked failed and a message the
- * user can read (sources.error).
+ * Real: start, extract, fingerprint, claim lock, chunk, generate (one step per
+ * picked chunk, STM-18), store, release lock. Classify and filter are stubs
+ * with the ticket that fills them in. Any failure ends with the source (or the
+ * bank, for the lock holder) marked failed and a message the user can read
+ * (sources.error).
  *
  * The extracted text is not stored in Postgres; it is the Extract step's
  * return value, which the Workflow keeps (rules.ts: MAX_TEXT_CHARS).
@@ -24,20 +26,15 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { chunkSource, type ChunkInput } from "../chunk";
+import { chunkSource, type Chunk, type ChunkInput } from "../chunk";
 import { withDb } from "../db/client";
 import { sources } from "../db/schema";
 import { extractSource, type ExtractInput } from "../extract";
+import { anthropicModel } from "./anthropic";
 import { claimContentHash, reopenBank } from "./bank";
-import {
-  GENERATION_FAILED,
-  GENERATION_NOT_LIVE,
-  TOO_MUCH_TEXT,
-  allowedFrom,
-  fitsInStepResult,
-  stubQuestions,
-  type RunStatus,
-} from "./rules";
+import { MIN_QUESTIONS, costUsd, finalQuestions, generateForChunk, planChunks, totalUsage, type GeneratedQuestion } from "./generate";
+import { GENERATION_FAILED, GENERATION_OFF, TOO_MUCH_TEXT, TOO_THIN, allowedFrom, fitsInStepResult, type RunStatus } from "./rules";
+import { storeBank } from "./store";
 
 export type GenerationParams = { sourceId: string };
 
@@ -56,6 +53,17 @@ const EXTRACT_STEP = {
   timeout: "2 minutes",
 } satisfies WorkflowStepConfig;
 
+/**
+ * One chunk: one model call, or two when the first reply is invalid. The SDK
+ * already retries a failed request twice (anthropic.ts), so a step retry means
+ * the provider or gateway is struggling; wait before trying again. A finished
+ * chunk's result is stored, so a resumed run never pays for it twice.
+ */
+const GENERATE_STEP = {
+  retries: { limit: 2, delay: "30 seconds", backoff: "exponential" },
+  timeout: "5 minutes",
+} satisfies WorkflowStepConfig;
+
 /** The stubs do no I/O. One retry covers the runtime restarting mid-step. */
 const STUB_STEP = {
   retries: { limit: 1, delay: "1 second" },
@@ -71,6 +79,16 @@ type Extract =
   | { ok: true; text: string; fingerprint: string; title: ChunkInput["title"]; spans: ChunkInput["spans"] }
   | { ok: false; code: string; message: string };
 type StepContext = { step: { name: string }; attempt: number };
+
+/** A run that ends on purpose, with a message for the user (thrown outside steps only). */
+class RunFailure extends Error {
+  constructor(
+    readonly code: string,
+    readonly userMessage: string,
+  ) {
+    super(code);
+  }
+}
 
 export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams> {
   async run(event: WorkflowEvent<GenerationParams>, step: WorkflowStep) {
@@ -132,27 +150,77 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
           return { sourceId, outcome: claimed.reason === "busy" ? "waiting_on_other_run" : "duplicate", bankSourceId: fp.bankSourceId };
         }
         bank = { sourceId: fp.bankSourceId, fingerprint };
+        const held = bank;
+
+        // The kill switch (wrangler.jsonc), read in a step so a resumed run sees the value it started with.
+        const enabled = await step.do("generation enabled", STUB_STEP, logged(async () => this.env.GENERATION_ENABLED === "true"));
+        if (!enabled) throw new RunFailure("generation_off", GENERATION_OFF);
 
         // TODO(STM-21/22): sample chunks from start, middle and end; refuse off-topic sources.
         await step.do("classify", STUB_STEP, logged(async () => ({ verdict: "accepted" as const })));
         const chunks = await step.do("chunk", STUB_STEP, logged(async () => chunkSource({ kind: source.kind, ...extracted })));
-        // TODO(STM-18): generate through AI Gateway, Zod-validate, retry once, drop.
-        const drafts = await step.do("generate", STUB_STEP, logged(async () => stubQuestions(fingerprint)));
-        // TODO(STM-19): rubric score and vector near-duplicate filter.
-        const kept = await step.do("filter", STUB_STEP, logged(async () => drafts));
-        // TODO(STM-18): write the questions and mark the bank ready, in one transaction, through writeBank (lock renewed first).
-        // For now nothing is written to the bank and the user is told why.
-        const held = bank;
-        await step.do("store", DB_STEP, logged(() => this.writeBank(held, sourceId, "failed", GENERATION_NOT_LIVE)));
+        const plan = planChunks(chunks);
+        // One step per chunk, run side by side: a retry or a resume repeats only the chunks that hadn't finished.
+        const results = await Promise.all(
+          plan.chunks.map((chunk) =>
+            step.do(
+              `generate chunk ${chunk.ordinal}`,
+              GENERATE_STEP,
+              logged(async () => {
+                const result = await generateForChunk(anthropicModel(this.env), chunk, extracted.text, plan.perChunk);
+                const { questions, ...counts } = result;
+                console.log(log({ event: "generation_chunk_done", ...counts, kept: questions.length }));
+                return result;
+              }),
+            ),
+          ),
+        );
+        // TODO(STM-19): rubric score and vector near-duplicate filter. For now only the cap.
+        const kept: GeneratedQuestion[] = await step.do(
+          "filter",
+          STUB_STEP,
+          logged(async () => {
+            const usage = totalUsage(results);
+            const final = finalQuestions(results);
+            console.log(
+              log({
+                event: "generation_run_summary",
+                chunks: chunks.length,
+                chunksAsked: results.length,
+                chunksDropped: results.filter((r) => r.dropped).length,
+                calls: results.reduce((n, r) => n + r.calls, 0),
+                generated: results.reduce((n, r) => n + r.questions.length, 0),
+                kept: final.length,
+                ...usage,
+                costUsd: Number(costUsd(usage).toFixed(4)),
+              }),
+            );
+            return final;
+          }),
+        );
+        if (kept.length < MIN_QUESTIONS) throw new RunFailure("too_thin", TOO_THIN);
+
+        const stored = await step.do(
+          "store",
+          DB_STEP,
+          logged(() => this.storeBank(held, sourceId, extracted.text, chunks, kept)),
+        );
         await step.do("release lock", DB_STEP, logged(() => this.release(held, sourceId)));
-        return { sourceId, outcome: "stubbed", bankSourceId: bank.sourceId, chunks: chunks.length, questions: kept.length };
+        // Not stored: the lock was lost (the other run's result stands), or an earlier attempt of this step already committed.
+        return { sourceId, outcome: stored.stored ? "ready" : "not_stored", bankSourceId: held.sourceId, questions: kept.length };
       }
       failure = extracted;
     } catch (err) {
-      // A step ran out of retries or threw NonRetryableError. The user gets a
-      // general message; the log has the reason.
-      console.error(log({ event: "generation_run_failed", error: err instanceof Error ? err.message : String(err) }));
-      failure = { code: "step_failed", message: GENERATION_FAILED };
+      if (err instanceof RunFailure) {
+        // An expected end with its own message (kill switch, too thin).
+        console.warn(log({ event: "generation_run_failed", code: err.code }));
+        failure = { code: err.code, message: err.userMessage };
+      } else {
+        // A step ran out of retries or threw NonRetryableError. The user gets a
+        // general message; the log has the reason.
+        console.error(log({ event: "generation_run_failed", error: err instanceof Error ? err.message : String(err) }));
+        failure = { code: "step_failed", message: GENERATION_FAILED };
+      }
     }
 
     const held = bank;
@@ -208,6 +276,16 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
       return { written: false };
     }
     return { written: (await this.moveSource(bank.sourceId, to, error)) !== null };
+  }
+
+  /** Write the questions and mark the bank ready, if this run still holds the lock (see writeBank). */
+  private async storeBank(bank: Bank, holder: string, text: string, chunks: Chunk[], kept: GeneratedQuestion[]): Promise<{ stored: boolean }> {
+    const { renewed } = await this.lock(bank.fingerprint).renew(holder);
+    if (!renewed) {
+      console.warn(JSON.stringify({ event: "generation_write_skipped_lock_lost", sourceId: holder, bankSourceId: bank.sourceId }));
+      return { stored: false };
+    }
+    return withDb(this.env, this.ctx, (db) => storeBank(db, bank.sourceId, text, chunks, kept));
   }
 
   /**
