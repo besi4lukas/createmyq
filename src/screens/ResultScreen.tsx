@@ -44,7 +44,7 @@ export function ResultScreen({ result }: { result: QuizResult }) {
         {/* The heading below says the score for screen readers. */}
         <p
           aria-hidden="true"
-          className="text-score leading-[0.9] font-medium tracking-[-0.05em] text-accent-300 text-shadow-glow sm:text-score-lg"
+          className="text-score leading-[0.9] font-medium tracking-[-0.05em] text-accent-300 sm:text-score-lg"
         >
           {pct}
           <span className="text-[0.4em] tracking-normal text-neutral-500">%</span>

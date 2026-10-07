@@ -29,7 +29,13 @@ const signInAppearance = {
   elements: {
     rootBox: "w-full",
     cardBox: "w-full max-w-none shadow-sm",
-    formButtonPrimary: "min-h-11",
+    // Clerk sets its own --accent on this button from colorPrimary, which makes
+    // `--accent: var(--accent)` (a cycle, so invalid) and a transparent fill.
+    // Inherit ours back (for the focus ring) and fill it from the neutral ramp:
+    // near-white in dark, near-black in light.
+    formButtonPrimary:
+      "min-h-11 [--accent:inherit] bg-neutral-100 text-bg hover:bg-neutral-200 active:bg-neutral-300 " +
+      "disabled:bg-neutral-400 disabled:opacity-100 data-disabled:bg-neutral-400 data-disabled:opacity-100",
     formFieldInput: "min-h-11",
     otpCodeFieldInput: "min-h-11",
     formResendCodeLink: "min-h-11",
