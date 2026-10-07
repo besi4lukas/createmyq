@@ -31,7 +31,7 @@ export const MAX_CHUNKS = 9;
 const ASK_TOTAL = 27;
 /** Per call, whatever the source's size. */
 const MAX_PER_CHUNK = 8;
-/** A bank keeps at most this many (STM-19 will filter before the cap). */
+/** A bank keeps at most this many (the best-scored, after the filter in filter.ts). */
 export const MAX_QUESTIONS = 25;
 /** Fewer survive → the run fails with TOO_THIN (rules.ts). */
 export const MIN_QUESTIONS = 5;
@@ -218,19 +218,16 @@ export async function generateForChunk(model: ModelCall, chunk: Chunk, text: str
 }
 
 /**
- * The questions a bank keeps: at most MAX_QUESTIONS, in chunk order, with the
- * correct option moved to position i % 4 so answers are spread evenly (models
- * favour some positions). The other options keep their order.
+ * Moves the correct option of the i-th question to position i % 4, so answers
+ * are spread evenly (models favour some positions). The other options keep
+ * their order. The cap (MAX_QUESTIONS) is applied by the filter (filter.ts).
  */
-export function finalQuestions(results: ChunkResult[]): GeneratedQuestion[] {
-  return results
-    .flatMap((r) => r.questions)
-    .slice(0, MAX_QUESTIONS)
-    .map((q, i) => {
-      const others = q.options.filter((o) => o !== q.answer);
-      others.splice(i % 4, 0, q.answer);
-      return { ...q, options: others };
-    });
+export function spreadAnswers<Q extends GeneratedQuestion>(questions: Q[]): Q[] {
+  return questions.map((q, i) => {
+    const others = q.options.filter((o) => o !== q.answer);
+    others.splice(i % 4, 0, q.answer);
+    return { ...q, options: others };
+  });
 }
 
 export function costUsd(usage: Usage): number {
