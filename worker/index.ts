@@ -11,6 +11,7 @@ import { startGenerationRuns } from "./workflows/queue";
 
 // Durable Object classes must be exported from the Worker entry.
 export { UserSession } from "./durable/user-session";
+export { GenerationLock } from "./durable/generation-lock";
 // Workflow classes too (STM-15).
 export { GenerationWorkflow } from "./workflows/generation";
 

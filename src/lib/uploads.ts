@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { ApiError, api, friendlyError } from "./api";
 
 export type SourceStatus = "uploaded" | "processing" | "ready" | "refused" | "failed" | "duplicate";
-export type UploadedSource = { id: string; title: string | null; status: SourceStatus; createdAt: string };
+export type UploadedSource = { id: string; title: string | null; status: SourceStatus; bankSourceId: string; createdAt: string };
 
 type Ticket = { sourceId: string; uploadUrl: string; headers: Record<string, string>; expiresAt: string };
 
