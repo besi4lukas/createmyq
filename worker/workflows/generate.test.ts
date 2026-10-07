@@ -2,14 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { Chunk } from "../chunk";
 import {
   MAX_CHUNKS,
-  MAX_QUESTIONS,
-  MIN_QUESTIONS,
   costUsd,
-  finalQuestions,
   generateForChunk,
   planChunks,
   quoteIsInPassage,
-  type ChunkResult,
+  spreadAnswers,
   type GeneratedQuestion,
   type ModelCall,
   type ModelReply,
@@ -160,32 +157,14 @@ describe("planChunks", () => {
   });
 });
 
-describe("finalQuestions", () => {
-  const generated = (n: number, ordinal = 0): GeneratedQuestion[] =>
-    Array.from({ length: n }, (_, i) => ({ chunkOrdinal: ordinal, ...question({ prompt: `Q${ordinal}.${i}` }) }));
-  const result = (questions: GeneratedQuestion[]): ChunkResult => ({
-    chunkOrdinal: questions[0]?.chunkOrdinal ?? 0,
-    questions,
-    calls: 1,
-    usage: { inputTokens: 0, outputTokens: 0 },
-    dropped: null,
-    rejected: {},
-  });
-
-  it(`caps a bank at ${MAX_QUESTIONS}`, () => {
-    const final = finalQuestions([result(generated(10, 1)), result(generated(10, 2)), result(generated(10, 3))]);
-    expect(final).toHaveLength(MAX_QUESTIONS);
-    expect(final.at(-1)?.prompt).toBe("Q3.4");
-  });
+describe("spreadAnswers", () => {
+  const generated = (n: number): GeneratedQuestion[] =>
+    Array.from({ length: n }, (_, i) => ({ chunkOrdinal: 0, ...question({ prompt: `Q${i}` }) }));
 
   it("spreads the correct option evenly over the four positions, keeping the others in order", () => {
-    const final = finalQuestions([result(generated(8))]);
+    const final = spreadAnswers(generated(8));
     expect(final.map((q) => q.options.indexOf(q.answer))).toEqual([0, 1, 2, 3, 0, 1, 2, 3]);
     expect(final[2]?.options).toEqual(["Restarts the whole job", "Waits forever", "Marks it as failed", "Asks the user"]);
-  });
-
-  it(`can leave fewer than ${MIN_QUESTIONS}, which the Workflow turns into a failed source`, () => {
-    expect(finalQuestions([result(generated(4)), result([])])).toHaveLength(4);
   });
 });
 

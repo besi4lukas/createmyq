@@ -6,7 +6,7 @@
  * safe to run twice (it may fail half way and be retried).
  *
  *   start → extract → fingerprint → claim lock → generation enabled → classify → chunk
- *     → generate chunk n (one per picked chunk, side by side) → filter → store → release lock
+ *     → generate chunk n (one per picked chunk, side by side) → grade → filter → store → release lock
  *
  * The lock comes after the fingerprint because it is keyed by it (STM-16, see
  * lock-rules.ts). Fingerprint writes content_hash; the UNIQUE constraint makes
@@ -15,8 +15,8 @@
  * on, and from then on it writes to the bank, not to its own source.
  *
  * Real: start, extract, fingerprint, claim lock, chunk, generate (one step per
- * picked chunk, STM-18), store, release lock. Classify and filter are stubs
- * with the ticket that fills them in. Any failure ends with the source (or the
+ * picked chunk, STM-18), grade and filter (STM-19: rubric score, near-duplicate
+ * collapse, cap), store, release lock. Classify is a stub until STM-21/22. Any failure ends with the source (or the
  * bank, for the lock holder) marked failed and a message the user can read
  * (sources.error).
  *
@@ -30,11 +30,14 @@ import { chunkSource, type Chunk, type ChunkInput } from "../chunk";
 import { withDb } from "../db/client";
 import { sources } from "../db/schema";
 import { extractSource, type ExtractInput } from "../extract";
-import { anthropicModel } from "./anthropic";
+import { anthropicGrader, anthropicModel } from "./anthropic";
 import { claimContentHash, reopenBank } from "./bank";
-import { MIN_QUESTIONS, costUsd, finalQuestions, generateForChunk, planChunks, totalUsage, type GeneratedQuestion } from "./generate";
+import { embedTexts } from "./embed";
+import { countOutcomes, embeddingText, filterQuestions, gradeQuestions, graderCostUsd, passingIndexes } from "./filter";
+import { MIN_QUESTIONS, costUsd, generateForChunk, planChunks, spreadAnswers, totalUsage } from "./generate";
 import { GENERATION_FAILED, GENERATION_OFF, TOO_MUCH_TEXT, TOO_THIN, allowedFrom, fitsInStepResult, type RunStatus } from "./rules";
 import { storeBank } from "./store";
+import type { KeptQuestion } from "./filter";
 
 export type GenerationParams = { sourceId: string };
 
@@ -62,6 +65,23 @@ const EXTRACT_STEP = {
 const GENERATE_STEP = {
   retries: { limit: 2, delay: "30 seconds", backoff: "exponential" },
   timeout: "5 minutes",
+} satisfies WorkflowStepConfig;
+
+/**
+ * STM-19: one Haiku call grading every question. The SDK already retries a
+ * failed request twice; one step retry after that. A run pays for at most two
+ * grading calls (~$0.02 each). On the last attempt, or a request that can't
+ * succeed, the questions go on unscored (filter.ts).
+ */
+const GRADE_STEP = {
+  retries: { limit: 1, delay: "30 seconds", backoff: "exponential" },
+  timeout: "5 minutes",
+} satisfies WorkflowStepConfig;
+
+/** One Workers AI call. On the last attempt a failure skips the near-duplicate check instead. */
+const EMBED_STEP = {
+  retries: { limit: 2, delay: "10 seconds", backoff: "exponential" },
+  timeout: "2 minutes",
 } satisfies WorkflowStepConfig;
 
 /** The stubs do no I/O. One retry covers the runtime restarting mid-step. */
@@ -175,29 +195,83 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
             ),
           ),
         );
-        // TODO(STM-19): rubric score and vector near-duplicate filter. For now only the cap.
-        const kept: GeneratedQuestion[] = await step.do(
+        const generated = results.flatMap((r) => r.questions);
+        // STM-19: grade every question against the rubric (one Haiku call). If grading
+        // can't be done, the questions go on unscored rather than failing the run.
+        const graded = await step.do(
+          "grade",
+          GRADE_STEP,
+          logged(async (ctx) => {
+            try {
+              return { ok: true as const, ...(await gradeQuestions(anthropicGrader(this.env), generated, plan.chunks, extracted.text)) };
+            } catch (err) {
+              if (!(err instanceof NonRetryableError) && ctx.attempt <= GRADE_STEP.retries.limit) throw err;
+              const error = err instanceof Error ? err.message : String(err);
+              console.warn(log({ event: "generation_filter_degraded", stage: "grade", attempt: ctx.attempt, error }));
+              return { ok: false as const, grades: generated.map(() => null), usage: { inputTokens: 0, outputTokens: 0 } };
+            }
+          }),
+        );
+        // Embed what passed the rubric, collapse near-duplicates, cap. Kept questions carry their score and vector to the store step.
+        const filtered = await step.do(
           "filter",
-          STUB_STEP,
-          logged(async () => {
-            const usage = totalUsage(results);
-            const final = finalQuestions(results);
+          EMBED_STEP,
+          logged(async (ctx) => {
+            const passing = passingIndexes(graded.grades);
+            const vectors: (number[] | null)[] = generated.map(() => null);
+            let embedCostUsd = 0;
+            let embedded = true;
+            try {
+              const e = await embedTexts(this.env.AI, passing.map((i) => embeddingText(generated[i]!)));
+              passing.forEach((i, k) => (vectors[i] = e.vectors[k]!));
+              embedCostUsd = e.costUsd;
+            } catch (err) {
+              if (ctx.attempt <= EMBED_STEP.retries.limit) throw err;
+              embedded = false;
+              const error = err instanceof Error ? err.message : String(err);
+              console.warn(log({ event: "generation_filter_degraded", stage: "embed", attempt: ctx.attempt, error }));
+            }
+            const { kept, decisions } = filterQuestions(generated, graded.grades, vectors);
+            const counts = countOutcomes(decisions);
+            const generation = totalUsage(results);
+            const generationCostUsd = costUsd(generation);
+            const gradeCostUsd = graderCostUsd(graded.usage);
+            console.log(
+              log({
+                event: "generation_filter_summary",
+                generated: generated.length,
+                belowThreshold: counts.below_threshold,
+                nearDuplicate: counts.near_duplicate,
+                capped: counts.capped,
+                kept: counts.kept,
+                graded: graded.ok,
+                unscored: graded.grades.filter((g) => g === null).length,
+                embedded,
+                gradeInputTokens: graded.usage.inputTokens,
+                gradeOutputTokens: graded.usage.outputTokens,
+                gradeCostUsd: Number(gradeCostUsd.toFixed(4)),
+                embedCostUsd: Number(embedCostUsd.toFixed(6)),
+              }),
+            );
             console.log(
               log({
                 event: "generation_run_summary",
                 chunks: chunks.length,
                 chunksAsked: results.length,
                 chunksDropped: results.filter((r) => r.dropped).length,
-                calls: results.reduce((n, r) => n + r.calls, 0),
-                generated: results.reduce((n, r) => n + r.questions.length, 0),
-                kept: final.length,
-                ...usage,
-                costUsd: Number(costUsd(usage).toFixed(4)),
+                calls: results.reduce((n, r) => n + r.calls, 0) + (graded.ok ? 1 : 0),
+                generated: generated.length,
+                kept: kept.length,
+                ...generation,
+                generationCostUsd: Number(generationCostUsd.toFixed(4)),
+                filterCostUsd: Number((gradeCostUsd + embedCostUsd).toFixed(4)),
+                costUsd: Number((generationCostUsd + gradeCostUsd + embedCostUsd).toFixed(4)),
               }),
             );
-            return final;
+            return { kept: spreadAnswers(kept), decisions };
           }),
         );
+        const kept = filtered.kept;
         if (kept.length < MIN_QUESTIONS) throw new RunFailure("too_thin", TOO_THIN);
 
         const stored = await step.do(
@@ -279,7 +353,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
   }
 
   /** Write the questions and mark the bank ready, if this run still holds the lock (see writeBank). */
-  private async storeBank(bank: Bank, holder: string, text: string, chunks: Chunk[], kept: GeneratedQuestion[]): Promise<{ stored: boolean }> {
+  private async storeBank(bank: Bank, holder: string, text: string, chunks: Chunk[], kept: KeptQuestion[]): Promise<{ stored: boolean }> {
     const { renewed } = await this.lock(bank.fingerprint).renew(holder);
     if (!renewed) {
       console.warn(JSON.stringify({ event: "generation_write_skipped_lock_lost", sourceId: holder, bankSourceId: bank.sourceId }));

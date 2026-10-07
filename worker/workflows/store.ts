@@ -12,7 +12,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Chunk } from "../chunk";
 import type { Db } from "../db/client";
 import { questions, sourceChunks, sources } from "../db/schema";
-import type { GeneratedQuestion } from "./generate";
+import type { KeptQuestion } from "./filter";
 import { allowedFrom } from "./rules";
 
 /** We asked for multiple choice; the model doesn't choose. */
@@ -29,7 +29,7 @@ export async function storeBank(
   bankSourceId: string,
   text: string,
   chunks: Chunk[],
-  generated: GeneratedQuestion[],
+  generated: KeptQuestion[],
 ): Promise<{ stored: boolean }> {
   return db.transaction(async (tx) => {
     const [ready] = await tx
@@ -69,6 +69,9 @@ export async function storeBank(
           payload: { options: q.options, answer: q.answer },
           // charStart/charEnd are the chunk's range in the extracted text; the quote is inside it.
           citation: { headingPath: chunk.headingPath, location: chunk.location, charStart: chunk.start, charEnd: chunk.end, quote: q.quote },
+          // STM-19: the rubric score (null if the grader failed) and the vector the near-duplicate filter used.
+          qualityScore: q.qualityScore,
+          embedding: q.embedding,
         };
       }),
     );
