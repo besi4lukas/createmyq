@@ -1,0 +1,1308 @@
+arXiv:2407.09279v1 [math.GR] 12 Jul 2024
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM
+GROUPS OF GROUPS
+MOHSEN ASGHARZADEH, MOHAMMAD GOLSHANI, DANIEL HERDEN,
+AND SAHARON SHELAH
+Dedicated to L´aszl´o Fuchs for his 100th birthday
+Abstract. Assuming G¨odel’s axiom of constructibility V = L, we present a characterization of those groups L for which there exist arbitrarily large groups H such
+that Aut(H) ∼= L. In particular, we show that it suffices to have one such group H
+such that the size of its center is bigger than 2|L|+ℵ0 .
+§ 0. Introduction
+The representation problem from group theory asks:
+Problem 0.1. For a given group L, is there a group H such that Aut(H) ∼= L?
+There are a lot of interesting research papers in this area. Here, we recall only a short
+list of them. The study of automorphism groups of finite abelian groups started with
+Shoda [13]. Hallett–Hirsch [8] and Corner [3] classified finite groups which are the automorphism group of some torsion-free group. For infinite groups, Beaumont–Pierce [2]
+studied automorphism groups of torsion-free groups of rank two. May [10] has more
+results on abelian automorphism groups of torsion-free groups of countable rank.
+A related problem is the classical problem of establishing whether two algebraic
+structures are isomorphic when their automorphism groups are isomorphic. Thanks
+to [9], the answer is yes for abelian p-groups, when p 6 = 2. Also, by the work of
+Corner–Goldsmith [4], the answer for reduced torsion-free modules over the ring Jp
+of p-adic integers, where p 6 = 2, is affirmative. The question of whether two abelian
+2-groups are isomorphic when their automorphism groups are isomorphic is still an
+open problem. For an excellent survey on these and related topics, see Fuchs [6].
+Date: July 15, 2024.
+2010 Mathematics Subject Classification. Primary 20A15; 20E36 Secondary 20C99.
+Key words and phrases. automorphisms; diamond principle; representation of groups; set theoretical methods in group theory.
+The second author’s research has been supported by a grant from IPM (No. 1402030417). The
+second author’s work is based upon research funded by Iran National Science Foundation (INSF) under
+project No. 4027168. The fourth author research partially supported by the Israel Science Foundation
+(ISF) grant no: 1838/19, and Israel Science Foundation (ISF) grant no: 2320/23; Research partially
+supported by the grant “Independent Theories” NSF-BSF, (BSF 3013005232). This is 1049 in Shelah’s
+list of publications.
+
+2 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+Despite lots of work, the study of the automorphism group of groups is not documented very well, and there is no universal solution to Problem 0.1. There are several
+examples of groups that can never be the automorphism group of some abelian group,
+so that Problem 0.1 reduces to characterizing those groups L that can be the automorphism group of another group.
+Throughout this paper, we work with arbitrary groups, so they are not required to
+be abelian. In order to study Problem 0.1, we study the structure of the automorphism
+group and inner automorphisms of a given group. It may be worth noting that Baer [1]
+studied the normal subgroup structure of Aut(H) for infinite p-groups H. For more
+details on this and further achievements, see again the book of Fuchs [6].
+We suggest a good version of the problem:
+Problem 0.2. Characterize the groups L such that for arbitrarily large cardinals λ
+there is a group H of cardinal λ such that Aut(H) ∼= L.
+We approach Problem 0.2 as follows. Given groups L and H and a monomorphism
+F : L → Aut(H), our aim is to find a group H′ ⊇ H and an isomorphism F ′ :
+L → Aut(H′) in such a way that for each ℓ ∈ L, F ′(ℓ) is an automorphism of H′ which
+extends F (ℓ). Thus, we have to find H′ in such a way that, for each ℓ ∈ L, F (ℓ) extends
+to an automorphism of H′, and such that if h ∈ Aut(H) is not in the range of F, then
+h can not be extended to an automorphism of H′; furthermore, any automorphism of
+H′ must result from extending an automorphism of H. We show that, under some
+extra assumptions on our initial setup, this is always possible.
+Let us recall that the group H in general is not assumed to be abelian. So, we
+consider its center Z(H), which leads to the following exact sequence:
+N
+h∗
+
+⑧⑧⑧⑧⑧⑧⑧⑧
+0 / / Z(H) / / H h / / N
+=
+O
+O
+/
+/
+0
+We also consider a map h∗, which assigns to each b ∈ N := H/Z(H) a preimage under
+h, but we do not require it to be a homomorphism. We assume that N is a normal
+subgroup of L, and that it determines the inner automorphisms of H in the sense that,
+for a ∈ H, if we define a∗ as a∗ := F (h(a)), then a∗(x) = axa−1 for all x ∈ H, and
+N ∼= F (N) = Inn(H) ⊆ Aut(H). Putting all these things together will lead to the
+definition of a class Caut of tuples
+c := (Lc, Nc, Hc, hc, h∗
+c, Fc).
+Our main purpose is to furnish c with some additional structures. This leads us to
+defining various versions of Caut, which may serve as a framework for solving Problem 0.2. In Section 1, we point out the right version to use. In fact, the most advanced
+versions of Caut which appears in this work is denoted by C6
+aut, which consists of elements (c, G). In particular, the non-explained notion G consists of a family of certain
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 3
+tuples g which assign some torsion-free abelian groups Gg. For more details, we refer
+the reader to see Definition 1.9(4). One version of our main conclusion is:
+Theorem 0.3. Assume (c, G) ∈ C6
+aut, Hom(Nc, Gg) = 0 for all g ∈ G, and Fc : Lc
+∼=
+→
+Aut(Hc). Let λ = cf(λ) > 2‖c‖ and suppose ♦λ(S) holds for some S ⊆ Sλ
+ℵ0 which is
+stationary and non-reflecting. Then there is m ∈ C6
+aut such that the following holds:
+(a) Hm ⊇ Hc has size λ and Hm/Hc is λ-free.
+(b) If g ∈ Aut(Hm), then for some b ∈ Lc and f ∈ Hom(Nc, Z(Hm)), we have
+g = F b
+m ◦ gf , where the automorphism gf of Hm is defined by
+gf (x) := f (hm(x)) · x.
+Here, Sλ
+ℵ0 := {α < λ | cf(α) = ℵ0}, and ♦λ(S) is the Jensen’s diamond, see Definition 3.5. Also, the mysterious condition Hom(Nc, Gg) = 0 is slightly stronger than
+the trivial dual condition Hom(Nc, Z) = 0, see Remark 3.4(2). In fact, modulo the
+consistency of the existence of large cardinals, it is proved in [12] that consistently ⊠λ
+may hold for λ = ℵω1·ω, where
+⊠λ If G 6 = 0 is any λ-free abelian group, then Hom(G, Z) 6 = 0.
+According to [11], ⊠ℵk fails for k < ω, and, by [12], ⊠ℵω1·n fails as well for all n < ω.
+So, we expect that Theorem 0.3 holds in ZFC for λ < ℵω1·ω, but this result has to wait.
+In Section 1, we give a systematic study of the representation framework Caut. We
+start by defining C+
+aut, the class of tuples (L, H, F ) where F : L ∼=
+−→ Aut(H). We
+introduce seven other versions and compare them, as a weak version of C+
+aut. Their
+relation to each other is as follows:
+C0
+aut C1
+aut C2
+aut C3
+aut C4
+aut ⊆ C5
+aut C6
+aut,
+with the convention that Ci
+aut Ci+1
+aut means Ci+1
+aut is constructed from Ci
+aut. In Section 2, we present a systematic study of explicit automorphisms in Aut(H). This
+includes gf and its variations. In Section 3, we prove Theorem 0.3 (see Theorem 3.6)
+via presenting a connection between Problem 0.1 and the trivial dual conjecture, which
+searches for the existence of almost free groups with trivial dual, see [11, 12]. Namely,
+we show that if m ∈ Mc is auto-rigid, i.e., Fm : Lm → Aut(Hm) is an isomorphism,
+and |Hm| > |Lc|, then Hom(Nc, Z) is trivial, see Lemma 3.1. We then use Jensen’s
+diamond principle to complete the proof of Theorem 0.3. This enables us to present
+the following solution to Problem 0.2 (see Corollary 3.9):
+Corollary 0.4. Assume G¨odel’s axiom of constructibility V = L, and let L be any
+group. Then the following are equivalent:
+(a) For every cardinal λ = cf(λ) > 2|L|+ℵ0 , there is a group H of cardinality λ such
+that Aut(H) ∼= L.
+(b) There is c ∈ C+
+aut such that Lc ∼= L, Aut(Hc) ∼= L and |Z(Hc)| > 2|L|+ℵ0 .
+
+4 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+§ 1. Finding the right framework
+In this section, we introduce several classes of objects which will serve as a formal
+framework for realizing a fixed group L as an automorphism group.
+Notation 1.1. For a group L, by eL we mean the unit element. We denote the group
+operation by ·, so that for two elements ℓ1, ℓ2 ∈ L, their product is denoted by ℓ1 · ℓ2
+or simply ℓ1ℓ2. By ℓ−1 we mean the inverse of ℓ ∈ L. As usual, if L is abelian we use
+the additive notation (L, +, −, 0). By a p-group, where p is a prime number, we mean
+an abelian p-group, i.e., a group G such that, for all x ∈ G, there exists some n ≥ 0
+with pnx = 0.
+Notation 1.2. Let H be a group which is not necessarily abelian.
+(1) By Z(H) we mean the center of H.
+(2) Suppose a ∈ H. This induces an inner automorphism a∗ ∈ Inn(H) defined by
+a∗(x) := axa−1 for all x ∈ H. Thus Inn(H) = {a∗ | a ∈ H} ⊆ Aut(H).
+(3) The notation tor(H) stands for the full torsion subgroup of Z(H).
+(4) A group G is pure in an abelian group H if G ⊆ H and nG = nH ∩ G for every
+n ∈ Z. The common notation for this notion is G ⊆∗ H.
+We will pay respect to the fact that the center Z(G) of a group G is abelian by
+giving preference to the additive notation on this specific subgroup of G.
+Definition 1.3. Let C+
+aut be the class of all tuples c = (Lc, Hc, Fc) such that Lc, Hc
+are groups and Fc : Lc → Aut(Hc) is an isomorphism. Let also ‖c‖ := |Lc| + |Hc|.
+Given a suitable group L, we are going to find when suitable arbitrarily large groups
+H exist such that for some isomorphism F : L → Aut(H), the triple (L, H, F ) is in
+C+
+aut. For this reason, we define several new classes of objects, which in a sense weaken
+the above notion of C+
+aut and will be better understood in the sequel. The main object
+in the following definition is the class C2
+aut.
+Definition 1.4. (1) Let C0
+aut be the class of all triples c = (Lc, Hc, Fc) such that
+(a) Lc, Hc are groups, and
+(b) Fc : Lc → Aut(Hc) is a group embedding.
+We set F ℓ
+c := Fc(ℓ) for ℓ ∈ Lc and Nc := Hc/Z(Hc).
+(2) Let C1
+aut be the class of all tuples c = (Lc, Nc, Hc, hc, Fc, Q¯s
+c) with (Lc, Hc, Fc) ∈
+C0
+aut such that:
+(a) Nc is a normal subgroup of Lc.
+(b) hc : Hc → Nc is an epimorphism with Ker(hc) = Z(Hc).
+(c) If a ∈ Hc, then Fc(hc(a)) = a∗ is the inner automorphism of Hc defined by
+a∗(x) = axa−1 for all x ∈ Hc, thus Nc ∼= Fc(Nc) = Inn(Hc) ⊆ Aut(Hc).
+(d) For all n > 0, ¯s = (s1, . . . , sn) ∈ Zn, Q¯s
+c is an n-ary relation on Lc.
+(e) For ¯s ∈ Zn, we have (b1, . . . , bn) ∈ Q¯s
+c iff ∑n
+ℓ=1 sℓF bℓ
+c ↾Z(Hc) = 0.
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 5
+(3) Let C2
+aut be the class of all tuples c = (Lc, Nc, Hc, hc, h∗
+c, Fc, Q¯s
+c) such that
+(Lc, Nc, Hc, hc, Fc, Q¯s
+c) ∈ C1
+aut and h∗
+c : Nc → Hc is a map with hc ◦ h∗
+c = id.1
+Definition 1.5. (1) For c ∈ C1
+aut ∪ C2
+aut, let res0(c) := (Lc, Hc, Fc) ∈ C0
+aut.
+(2) For c ∈ C2
+aut, let res1(c) := (Lc, Nc, Hc, hc, Fc, Q¯s
+c) ∈ C1
+aut.
+Notation 1.6. (1) The m-power torsion subgroup of G is
+Torm(G) := {g ∈ Z(G) | ∃n ≥ 0 such that mng = 0}.
+(2) Let P denote the set of all prime numbers and let p ∈ P. Recall that Jp :=̂ Zp,
+the ring of p-adic integers, is the completion of Z in the p-adic topology.
+Fact 1.7. We have Torm(G) = ⊕{Torp(G) | p is a prime factor of m}.
+Proof. Let n, n′ be factors of m. If (n, n′) = 1, we observe that Torn(G)∩Torn′ (G) = 0.
+Since Torm(G) = ∑ {Torp(G) ∣
+∣ p prime, p|m}, an easy induction gives Torm(G) =
+⊕ {Torp(G) ∣
+∣ p prime, p|m}.
+Definition 1.8. (1) Let ℓ ∈ {0, 1, 2} and H be a group. We define Primeℓ(H) as the
+following subset of the set of prime numbers:
+(a) We say p ∈ Prime1(H) if and only if Torp(H) 6 = 0.
+(b) We say p ∈ Prime2(H) if and only if there is an embedding (Jp, +)֒ → Z(H).
+(c) Prime0(H) := Prime1(H) ∪ Prime2(H).
+(2) We say H is P∗-divisible, where P∗ is a set of prime numbers, if Z(H) is p-divisible,
+for all p /∈ P∗.
+Definition 1.9. (1) Let C3
+aut be the class of all c = (Lc, Nc, Hc, hc, h∗
+c, Fc, Q¯s
+c, H∗
+c , Pc)
+such that the following properties hold:
+(a) res2(c) := (Lc, Nc, Hc, hc, h∗
+c, Fc, Q¯s
+c) ∈ C2
+aut.
+(b) Z(Hc) is reduced.
+(c) H∗
+c ⊆ Hc is a subgroup, Hc = ⋃{H∗
+c x | x ∈ Z(Hc)}, and Z(H∗
+c ) =
+Z(Hc) ∩ H∗
+c , hence H∗
+c is a normal subgroup of Hc.
+(d) Pc := Prime0(Hc), and we have:
+(d1) If p ∈ Prime1(Hc), then Torp(H∗
+c ) 6 = 0, and
+(d2) if p ∈ Prime2(Hc), then (Jp, +) embeds into Z(H∗
+c ).
+(2) Let C4
+aut be the class of all tuples c ∈ C3
+aut such that Hc/H∗
+c = Z(Hc)/Z(H∗
+c )
+is a torsion-free abelian group which is Pc-divisible.
+(3) Let C5
+aut be the class of all tuples (c, g) such that c ∈ C4
+aut, and g := (Gg, F ℓ
+g)ℓ∈Lc
+is defined by the following:
+(a) Gg is a reduced torsion-free abelian group.
+(b) F ℓ
+g ∈ Aut(Gg) such that for all n > 0, ¯s ∈ Zn and (b1, . . . , bn) ∈ (Lc)n: if
+(b1, . . . , bn) ∈ Q¯s
+c, then ∑n
+ℓ=1 sℓF bℓ
+g ↾Gg = 0.
+(c) For all primes p, Jp does not embed into Gg.
+1So, the map h∗
+c assigns to each b ∈ Nc a preimage under hc but may not be a homomorphism.
+
+6 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+(4) Let C6
+aut be the class of all tuples (c, G) with c ∈ C4
+aut such that:
+(a) G is a non-empty set, and each member g ∈ G is such that (c, g) ∈ C5
+aut.
+(b) If g ∈ G and x ∈ Gg, then g↾cl{x} ∈ G, where cl{x} is the smallest pure
+subgroup of Gg containing x that is closed under all F ℓ
+g’s for ℓ ∈ Lc.
+(c) If (c, g) ∈ C5
+aut, g is embeddable into (Z(Hc), F ℓ
+c )ℓ∈Lc , and there is some
+x ∈ Gg so that g = g↾cl{x}, then g is isomorphic to some member of G.
+(5) Let ‖(c, G)‖ := |Lc| + |Hc| + ℵ0 + Σ{‖g‖ | g ∈ G}.
+Lemma 1.10. The following assertions are valid:
+(1) If (c, g) := (c, (Gg, F ℓ
+g)ℓ∈Lc ) ∈ C5
+aut, then n := (c ⊕ (Gg, F ℓ
+g)ℓ∈Lc ) ∈ C4
+aut, where
+Z(Hn) = Z(Hc) ⊕ Gg, and F ℓ
+n is the unique extension to an automorphism of
+Hn extending F ℓ
+c ∪ F ℓ
+g.
+(2) Similarly, if (c, G) ∈ C6
+aut, then n := (c ⊕ ⊕
+g∈G (Gg, F ℓ
+g)ℓ∈Lc )) ∈ C4
+aut, where
+Z(Hn) = Z(Hc) ⊕ ⊕
+g∈G Gg, and F ℓ
+n is the unique extension to an automorphism of Hn extending F ℓ
+c ∪ ⋃
+g∈G F ℓ
+g.
+(3) If d ∈ C+
+aut, then there is c ∈ C4
+aut with res0(c) = d and |H∗
+c | ≤ (|Lc| + ℵ0)ℵ0 .
+Proof. (1) It is enough to set F ℓ
+n(a, b) := (F ℓ
+c (a), F ℓ
+g(b)). This fits in the following
+commutative diagram:
+Hc
+⊆ / / Hn Gg
+⊆
+o
+o
+Hc
+F ℓ
+c
+O
+O
+⊆ / / Hn
+F ℓ
+n
+O
+O
+Gg,
+F ℓ
+g
+O
+O
+⊇
+o
+o
+and the desired claims follow easily.
+(2)+(3): These are easy.
+Definition 1.11. (1): Let j ∈ {2, 3, 4, 5, 6}. For any c ∈ Cj
+aut, let Mc ⊆ Cj
+aut be the
+class of all m ∈ Cj
+aut such that the following hold:
+(a) Lm = Lc and Nm = Nc.
+(b) Hc ⊆ Hm and hc ⊆ hm.
+(c) h∗
+m = h∗
+c.
+(d) F ℓ
+c ⊆ F ℓ
+m for all ℓ ∈ Lc. Let us depict things:
+Hm
+hm / / Nm
+h∗
+m / / Hm
+F ℓ
+m / / Hm
+Hc
+hc / /
+⊆
+O
+O
+Nc
+=
+O
+O
+h∗
+c / / Hc
+⊆
+O
+O
+F ℓ
+c / / Hc
+⊆
+O
+O
+(e) Q¯s
+m = Q¯s
+c for all ¯s ∈ ⋃
+n>0 Zn.
+(f ) The group Hm is generated by the set Z(Hm) ∪ Hc.
+(g) Z(Hc) = Z(Hm) ∩ Hc.
+(h) If j ≥ 3 then Pm = Pc and H∗
+m = H∗
+c .
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 7
+(i) If j = 5, then gm = gc.
+(j) If j = 6, then Gm = Gc.
+(2) Let c ∈ Cj
+aut and m ∈ Mc. We call m auto-rigid, if Im(Fm) = Aut(Hm).
+Definition 1.12. Let j ∈ {2, 3, 4, 5, 6}. For c ∈ Cj
+aut let relation ≤c on Mc be defined
+by m1 ≤c m2 if and only if Hm1 ⊆ Hm2 , hm1 ⊆ hm2 , and F ℓ
+m1 ⊆ F ℓ
+m2 for all ℓ ∈ Lc.
+We have the following easy observations.
+Remark 1.13. Let j ∈ {2, 3, 4, 5, 6} and c ∈ Cj
+aut.
+(1) The pair (Mc, ≤c) is a poset, c ∈ Mc and c ≤c m for all m ∈ Mc.
+(2) If m1, m2 ∈ Mc with m1 ≤c m2, then Z(Hm1 ) = Z(Hm2 ) ∩ Hm1 .
+(3) Suppose δ is a limit ordinal and (mα | α < δ) is a ≤c-increasing sequence from
+Mc. Then there exists m = ⋃
+α<δ mα ∈ Mc which is the ≤c-least upper bound
+of the sequence (mα | α < δ).
+§ 2. Some explicit automorphisms
+Let j ∈ {2, 3, 4, 5, 6}, c ∈ Cj
+aut, and take m ∈ Mc. Also, let f ∈ Hom(Nc, Z(Hm)).
+In this section we study the induced map gf (x) and its variations. This map plays a
+crucial role in our main theorem.
+Definition 2.1. Let j ∈ {2, 3, 4, 5, 6}, c ∈ Cj
+aut, and m ∈ Mc.
+(1) Let Am be the set of all homomorphisms g ∈ Aut(Hm) such that g↾Z(Hm) = id
+and g(x) ∈ x · Z(Hm) for all x ∈ Hm.
+(2) Set Fm := Hom(Nc, Z(Hm)).
+(3) Let x ∈ Hm and f ∈ Fm. The assignment x 7 → xf (hm(x)) defines a map
+gf : Hm → Hm.
+Proposition 2.2. We have Am = {gf | f ∈ Fm} for all c ∈ Cj
+aut and m ∈ Mc.
+Proof. First suppose that f ∈ Fm. We show that gf is in Am. Clearly, the map gf is
+a homomorphism, as f (hm(x)) ∈ Z(Hm) and the following equalities
+gf (x)gf (y) = xf (hm(x))yf (hm(y)) = xyf (hm(x))f (hm(y))
+= xyf (hm(xy)) = gf (xy)
+hold for all x, y ∈ Hm. Furthermore, for all x ∈ Z(Hm), we have hm(x) = eNc , thus
+gf (x) = xf (hm(x)) = x, and hence gf ↾Z(Hm) = id. Finally, we note that gf is an
+automorphism. To show this, we claim that its inverse is g−f :
+g−f (gf (x)) = g−f (xf (hm(x)) = g−f (x)g−f (f (hm(x)))
+= g−f (x)f (hm(x)) = xf (hm(x))−1f (hm(x)) = x.
+Similarly, gf (g−f (x)) = x for all x ∈ Hm. This proves gf ∈ Am. To see the reverse
+inclusion, we assume g ∈ Am. We must show that g = gf for some f ∈ Fm. Define the
+map f : Nc → Z(Hm) by f (a) := x−1g(x), where a = h∗
+m(x). But, this may depend
+
+8 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+to the choice of x. To show this is a well-defined map, assume that hm(y) = a for
+any y ∈ Hm, and we need to check f (a) = y−1g(y). Indeed, [hm(x) = hm(y)] implies
+that xy−1 ∈ Ker(hm) = Z(Hm). Thus, in view of Definition 2.1(1) we observe that
+g(xy−1) = xy−1. In other words, x−1g(x) = y−1g(y), i.e., the map f is well-define. In
+order to show f is a morphism, let a, b ∈ Nc and choose x, y ∈ Hm so that hm(x) = a
+and hm(y) = b. Then hm(xy) = ab, x−1g(x) ∈ Z(Hm) and also
+f (ab) = (xy)−1g(xy) = y−1 · x−1g(x) · g(y) = x−1g(x) · y−1g(y) = f (a)f (b).
+Consequently, f ∈ Fm. Clearly, g = gf . The proof is now complete.
+Notation 2.3. The notation ⊠d := ⊠(c,m,¯s,¯b,π) stands for the following hypotheses:
+(a) c ∈ Cj
+aut for some j ∈ {2, 3, 4, 5, 6} and m ∈ Mc,
+(b) ¯s = (s1, . . . , sn) ∈ Zn and ¯b = (b1, . . . , bn) ∈ (Lc)n for some n > 0,
+(c) π ∈ End(Nc).
+Definition 2.4. Let d := (c, m, ¯s, ¯b, π) and assume ⊠d.
+(0) We define h′∗
+c,π := h∗
+c ◦ π.
+(1) Let A¯s,¯b
+m,π be the set of all homomorphisms g ∈ End(Hm) such that g↾Z(Hm) =
+F ¯s,¯b
+m := ∑n
+ℓ=1 sℓ(F bℓ
+m ↾Z(Hm)), and g(x) ∈ h′∗
+c,π(hm(x)) · Z(Hm) for all x ∈ Hm.
+(2) Let F ¯s,¯b
+m,π be the set of all functions f : Nc → Z(Hm) such that for all a, b ∈ Nc
+we have f (a)f (b) = F ¯s,¯b
+m (t′) · (t′′)−1 · f (ab), where t′, t′′ ∈ Z(Hc) ⊆ Z(Hm) are
+uniquely determined by t′h∗
+c(ab) = h∗
+c(a)h∗
+c(b), and t′′h′∗
+c,π(ab) = h′∗
+c,π(a)h′∗
+c,π(b).
+(3) For any f ∈ F ¯s,¯b
+m,π let g¯s,¯b
+π,f (x) : Hm → Hm be the map defined by the assignment
+x 7 → F ¯s,¯b
+m (t)·f (hm(x))·h′∗
+c,π(hm(x)) for all x ∈ Hm, where t ∈ Z(Hm) is uniquely
+determined by x = th∗
+c(hm(x)).
+Proposition 2.5. For d := (c, m, ¯s, ¯b, π) let ⊠d. Then A¯s,¯b
+m,π = {g¯s,¯b
+π,f | f ∈ F ¯s,¯b
+m,π
+}.
+Proof. First, assume f ∈ F ¯s,¯b
+m,π. We shall prove that g¯s,¯b
+π,f ∈ A¯s,¯b
+m,π. Let x1, x2 ∈ Hm
+and choose ti ∈ Z(Hm) for i ∈ {1, 2} such that xi = tih∗
+c(hm(xi)). We observe that
+hm(xi) ∈ Nc, and in view of Definition 2.4(2), there are t′, t′′ ∈ Z(Hc) such that
+h∗
+c(hm(x1))h∗
+c(hm(x2)) = t′h∗
+c(hm(x1x2)),(2.1)
+h′∗
+c,π(hm(x1))h′∗
+c,π(hm(x2)) = t′′h′∗
+c,π(hm(x1x2))(2.2)
+f (hm(x1))f (hm(x2)) = F ¯s,¯b
+m (t′)(t′′)−1f (hm(x1x2)).(2.3)
+x1x2
+(2.1)
+= t′t1t2h∗
+c(hm(x1x2)).(2.4)
+Keeping in mind that
+Rang(F ¯s,¯b
+m ), Rang(f ) ⊆ Z(Hm)(2.5)
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 9
+We deduce the following identities
+g¯s,¯b
+π,f (x1)g¯s,¯b
+π,f (x2) 2.4(3)
+= F ¯s,¯b
+m (t1)f (hm(x1))h′∗
+c,π(hm(x1)) · F ¯s,¯b
+m (t2)f (hm(x2))h′∗
+c,π(hm(x2))
+(2.5)
+= F ¯s,¯b
+m (t1)F ¯s,¯b
+m (t2) · f (hm(x1))f (hm(x2)) · h′∗
+c,π(hm(x1))h′∗
+c,π(hm(x2))
+(2.3)
+= F ¯s,¯b
+m (t1t2) · F ¯s,¯b
+m (t′)(t′′)−1f (hm(x1x2)) · t′′h′∗
+c,π(hm(x1x2))
+(2.5)
+= F ¯s,¯b
+m (t′)F ¯s,¯b
+m (t1t2) · (t′′)−1t′′ · f (hm(x1x2)) · h′∗
+c,π(hm(x1x2))
+= F ¯s,¯b
+m (t′t1t2)f (hm(x1x2))h′∗
+c,π(hm(x1x2))
+(2.4)+2.4(3)
+= g¯s,¯b
+π,f (x1x2).
+This shows that g¯s,¯b
+π,f is a homomorphism. Next, observe that for any x ∈ Hm, we have
+h∗
+c(hm(x)) = eHm · h∗
+c(hm(h∗
+c(hm(x)))) and
+g¯s,¯b
+π,f (h∗
+c(hm(x))) = F ¯s,¯b
+m (eHm ) · f (hm(h∗
+c(hm(x)))) · h′∗
+c,π(hm(h∗
+c(hm(x))))(2.6)
+= f (hm(x))h′∗
+c,π (hm(x)).
+Let us plugging x := th∗
+c(hm(x)). This implies that
+g¯s,¯b
+π,f (t)g¯s,¯b
+π,f (h∗
+c(hm(x))) = g¯s,¯b
+π,f (th∗
+c(hm(x))) = g¯s,¯b
+π,f (x) = F ¯s,¯b
+m (t)f (hm(x))h′∗
+c,π(hm(x))
+(2.6)
+= F ¯s,¯b
+m (t)g¯s,¯b
+π,f (h∗
+c(hm(x))).
+Consequently, g¯s,¯b
+π,f (t) = F ¯s,¯b
+m (t). Letting t range over all of Z(Hm), we have g¯s,¯b
+π,f (t) =
+F ¯s,¯b
+m (t) for all t ∈ Z(Hm). This proves g¯s,¯b
+π,f ∈ A¯s,¯b
+m,π. For the reverse inclusion, assume
+g ∈ A¯s,¯b
+m,π. We must show that g = g¯s,¯b
+π,f for some f ∈ F ¯s,¯b
+m,π. To this end, we define a
+map f : Nc → Z(Hm) as follows. For any a ∈ Nc set f (a) := g(h∗
+c(a))h′∗
+c,π(a)−1. With
+Definition 2.4(1) we have f (a) ∈ Z(Hm). Let a, b ∈ Nc and t′, t′′ ∈ Z(Hc) be chosen
+as in Definition 2.4(2). We then have
+f (a)f (b) = g(h∗
+c(a))h′∗
+c,π(a)−1g(h∗
+c(b))h′∗
+c,π(b)−1 = g(h∗
+c(a))g(h∗
+c(b))h′∗
+c,π(b)−1h′∗
+c,π(a)−1
+= g(h∗
+c(a)h∗
+c(b))(h′∗
+c,π (a)h′∗
+c,π(b))−1 = g(t′h∗
+c(ab))(t′′h′∗
+c,π(ab))−1
+= g(t′)g(h∗
+c(ab)) · h′∗
+c,π(ab)−1(t′′)−1 = g(t′)(t′′)−1 · g(h∗
+c(ab))h′∗
+c,π (ab)−1
+= F ¯s,¯b
+m (t′)(t′′)−1 · f (ab).
+Thanks to the definition, f ∈ F ¯s,¯b
+m,π follows. Next, let x ∈ Hm and t ∈ Z(Hm) be
+chosen as in Definition 2.4(3). We then have
+g(x) = g(th∗
+c(hm(x))) = g(t)g(h∗
+c(hm(x)))
+= F ¯s,¯b
+m (t) · g(h∗
+c(hm(x)))h′∗
+c,π(hm(x))−1 · h′∗
+c,π(hm(x))
+= F ¯s,¯b
+m (t) · f (hm(x)) · h′∗
+c,π(hm(x)) = g¯s,¯b
+π,f (x),
+which shows g = g¯s,¯b
+π,f . This ends the proof.
+
+10 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+Proposition 2.6. The following assertions are valid:
+(1) Let f ∈ Hom(Hm, Z(Hm)) with Im(f ) ⊆ Ker(f ), and take x ∈ Hm. The
+assignment x 7 → g1
+f (x) := x · f (x) defines an automorphism g1
+f : Hm → Hm.
+(2) Assume ⊠d holds with g ∈ A¯s,¯b
+m,π. Then h ∈ A¯s,¯b
+m,π iff h(x) = g(x) · f (x) for all
+x ∈ Hm and for some f ∈ Hom(Hm, Z(Hm)) with Z(Hm) ⊆ Ker(f ).
+Proof. (1): The map g1
+f is a homomorphism as f (x) ∈ Z(Hm) and
+g1
+f (x)g1
+f (y) = xf (x)yf (y) = xyf (x)f (y) = xyf (xy) = g1
+f (xy)
+holds for all x, y ∈ Hm. Since Im(f ) ⊆ Ker(f ) we have f (f (−)) = eHm . Furthermore,
+g1
+f is an automorphism with inverse g1
+−f :
+g1
+f (g1
+−f (x)) = g1
+f (xf (x)−1) = xf (x)−1f (x)f (f (x−1)) = xf (x)−1f (xf (x)−1)
+= xf (x)−1f (x)f (f (x−1)) = xf (x)−1f (x)eHm = x.
+Similarly, g1
+−f (g1
+f (x)) = x for all x ∈ Hm.
+(2): This is easy as well.
+We close this section by presenting situations for which A¯s,¯b
+m,π is non-empty.
+Definition 2.7. An abelian group G is called ℵ1-free if every subgroup of G of cardinality < ℵ1, i.e., every countable subgroup, is free. More generally, an abelian group
+G is called λ-free if every subgroup of G of cardinality < λ is free.
+Remark 2.8. Let d := (c, m, ¯s, ¯b, π), assume ⊠d, and let m1, m2 ∈ Mc such that
+m1 ≤c m2. Then the following assertions hold:
+(1) F ¯s,¯b
+m1,π ⊆ F ¯s,¯b
+m2,π.
+(2) Let f ∈ F ¯s,¯b
+m1,π be given and define the following groups:
+(a) I1 := 〈t′, F ¯s,¯b
+c (t′) | t′ = h∗
+c(a1)h∗
+c(a2)h∗
+c(a1a2)−1for some a1, a2 ∈ Nc
+〉
+Z(Hc)
+(b) I2 := 〈I1, Im(f )〉 ⊆ Z(Hm1 ).
+Also, let ϕ ∈ Hom(I2, Z(Hm2 )) be such that ϕ ↾ I1 = id. Then ϕ ◦ f ∈ F ¯s,¯b
+m2,π.
+(3) If A¯s,¯b
+m1,π 6 = ∅, then A¯s,¯b
+m2,π 6 = ∅.
+(4) Suppose A¯s,¯b
+m2,π 6 = ∅ and let Z(Hm2 )/Z(Hm1 ) be an (ℵ1 · |Nc|+)-free abelian
+group. Then A¯s,¯b
+m1,π 6 = ∅.
+Proof. (1): This follows from Definition 2.4(2) and Remark 1.13(2).
+(2): We just need to check Definition 2.4(2), keeping in mind that F ¯s,¯b
+m (t′) = F ¯s,¯b
+c (t′)
+and F ¯s,¯b
+c (t′), t′′ ∈ I1.
+(3): This is a consequence of (1) and Proposition 2.5.
+(4): Let f ∈ F ¯s,¯b
+m2,π. Then |〈Z(Hm1 ), Im(f )〉/Z(Hm1 )| ≤ ℵ0 · |Nc| < ℵ1 · |Nc|+. Thus
+〈Z(Hm1 ), Im(f )〉/Z(Hm1 ) is a free abelian group, and we define ϕ to be the projection
+onto the direct summand Z(Hm1 ) ⊆ 〈Z(Hm1 ), Im(f )〉. We have ϕ ◦ f ∈ F ¯s,¯b
+m2,π with
+(2), and even ϕ ◦ f ∈ F ¯s,¯b
+m1,π as Im(ϕ) ⊆ Z(Hm1 ). This implies that A¯s,¯b
+m1,π 6 = ∅. In view
+of Proposition 2.5 A¯s,¯b
+m1,π 6 = ∅.
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 11
+§ 3. The structure of large auto-rigid representations
+In this section we present the proof of Theorem 0.3 and Corollary 0.4. The next
+lemma gives conditions under which Hom(Nc, Z) is trivial.
+Lemma 3.1. Let j ∈ {2, 3, 4, 5, 6}. Let c ∈ Cj
+aut, and suppose that there is some
+auto-rigid m ∈ Mc with ‖m‖ > ‖c‖, or just |Z(Hm)| > |Lc|. Then Hom(Nc, Z) = 0.
+Proof. Suppose for the sake of contradiction that there is a nonzero f∗ ∈ Hom(Nc, Z).
+For each x ∈ Z(Hm), the assignment a 7 → fx(a) := xf∗ (a) defines a map fx ∈
+Hom(Nc, Z(Hm)). It then follows that by Lemma 2.6, the map gfx : Hm → Hm
+defined by gfx (t) = t · fx(hm(t)) is in Aut(Hm). Now, by the auto-rigidity, we have
+Lc ∼= Im(Fm) = Aut(Hm), hence |Lc| = |Aut(Hm)| ≥ |Z(Hm)| = |Hm| > |Lc|, which
+is impossible. This contradiction shows that Hom(Nc, Z) is trivial, which gives the
+desired conclusion.
+Definition 3.2. Suppose G is an abelian group and k = (G, (F ℓ
+G | ℓ ∈ Lc)) is an
+expansion of G, where each F ℓ
+G is an automorphism of G. Let c ∈ C1
+aut and m ∈ Mc.
+(1) We say k is c-correct if for all n < ω, ¯s ∈ Zn and ¯b ∈ (Lc)n with ¯b ∈ Q¯s
+c holds
+∑n
+ℓ=1 F ℓ
+G = 0 ∈ End(G).
+(2) If k is c-correct, we define n = m ⊕ k ∈ Mc so that Z(Hn) = Z(Hm) ⊕ G, and
+F ℓ
+n is the unique extension of F ℓ
+m ∪ F ℓ
+G to an automorphism of Hn.
+(3) Suppose (c, g) ∈ C5
+aut and m ∈ Mc.
+(a) We say m is free over (c, g), if we can find (fξ | ξ < ζ) such that Z(Hm) =
+⊕
+ξ<ζ fξ (Gg) ⊕ Z(Hc), where fξ : (Gg, (F ℓ
+g)ℓ∈Lc )֒ → (Hc, (F ℓ
+m)ℓ∈Lc ) is an
+embedding. We assume that the embedding respects structures, which
+means fξ F ℓ
+g = F ℓ
+mfξ .
+(b) We say m is λ-free over c, if for any subgroup G′ of Z(Hm)/Z(Hc) of size
+< λ, there is m′ ∈ Mc, m′ ≤c m which is free over c such that G′ ⊆ Hm′ .
+(c) We say m is strongly λ-free over c, if free wins the following game for
+which a play lasts ω moves: in the n-th move, non-free chooses Xn ∈
+[Hm]<λ, free chooses ξn < λ and (fn,ξ | ξ < ξn), where each fn,ξ :
+Gg → Z(Hm) is an embedding, and ∑
+m≤n,ξ<ξn fm,ξ (Gg) + Z(Hm) =
+⊕
+m≤n,ξ<ξn fm,ξ (Gg) ⊕ Z(Hm), and it includes Xn. The free player wins
+if he always has a legal move.
+(4) Similarly, if (c, G) ∈ C6
+aut and m ∈ Mc, we say m is strongly λ-free over (c, G),
+if free wins the following game for which a play lasts ω moves: in the n-th
+move, non-free chooses Xn ∈ [Hm]<λ, free chooses ξn < λ and (fn,ξ | ξ < ξn),
+where each fn,ξ : gn,ξ → Z(Hm) is an embedding, and ∑
+m≤n,ξ<ξn fm,ξ (gm,ξ ) +
+Z(Hm) = ⊕
+m≤n,ξ<ξn fm,ξ (gm,ξ) ⊕ Z(Hm) for some gm,ξ ∈ G, and it includes
+Xn. The player free wins if he always has a legal move.
+Lemma 3.3. Suppose (c, g) ∈ C5
+aut, Hom(Nc, Gg) = 0, and m is |Nc|+-free over (c, g).
+Then Hom(Nc, Z(Hm)) ⊆ Hom(Nc, Hc).
+
+12 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+Proof. Let f ∈ Hom(Nc, Z(Hm)). Suppose for the sake of contradiction that f /∈
+Hom(Nc, Hc). This means that Im(f ) * Hc. In other words, the following compositions map
+¯f := Nc
+f
+−→ Z(Hm) ⊆
+−→ Hm
+։
+−→ Hm/Hc
+is nonzero and Im( ¯f ) ⊆ Hm/Hc is of size at most |Nc|. Thus, by our assumption, we can
+find (fξ | ξ < ζ) such that fξ : Gg → Z(Hc) is an embedding and Im( ¯f ) ⊆ ⊕
+ξ<ζ fξ (Gg).
+Hence, for some ξ < ζ, the natural projection πξ : ⊕
+ξ<ζ fξ (Gg) → fξ (Gg) satisfies that
+πξ ◦ ¯f ∈ Hom(Nc, fξ(Gg)) is nonzero. We proved that fξ ◦ πξ ◦ ¯f : Nc → Gg is nonzero,
+a contradiction.
+Remark 3.4. The above proof shows that:
+(1) Suppose (c, g) ∈ C5
+aut, m is λ-free over (c, g), and Gg is λ-free. Then Hm/Hc
+is λ-free.
+(2) Let (c, G) ∈ C6
+aut. Then Hom(Nc, Gg) = 0 for some g ∈ G iff Hom(Nc, Z) = 0.
+Definition 3.5. Suppose λ > ℵ0 is regular and S ⊆ λ is stationary.
+(1) The Jensen’s diamond ♦λ(S) asserts the existence of a sequence (Sα | α ∈ S)
+such that for every X ⊆ λ the set {α ∈ S | X ∩ α = Sα} is stationary.
+(2) We use the following consequence of ♦λ(S): let A = ⋃
+α<λ Aα and B = ⋃
+α<λ Bα
+be two λ-filtrations. Then there are {gα | Aα → Bα | α < λ} such that, for any
+function g : A → B, the set {α ∈ S | g↾Aα = gα} is stationary in λ.
+(3) S is non-reflecting if for any limit ordinal δ < λ of uncountably cofinality, the
+set S ∩ δ is non-stationary in δ.
+(4) We set Sλ
+ℵ0 = {α < λ | cf(α) = ℵ0}.
+Recall that gf (x) := x · f (hm(x)). The following is the main result of this section:
+Theorem 3.6. Let (c, G) ∈ C6
+aut, λ = cf(λ) > 2‖c‖ and assume that:
+(1) Hom(Nc, Gg) = 0 for all g ∈ G, and Fc : Lc → Aut(Hc) is an isomorphism.
+(2) S ⊆ Sλ
+ℵ0 is stationary non-reflecting such that ♦λ(S) holds.
+Then there is some m ∈ C6
+aut ∩ Mc of size λ such that the following holds:
+(α) m is λ-free over c.
+(β) Hom(Nc, Z(Hm)) ⊆ Hom(Nc, Hc).
+(γ) If g ∈ Aut(Hm), then for some b ∈ Lc and f ∈ Hom(Nc, Z(Hm)), we have
+g = F b
+m ◦ gf .
+Proof. Without loss of generality, G consists of pairwise disjoint elements. Let g :=
+(gα | α ∈ S) be such that gα : α → α and it is a diamond sequence for S, in the sense
+that for each g : λ → λ, the set {α ∈ S | g ↾ α = gα} is stationary in λ. Without loss
+of generality, we assume in addition that the set of elements of Hc is an ordinal, which,
+by our assumption, is < λ. For γ ≤ λ, we define the set Λγ , consisting of sequences
+¯m = (mα | α < γ) of length γ and a set U0( ¯m) ⊆ γ such that:
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 13
+(∗)0 (a) mα ∈ Mc has universe an ordinal less than λ,
+(b) m0 = c,
+(c) mα is free over c, in particular, Hmα /Hc is free,
+(d) the sequence (mα | α < γ) is increasing and continuous at limit ordinals,
+i.e., mα = ⋃
+β<α mβ , for all limit ordinals α < γ,
+(e) if β < α and β /∈ S, then mα is free over mβ ,
+(f) U0( ¯m) ⊆ γ is defined by δ ∈ U0( ¯m) if and only if:
+(f1) δ ∈ S, the set of elements of Hmδ is δ, and gδ ∈ Aut(Hmδ ),
+(f2) gδ 6 = (F b
+mδ ◦ gf ) ↾Hmδ , for any b ∈ Lc and f ∈ Hom(Nc, Z(Hc)),
+(g) if α = β + 1, where β ∈ γ \ U0( ¯m), then Hmα is defined such that
+Z(Hmα ) = Z(Hmβ ) ⊕ ⊕
+g∈G fα,g(Gg), where fα,g embeds (Gg, (F b
+g)b∈Lc )
+into (Hmα , (F b
+mα )b∈Lc ), so that Lemma 1.10(2) holds,
+(h) if α = β + 1, and β ∈ U0( ¯m), then for any n < ω and g ∈ G we have the
+embeddings f g
+β,n : Gg → Hmα such that:
+(h1) Hmα /Hmβ = ⊕{f g
+β,n(Gg)/Hmβ | g ∈ G},
+(h2) n!f g
+β,n+1(y) − f g
+β,n(y) ∈ Hmβ ⊆ Hmα for any y ∈ Gg,
+(h3) the following diagram commutes:
+0 / / Gg
+f g
+β,n / / Hmα
+0 / / Gg
+F ℓ
+g
+O
+O f g
+β,n / / Hmα
+F ℓ
+mα
+O
+O
+(i) Suppose F b
+c ◦ gf = F d
+c for some b, d ∈ Lc and f ∈ Hom(Nc, Z(Hc)). Then
+F b
+mα ◦ gf = F d
+mα , where gf (x) = x · f (hm(x)).
+(∗)1 Suppose ¯m ∈ Λγ . Let U( ¯m) ⊆ γ be the set of all δ ∈ S ∩ γ such that there are
+¯n := (nα | α < λ), χ, h, B such that:
+(a) ¯n ∈ Λλ, set also nλ = ⋃
+α<λ nα, so that nλ ∈ Mc and its universe is λ,
+(b) ¯n ↾ δ = ¯m ↾ δ,
+(c) h ∈ Aut(Hnλ ),
+(d) h ↾ δ 6 = (F b
+nδ ◦ gf ) ↾ Hnδ , for any b ∈ Lc and f ∈ Hom(Nc, Z(Hc)),
+(e) χ > 2λ is regular so that ¯n, h, (c, G) ∈ H (χ),
+(f) B ≺ (H (χ), ∈), ||B|| < λ, and B ∩ λ = δ,
+(g) ¯n, h, (c, G) ∈ B and h ↾ δ = gδ .
+(∗)2 Suppose γ ≤ λ is an ordinal. Then easily the following assertions hold:
+(a) If γ is a limit ordinal, ¯mα ∈ Λα for α < γ, and ( ¯mα | α < γ) is ⊳-increasing,
+then ¯mγ = ⋃
+α<γ ¯mα ∈ Λγ , and it end extends all ¯mα’s, α < γ.
+(b) If ¯m ∈ Λγ and γ′ ∈ [γ, λ), then there is ¯n ∈ Λγ′ such that ¯m E ¯n.
+[Why? For (a), it is enough to show that mγ is free over mc. To this end, let C be a
+club of γ which is disjoint to S, which exists as S is non-reflecting. By clause (∗)0(c),
+mα is free over c, for all α in C, and by clause (∗)0(e), mα is free over mβ , for all β < α
+
+14 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+in C. So clearly mγ is free over mc. For clause (b), we prove something stronger in
+the following.]
+For γ ≤ λ we define Ωγ as the class of all ¯m ∈ Λγ such that:
+(∗)3 If α = δ + 1 < γ and δ ∈ U( ¯m), then gδ is unextendable, which means if
+¯m ↾ α + 1 ≤c ¯n ∈ Λβ with β ∈ [γ, λ], then gδ cannot be extended to an
+automorphism of H¯n.
+(∗)4 It is enough to prove that Ωλ 6 = ∅.
+[Why? Suppose Ωλ is nonempty and drive the theorem. To this end, we take ¯m ∈ Ωλ
+and let m = ⋃
+α<λ mα. We show that m is as required. It is clear that m ∈ Mc
+and ||m|| = λ. Furthermore, any subgroup of Hm/Hc of size less than λ is included in
+some Hmα /Hc, for some α < λ and Hmα /Hc is free, hence m ∈ Mc is λ-free over c.
+Since Hom(Nc, Gg) is trivial for all g ∈ G, by Lemma 3.3, clause (β) of the theorem
+holds. Here, we show the clause (γ) of the theorem holds as well. If b ∈ Lc and
+f ∈ Hom(Nc, Z(Hm)), then F b
+m is an automorphism of Hm, and by Proposition 2.2,
+gf ∈ Aut(Hm). By combining these, we deduce that g = F b
+m ◦ gf is an automorphism.
+Now, let g ∈ Aut(Hm). We claim that g is of the form g = F b
+m ◦ gf , for some b ∈ Lc
+and f ∈ Hom(Nc, Z(Hm)). Suppose not, so in particular, for all b ∈ Lc and for all
+f ∈ Hom(Nc, Z(Hm)), we have: g 6 = F b
+m ◦ gf . As Hom(Nc, Z(Hm)) ⊆ Hom(Nc, Hc),
+we have |Lc| + |Hom(Nc, Z(Hm))| ≤ |Lc| + |Hom(Nc, Hc)| ≤ 2‖c‖ < λ, so we can find
+some α∗ < λ such that for all α > α∗, and all b, f as above, g ↾ mα 6 = (F b
+mα ◦ gf ) ↾
+mα. Choose χ large enough regular and let ¯B = (Bα | α < λ) be an increasing and
+continuous sequence of elementary submodels of (H (χ), ∈) such that for each α < λ,
+Bα has cardinality < λ, ¯m, c, g ∈ Bα and (Bγ | γ ≤ α) ∈ Bα+1. Set C := {δ > α∗ |
+mδ has universe δ and Bδ ∩ λ = δ}. Then C is a club of λ, hence by the choice of the
+sequence (gδ | δ ∈ S), the set S′ = {δ ∈ C ∩ S | g ↾ δ = gδ} is stationary. Let δ ∈ S′. In
+the light of (∗)2, we conclude that gδ can not be extended to an isomorphism of Hm.
+But, this is a contradiction, because g ⊇ gδ is such an extension.]
+In order to prove that Ωλ 6 = ∅ we define U+( ¯m) := {δ ∈ U( ¯m) | there is ¯n1 such that
+¯m ↾ δ ≤c ¯n1 ∈ Λδ+1 and if ¯n1 ≤c ¯n ∈ Λβ with β ∈ [γ, λ], then gδ can not be extended
+to an automorphism of H¯n
+}. We now prove the following, which in particular, implies
+that Ωγ 6 = ∅, for all γ ≤ λ.
+(∗)5 There exists ¯m of length λ such that, for all γ < λ, ¯m ↾ γ ∈ Ωγ .
+To this end, we define ¯m = (mξ | ξ < λ) ∈ Λλ by defining mξ by induction on ξ.
+The only non-trivial case is when ξ = δ + 1 < λ and δ ∈ U( ¯m ↾ ξ). Thus suppose that
+we are given ξ and δ as above and ¯m ↾ δ is defined. We have to define mξ . For ¯m ∈ Λδ,
+α ≤ β < δ and g ∈ Gc, let Υ be the family of all embedding f : g֒ → Z(Hmβ ) where
+mβ is λ-free over mα, f (Gg) ∩ H∗
+c = 0 and (f (Gg) + H∗
+c )/H∗
+c ⊆∗ Hmβ /H∗
+c . Now, we
+define
+(∗)5.1 (a) F ¯m,g
+α := {f | f embeds g into Z(Hmα )}.
+(b) F ¯m,g
+α,β := {f | f ∈ Υ}.
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 15
+Here, by an embedding of g into Z(Hmβ ) we mean an embedding from the
+structure g = (Gg, F b
+g)b∈Lc into the structure (Z(Hmβ ), F b
+mβ )b∈Lc .
+To continue the proof, we split the argument into several subcases. First of all, we may
+assume that clause (∗)0(f1) holds and δ ∈ U( ¯m ↾ δ), as otherwise, we do nothing and
+let mξ = mδ .
+(∗)5.2 For δ ∈ U( ¯m ↾ δ), we say g ∈ G is 1-active with respect to (δ, ¯m ↾ δ), when
+there are ¯n, χ, h, B witnessing δ ∈ U( ¯m ↾ δ) such that for some nonzero x ∈ Gg,
+for arbitrarily large α < δ, there are β ∈ (α, δ) \ S and f ∈ F ¯m↾δ,g
+α,β such that
+(a) h(f (x)) /∈ Z(Hmα ) + Im(f ),
+(b) Z(Hmα ) ∩ Im(f ) = 0,
+(c) h maps Hmα (resp. Hmβ ) into Hmα (resp. Hmβ ).
+(∗)5.3 If g is 1-active with respect to (δ, ¯m ↾ δ), and ξ = δ + 1, then for some mξ ,
+¯m ↾ ξ + 1 ∈ Λξ+1 and δ ∈ U+( ¯m ↾ ξ + 1).
+[Why? As cf(δ) = ℵ0, there is an increasing sequence (α0
+n | n < ω) ∈ ωδ with limit δ.
+Let ¯n, χ, h, B witness δ ∈ U( ¯m ↾ δ) and let x ∈ Gg be as guaranteed in (∗)5.2. Choose
+(αn, βn, fn) by induction on n so that
+(†)1
+n (a) αn ∈ (α0
+n, δ) \ S, and βm < αn < βn for m < n,
+(b) If n = m + 1 then Im(fm) ⊆ Z(Hmαn ),
+(c) (g, x, αn, βn, fn) := (g, x, α, β, f ), where (g, x, α, β, f ) is taken from the
+definition of 1-activity.
+We are going to define ¯n1 ∈ Λδ+2 and f ∗
+n such that:
+(†)2 (a) ¯n1↾(δ + 1) = ¯m↾(δ + 1),
+(b) f ∗
+n embeds g = (Gg, (F b
+g )b∈Lc ) into (H(n1)δ+1 , (F b
+(n1)δ+1 )b∈Lc ),
+(c) If y ∈ Gg then f ∗
+n+1(y) − f ∗
+n (y) = −n!fn(y).
+Let Z(H(m)δ )̂ denote the Z-adic completion of Z(H(m)δ ). Note that in Z(H(m)δ )̂ , f ∗
+n is
+defined as f ∗
+n (y) = ∑∞
+m=n m!fm(y). Set ξ = ∑
+n<ω n!, and define yn, ˜yn ∈ Z(H(m)δ )̂ by
+yn = f ∗
+n (x) and ˜yn = yn + ξf0(x). Recall that h ↾ δ = gδ extends to an automorphism
+ˆgδ over Z(H(m)δ )̂ . We show that either ˆgδ(y0) /∈ 〈Z(Hmδ ) ∪ {ym | m < ω}〉 or ˆgδ(˜y0) /∈
+〈Z(Hmδ ) ∪ {˜ym | m < ω}〉, and then we choose z0 ∈ {y0, ˜y0} such that ˆgδ (z0) /∈
+〈Z(Hmδ ) ∪ {˜zm | m < ω}〉 and set
+Z(H(n1)δ+1 ) := 〈Z(Hmδ ) ∪ {zm | m < ω}〉 ⊆ Z(H(m)δ )̂ .
+This easily gives us ¯n1 ∈ Λδ+2, and it will be as required. Let us depict things:
+Z(Hmδ ) ⊆ / / Z(H(n1)δ+1 ) ⊆ / / Z(H(m)δ )̂
+Z(Hmδ ) ⊆ / /
+gδ
+O
+O
+Z(H(n1)δ+1 )
+∄ ˆgδ↾
+O
+O
+⊆ / / Z(H(m)δ )̂
+ˆgδ
+O
+O
+So, suppose by way of contradiction that ˆgδ (y0) ∈ 〈Z(Hmδ ) ∪ {ym | m < ω}〉 and
+ˆgδ (˜y0) ∈ 〈Z(Hmδ ) ∪ {˜ym | m < ω}〉, and we search for a contradiction. As ˆgδ (y0) ∈
+
+16 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+〈Z(Hmδ ) ∪ {ym | m < ω}〉. There are z ∈ Z(Hnδ ), n < ω and {ℓi ∈ Z}i<n such that
+ˆgδ (y0) ∈ Z(Hnδ )+∑
+i<n ℓiyi. It is easily seen that ∑
+i<n ℓiyi ∈ Z(Hnδ )+(∑
+i<n ℓi)yn. Set
+ℓ := ∑
+i<n ℓi. Hence ˆgδ (y0) = ℓyn + z where z ∈ Z(Hnδ ). By definition, ˆgδ (˜y0) = ˆgδ(y0 +
+ξf0(x)) = ℓyn + z + ξgδ(f0(x)). In other words, ˆgδ (˜y0) − (ℓ˜yn + z) = ξ(gδf0(x) − ℓf0(x)).
+We now recall that 〈Z(Hmδ ) ∪ {˜ym | m < ω}〉 ∩ ξ〈Z(Hmδ ) ∪ {˜ym | m < ω}〉 = 0.
+Finally, due to our assumption, ˆgδ(˜y0) ∈ 〈Z(Hmδ ) ∪ {˜ym | m < ω}〉, thus we have
+gδ f0(x) − ℓf0(x) = 0, but this is absurd by the choice of f0.]
+(∗)5.4 For δ ∈ U( ¯m ↾ δ), we say g ∈ G is 2-active with respect to (δ, ¯m ↾ δ), when
+there are ¯n, χ, h, B witnessing δ ∈ U( ¯m ↾ δ) such that there are nonzero x ∈ Gg,
+α < β in δ \ S, f1, f2 ∈ F ¯m↾δ,g
+α,β , and y1 6 = y2 in Gg such that:
+(a) h(fℓ(x)) ∈ Z(Hmα ) + fℓ(yℓ), for ℓ = 1, 2,
+(b) h maps Hmα (resp. Hmβ ) into Hmα (resp. Hmβ ).
+(∗)5.5 If g is 2-active with respect to (δ, ¯m ↾ δ), and ξ = δ + 1, then for some mξ ,
+¯m ↾ (ξ + 1) ∈ Λξ+1 and δ ∈ U+( ¯m ↾ (ξ + 1)).
+[Why? Let α, β, f1, f2, y1, y2 be as in (∗)5.4. For each α′ with β < α′ < δ, we can find
+β′ ∈ (α′, δ) \ S and f3 ∈ F ¯m↾δ,g
+α′,β′ such that Z(Hmα′ ) ∩ Im(f3) = 0 and h(f3(x)) = f3(y3)
+for some y3 ∈ Gg. Then for some ℓ ∈ {1, 2}, y3 6 = yℓ. Let us suppose without loss of
+generality that y3 6 = y1. Define f : Gg → Z(Hmβ′ ) as f (z) = f1(z) − f3(z). Then
+f ∈ F ¯m↾δ,g
+α′,β′ is such that h(f (x)) /∈ Z(Hmα′ ) + Im(f ), Z(Hmα′ ) ∩ Im(f ) = 0, and h maps
+Hmα′ and Hmβ′ into themselves. It follows that g is 1-active with respect to (δ, ¯m ↾ δ),
+and ξ = δ + 1, and we are done by (∗)5.3. ]
+(∗)5.6 For δ ∈ U( ¯m ↾ δ), we say g ∈ G is 3-active with respect to (δ, ¯m ↾ δ), when
+there are ¯n, χ, h, B witnessing δ ∈ U( ¯m ↾ δ) and there exist (y, x, z) ∈ Gg ×
+Gg × Z(Hmδ ) with x, z 6 = 0, α < δ, β ∈ [α, δ) \ S and f ∈ F ¯m↾δ,g
+α,β such that
+h(f (x)) = z + f (y). Also, h maps Hmα (resp. Hmβ ) into Hmα (resp. Hmβ ).
+(∗)5.7 If g is 3-active with respect to (δ, ¯m ↾ δ), and ξ = δ + 1, then for some mξ ,
+¯m ↾ (ξ + 1) ∈ Λξ+1 and δ ∈ U+( ¯m ↾ (ξ + 1)).
+[Why? According to (∗)5.5 it is enough to show that g is 2-active with respect to
+(δ, ¯m ↾ δ). Let ¯n, χ, h, B witness δ ∈ U( ¯m ↾ δ), and fix y, x, z, α < β and f as in
+(∗)5.6. Thanks to the 3-activity assumption, we have h(f (x)) = z + f (y). First we
+claim that y 6 = 0. Otherwise, h(f (x)) = z ∈ Z(Hmα ). Following the choice of h, we
+have f (x) ∈ Z(Hmα ). But Im(f ) ∩ Z(Hmα ) = 0, hence f (x) = 0, which implies x = 0,
+and this contradicts the assumption x 6 = 0. Consequently, y 6 = 0. Now, we set f1 := f ,
+f2 := 2f , y1 := y and y2 := 2y. Since y 6 = 0, y1 6 = y2. This witness g is 2-active with
+respect to (δ, ¯m ↾ δ), as claimed.]
+(∗)5.8 We say δ ∈ U( ¯m ↾ δ) is nice if there is no g ∈ G which is ℓ-active with respect
+to (δ, ¯m ↾ δ), for some ℓ ∈ {1, 2, 3}.
+(∗)5.9 Let δ ∈ U( ¯m ↾ δ) be nice. Then there is a sequence ¯h = (hg | g ∈ G) such that
+for α < δ large enough, and for any f ∈ ⋃{F ¯m↾δ,g
+α,β | β ∈ [α, δ)}, the following
+
+ON GROUPS WELL REPRESENTED AS AUTOMORPHISM GROUPS OF GROUPS 17
+implication is valid:
+x ∈ Gg =⇒ gδ (f (x)) = f (hg(x)).
+[Why? Let g ∈ G and x ∈ Gg. Since g is not 1-active with respect to (δ, ¯m ↾ δ), and
+following its definition, we can find some α < δ such that gδ (f (x)) ∈ Z(Hmα ) + Im(f )
+for all f ∈ ⋃{F ¯m↾δ,g
+α,β | β ∈ [α, δ)}. Hence there is some z ∈ Z(Hmα ) and y ∈ Gg so that
+gδ (f (x)) = z + f (y). Recall that g is not 3-active. This forces z = 0. Applying this in
+the previous formula, gives us gδ (f (x)) = f (y). Since both of gδ and f are injective, y
+is uniquely determined via h and g, so let y = hg(x). Then hg is as required.]
+Let α∗ < δ be such that (∗)5.9 holds for all α ≥ α∗.
+(∗)5.10 If δ ∈ U( ¯m ↾ δ) is nice, then:
+(a) For all α < δ and f ∈ ⋃{F ¯m↾δ,g
+α,β | β ∈ [α, δ)}, we have gδ(f (x)) = f (hg(x))
+for x ∈ Gg.
+(b) Let g ∈ G and f an embedding from (Gg, F b
+g )b∈Lc into (Z(Hmδ ), F b
+mδ )b∈Lc
+and let x ∈ Gg. Then there is a sequence 〈bi, si | i < n〉 with bi ∈ Lc and
+si ∈ Z \ {0} such that gδ(f (x)) − ∑n
+i=1 siF bi
+mδ (f (x)) ∈ Z(Hmα∗ ).
+[Why? (a): Suppose not. Let α < δ and f1 ∈ F ¯m↾δ,g
+α,β be a counterexample, where
+β > α, α∗. Thus for some x ∈ Gg, we have gδ(f1(x)) 6 = f1(hg(x)). We may further
+assume that α∗ > α (as (∗)5.9 works for any ordinal in (α∗, δ) as well). Let f2 ∈ F ¯m↾δ,g
+α∗,β be
+such that Z(Hmα∗ ) ∩ Im(f2) = 0. It turns out that f := f1 + f2 ∈ F ¯m↾δ,g
+α∗,β , thus by (∗)5.9,
+gδ (f (x)) = f (hg(x)). This means that gδ(f1(x)) + gδ(f2(x)) = f1(hg(x)) + f2(hg(x)).
+Hence as gδ(f2(x)) = f2(hg(x)), we have gδ (f1(x)) = f1(hg(x)), a contradiction.
+(b): This is true as gδ(f (x)) ∈ 〈Z(Hmα∗ ) ∪ {F b
+mδ (f (x)) | b ∈ Lc}〉.]
+(∗)5.11 Let δ ∈ U( ¯m ↾ δ) be nice. Then there is a sequence (b∗
+i , s∗
+i | i < n) where
+b∗
+i ∈ Lc and s∗
+i ∈ Z \ {0} such that for all g ∈ G, and any embedding f :
+(Gg, F b
+g )b∈Lc → (Z(Hmδ ), F b
+mδ )b∈Lc we have
+x ∈ Gg ⇒ gδ (f (x)) − ∑
+i<n
+s∗
+i F b∗
+i
+mδ (f (x)) ∈ Z(Hmα∗ ).
+[Why? Fix g∗ ∈ Gg and x∗ ∈ Gg. Due to (∗)5.10(b) applied to g∗↾cl{x∗}, we can find
+a sequence (b∗
+i , s∗
+i | i < n) as there. Let g ∈ G and suppose f is an embedding
+from (Gg, F b
+g )b∈Lc into (Z(Hmδ ), F b
+mδ )b∈Lc and x ∈ Gg. By replacing g by g↾cl{x},
+we may assume that Gg = cl{x} is one-generated (see Definition 1.9(4)(b)). Let
+φ : cl{x∗} → cl{x} be such that φ(x∗) = x, and set ˜f := f ◦ φ. Note that φ is an
+embedding from the structure (Gg∗↾cl{x∗} , F b
+g∗↾cl{x∗} )b∈Lc into (Gg↾cl{x} , F b
+g↾cl{x} )b∈Lc and
+˜f is an embedding from the structure (Gg∗↾cl{x∗} , F b
+g∗↾cl{x∗} )b∈Lc into (Z(Hmδ ), F b
+mδ )b∈Lc
+and x ∈ Gg. Following our assumption, it implies that gδ( ˜f (ze)) − ∑n
+i=1 s∗
+i F b∗
+i
+mδ ( ˜f(ze)) ∈
+Z(Hmα∗ ). Recall that f, ˜f and φ are embeddings that respect the structures. So,
+F b∗
+i
+mδ ( ˜f(ze)) = ˜f (F b∗
+i
+g∗↾cl{x∗} (ze)) = f (φ(F b∗
+i
+g∗↾cl{x∗} (ze))) = f (F b∗
+i
+g↾cl{x} (x)) = F b∗
+i
+g↾cl{x} (f (x)).
+
+18 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+But note that F b∗
+i
+g↾cl{x} (f (x)) = F b∗
+i
+g (f (x)), hence
+gδ (f (x)) −
+n∑
+i=1
+s∗
+i F b∗
+i
+mδ (f (x)) = gδ( ˜f (ze)) −
+n∑
+i=1
+s∗
+i F b∗
+i
+mδ ( ˜f (ze)) ∈ Z(Hmα∗ ). ]
+(∗)6: Let us derive the desired presentation in the above nice case. Recall that each
+element of Z(Hmδ ) is of the form f (x) for some f ∈ F ¯m↾δ,g
+α,β and x ∈ Gg, and also
+recall that hc : Hc → Nc is an epimorphism with Ker(hc) = Z(Hc). These yield an
+automorphism π ∈ Aut(Nc) via the assignment hc(f (x)) 7 → hc(gδ (f (x))). In view of
+(∗)5.11 we set F ¯s∗,¯b∗
+c = ∑n
+i=1 s∗
+i F b∗
+i
+c . Thanks to clause (1) from our assumption, for some
+b ∈ Lc one has F b
+mδ ↾Hc = F ¯s∗,¯b∗
+c . By the way we extended the functions, F b
+mδ = F ¯s∗,¯b∗
+mδ ,
+and following its definition, we have π(hc(f (x))) = hc(F b
+mδ (f (x))) for all f and x as
+above. Let g1 := (F b
+mδ )−1 ◦ gδ , and recall that g1↾Z(Hmδ ) = id and g1(t) ∈ t · Z(Hmδ )
+for all t ∈ Hmδ . According to Proposition 2.2, there is some f ∈ Hom(Nc, Z(Hmδ ))
+so that g1 = gf . Due to clause (1) of the theorem and in the light of Lemma 3.3 we
+observe that f ∈ Hom(Nc, Z(Hc)). It follows that h ↾ δ = gδ = F b
+mδ ◦ g1 = F b
+mδ ◦ gf .
+This is a contradiction to (∗)1(d + g).
+In sum, we have proved that Ωγ 6 = ∅, completing the proof of (∗)6. Recall from
+clause (∗)4 that this completes the proof of the theorem.
+Lemma 3.7. Assume c ∈ C4
+aut is such that |Hc| > 2|Lc|+ℵ0 . Then we can extend c to
+some (c, G) ∈ C6
+aut.
+Proof. It suffices to define G. First, we say g is one-generated, provided there is some x ∈
+Z(Hc) so that Gg/(H∗
+c ∩ Z(Hc)) is the smallest pure subgroup of Z(Hc)/(H∗
+c ∩ Z(Hc))
+to which x belongs and that is closed under F b
+g ’s for b ∈ Lc. Let G consist of all g such
+that:
+(1) g = (Gg, (F b
+g)b∈Lc ), where Gg ⊆ Z(Hc),
+(2) Gg is a torsion-free subgroup such that Gg ∩ H∗
+c = 0,
+(3) g is one-generated,
+(4) |Gg| ≤ |Lc| + ℵ0.
+(∗)1 Denoting the isomorphic structures equivalence relation with ∼=, we have:
+(a) |G/ ∼= | ≤ 2|Lc|+ℵ0 .
+(b) If G 6 = ∅, then (c, G) ∈ C6
+aut.
+(c) If g ∈ G, then Hom(Nc, Gg) = 0.
+(∗)2 Assume |Hc| > 2|Lc|+ℵ0 . Then G 6 = ∅.
+[Why? First, note that |Z(Hc)| ≥ 2|Lc|+ℵ0 . From this, we can find a sequence
+(xα | α < 2|Lc|+ℵ0 ) of distinct elements of Z(Hc) \ H∗
+c . For each α, let Gα be minimal such that:
+(a) {xα} ∪ (H∗
+c ∩ Z(Hc)) ⊆ Gα,
+(b) Gα is closed under the action of F b
+c , for b ∈ Lc,
+(c) Gα/(H∗
+c ∩ Z(Hc)) is a pure subgroup of Z(Hc)/(H∗
+c ∩ Z(Hc)),
+
+(d) |Gα| ≤ |Lc| + ℵ0.
+For each α let (xα,ℓ | ℓ < |Gα|) enumerate Gα so that the elements of H∗
+c ∩ Z(Hc)
+are enumerated first. Then for some α < β < 2|Lc|+ℵ0 we have |Gα| = |Gβ | and
+{(xα,ℓ, xβ,ℓ) | ℓ < |Gα|} is an isomorphism from Gα onto Gβ which is identity on
+H∗
+c ∩ Z(Hc) and commutes under F b
+c , for all b ∈ Lc. In order to define g, we set
+Gg = {xα,ℓ − xβ,ℓ | ℓ < |Gα|} and define F b
+g := F b
+c ↾Gg . It turns out that g ∈ G.]
+The lemma follows.
+Corollary 3.8. Assume G¨odel’s axiom of constructibility V = L, and let L be a group.
+Then the following are equivalent:
+(a) For every cardinal λ > 2|L|+ℵ0 as in Theorem 3.6, there is a group H of cardinality λ such that Aut(H) ∼= L.
+(b) There is some c ∈ C+
+aut such that Lc ∼= L, Aut(Hc) ∼= L and |Z(Hc)| > 2|L|+ℵ0 .
+Proof. (a) ⇒ (b): This is clear, as we can define c ∈ C+
+aut by c = (Lc, Hc, Fc) =
+(L, H, F ), where F : L ∼= Aut(H) is an isomorphism.
+(b) ⇒ (a): Let c ∈ C+
+aut be such that Lc ∼= L and |Hc| > 2|L|+ℵ0 . Let also λ > 2|L|+ℵ0
+be as in Theorem 3.6. We combine Lemma 1.10(3) along with Lemma 3.7, and extend c
+to some (c, G) ∈ C6
+aut. We are going to show that Hom(Nc, Z) = 0. Indeed, this follows
+from the fact that the c we construct is auto-rigid and the center of Hc has size bigger
+than the size of L. Thanks to Lemma 3.1, with m = c, we see Hom(Nc, Z) = 0. In fact,
+following the previous proof, Hom(Nc, Gg) = 0, for all g ∈ G. Theorem 3.6 gives us an
+m so that |Hm| = λ and Aut(Hm) = {F b
+m ◦ gf | b ∈ Lc, f ∈ Hom(Nc, Z(Hm))}. We
+note that for any b, f as above, (F b
+m ◦gf )↾Hc ∈ Aut(Hc), hence for some d ∈ Lc, we have
+(F b
+m ◦ gf )↾Hc = F d
+c . Then F b
+m ◦ gf = F d
+m. Thus Aut(Hm) ⊆ {F d
+m | d ∈ Lc} ⊆ Aut(Hm),
+so Aut(Hm) ∼= Lc ∼= L.
+Similarly, we can prove the following.
+Corollary 3.9. Assume G¨odel’s axiom of constructibility V = L, and let L be a group.
+Then the following are equivalent:
+(a) For every λ > 2|L|+ℵ0 as in Theorem 3.6, there is a group H of cardinality λ
+such that Aut(H) ∼= L, and for some H∗ ⊆ Z(H) of cardinality < λ, Z(H)/H∗
+is a λ-free abelian group.
+(b) There is c ∈ C+
+aut such that Lc ∼= L, Aut(Hc) ∼= L and |Z(Hc)| > 2|L|+ℵ0 , and
+there is g ∈ G such that Gg is a free abelian group.
+References
+[1] R. Baer, Types of elements and characteristic subgroups of abelian groups, Proc. Lond. Math.
+Soc. 39 (1935), 481–514.
+[2] R.A. Beaumont, R.S. Pierce Torsion Free Groups of Rank 2, Mem. Amer. Math. Soc. 38 (1961).
+[3] A.L.S. Corner, Groups of units of order in Q-algebras, in Models, Modules and Abelian Groups
+(W. de Gruyter, Berlin, 2008), 9–61.
+
+20 M. ASGHARZADEH, M. GOLSHANI, DANIEL HERDEN, AND SAHARON SHELAH
+[4] A.L.S. Corner, B. Goldsmith, Isomorphic automorphism groups of torsion-free p-adic modules, in
+Abelian Groups, Module Theory, and Topology. Lecture Notes in Pure and Applied Mathematics,
+vol. 201 (Dekker, New York, 1998), 125–130.
+[5] P.C. Eklof and A. Mekler, Almost Free Modules: Set Theoretic Methods, North–Holland Mathematical Library, vol. 65, North–Holland Publishing Co., Amsterdam, 2002, Revised Edition.
+[6] L. Fuchs, Abelian Groups, Springer Monographs in Mathematics. Springer, Cham, 2015.
+[7] R. G¨obel and J. Trlifaj, Approximations and Endomorphism Algebras of Modules, vol. i, ii, de
+Gruyter Expositions in Mathematics, Walter de Gruyter, 2012.
+[8] J.T. Hallett, K.A. Hirsch, Torsion-free groups having finite automorphism groups, J. Algebra 2
+(1965), 287–298.
+[9] W. Liberty, Isomorphic automorphism groups of primary abelian groups I, Abelian Group Theory
+(Gordon and Breach, New York, 1987), 9–31.
+[10] W. May, Abelian automorphism groups of countable rank, in Abelian Groups and Modules, Trends
+in Mathematics (Birkh¨auser, Basel, 1999), 23–42.
+[11] S. Shelah, ℵn-free abelian groups with no non-zero homomorphisms to Z, Cubo – A Mathematical
+Journal 9 (2007), 59-79.
+[12] S. Shelah, Quite free complicated abelian groups, pcf and black boxes, Israel J. Math. 240 (2020),
+1–64.
+[13] K. Shoda, ¨Uber die Automorphismen einer endlichen abelschen Gruppe, Math. Ann. 100 (1928),
+674–686.
+Hakimiyeh, Tehran, Iran.
+Email address: mohsenasgharzadeh@gmail.com
+School of Mathematics, Institute for Research in Fundamental Sciences (IPM),
+P.O. Box: 19395–5746, Tehran, Iran.
+Email address: golshani.m@gmail.com
+Department of Mathematics, Baylor University, Sid Richardson Building, 1410 S.4th
+Street, Waco, TX 76706, USA
+Email address: daniel herden@baylor.edu
+The Hebrew University of Jerusalem, Einstein Institute of Mathematics, Edmond
+J. Safra Campus, Givat Ram, Jerusalem 91904, Israel
+Department of Mathematics, Hill Center-Busch Campus, Rutgers, The State University of New Jersey, 110 Frelinghuysen Road, Piscataway, NJ 08854-8019, USA
+Email address: shelah@math.huji.ac.il

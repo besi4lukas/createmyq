@@ -1,0 +1,1642 @@
+DENSITY REGRESSION WITH
+BAYESIAN ADDITIVE REGRESSION TREES
+A PREPRINT
+Vittorio Orlandi
+Dept. of Statistical Science
+Duke University
+Durham, NC 27708
+vdo@duke.edu
+Jared Murray
+Dept. of Information,
+Risk, and Operations Management
+University of Texas, Austin
+Austin, TX 78712
+jared.murray@mccombs.utexas.edu
+Antonio Linero
+Dept. of Statistics and Data Sciences
+University of Texas, Austin
+Austin, TX 78712
+antonio.linero@austin.utexas.edu
+Alexander Volfovsky
+Dept. of Statistical Science
+Duke University
+Durham, NC 27708
+alexander.volfovsky@duke.edu
+December 24, 2021
+ABSTRACT
+Flexibly modeling how an entire density changes with covariates is an important but challenging
+generalization of mean and quantile regression. While existing methods for density regression
+primarily consist of covariate-dependent discrete mixture models, we consider a continuous latent
+variable model in general covariate spaces, which we call DR-BART. The prior mapping the latent
+variable to the observed data is constructed via a novel application of Bayesian Additive Regression
+Trees (BART). We prove that the posterior induced by our model concentrates quickly around true
+generative functions that are sufficiently smooth. We also analyze the performance of DR-BART on
+a set of challenging simulated examples, where it outperforms various other methods for Bayesian
+density regression. Lastly, we apply DR-BART to two real datasets from educational testing and
+economics, to study student growth and predict returns to education. Our proposed sampler is efficient
+and allows one to take advantage of BART’s flexibility in many applied settings where the entire
+distribution of the response is of primary interest. Furthermore, our scheme for splitting on latent
+variables within BART facilitates its future application to other classes of models that can be described
+via latent variables, such as those involving hierarchical or time series data.
+Keywords Bayesian Nonparametrics · Conditional Density Estimation · Posterior Concentration · Latent Variables ·
+Heteroscedasticity
+1 Introduction
+Data analysis frequently concerns itself with associating the change in a function of some response variable y with
+a set of covariates x. Arguably the most common tool for this is mean regression, which focuses on the expectation
+E[y | x] and foregoes inference about other parts of the conditional density p(y | x), a much more general quantity.
+This inflexibility has been recognized as problematic in many modern applications [see, e.g. Wittman, 2009, Karabatsos
+and Walker, 2011, Gneiting and Katzfuss, 2014]. It is then natural to ask if other functionals of p(y | x) are more
+appropriate, with two immediate candidates: quantile regression and density regression.
+Quantile regression models specific quantiles of the conditional response distribution. This can help address settings
+where some quantiles carry more probative value. For example, Black et al. [2007] note that the impact of a job training
+arXiv:2112.12259v1 [stat.ME] 22 Dec 2021
+
+program on the upper quantiles of the distribution is considered to be more important by policy makers than that on the
+lower quantiles. While this approach is more general than mean regression, one problem with its application is that
+computing estimates of functionals of the quantiles is not always straightforward. Another problem is that estimated
+quantiles oftentimes do not obey the monotonicity constraint inherently satisfied by the true distribution. While there
+are approaches for joint modeling of quantiles (e.g. Kadane and Tokdar [2012], Sangnier et al. [2016]) or post-hoc
+reordering of estimates (e.g. Chernozhukov et al. [2010]), the fundamental limitation with the approach is that individual
+quantiles are being targeted as proxies for features of the distribution as a whole.
+By modeling the entire probability distribution of the response, density regression methods perform a substantially
+harder task than mean or even quantile regression. In doing so, however, they are able to compute coherent point
+estimates and perform uncertainty quantification for arbitrary functionals of the distribution that may be of interest.
+Studies of income inequality, for example, typically take into account the impact of variables on the entire income
+distribution [e.g. Gerfin, 1994, Daly and Valletta, 2006]. To date, there is a large literature on density regression. We
+contribute to this body of work by providing a general, yet reasonably structured, formulation of the problem that enjoys
+important theoretical guarantees and yields an efficient sampler with strong empirical performance.
+In this work, we consider the following model for the conditional density:
+p(y | x, f, σ) =
+∫ 1
+0
+1
+σ(x, u) φ
+( y − f (x, u)
+σ(x, u)
+)
+du, (1)
+which is parameterized by the latent variable u. This model generalizes the covariate dependent mixture model discussed
+in detail below. At the same time, it posits a fairly specific form by which f and σ interact to generate a conditional
+density. Various forms of this model have been considered in Pati et al. [2011], Kundu and Dunson [2014], and Zhou
+et al. [2017], where Gaussian process priors were placed on f (x, u) and inverse gamma priors on either σ(x, u) = σ or
+σ2(x, u) = σ2. Instead, we propose placing BART-type priors on both f and σ. While BART was designed for mean
+regression, we also consider a modification allowing it to model variance function to grant the model added flexibility in
+finite sample settings, and generalize both to accommodate latent variables. Asymptotically, we show that the posterior
+specified by our model concentrates around a true underlying density, provided its log is α-Hölder for 0 < α ≤ 2. The
+rate of concentration is removed from the minimax rate by a factor of α/(α + 1) because BART generates piecewise
+constant functions; however, a near–minimax rate can be attained by using the SBART model of Linero and Yang
+[2018] and restricting to a slightly smaller function class. In addition to yielding a more efficient sampler, we also show
+that this model outperforms its counterpart employing Gaussian process priors, as well as a variety of other methods for
+density regression in several empirical evaluations.
+We also apply our method to two real world datasets. In the first, we compute quantile growth targets for students in
+elementary and middle school mathematics classes using data provided in Betebenner et al. [2011]. Mean regression
+approaches fail to identify interesting aspects of the data — such as that conditional distributions of test scores become
+more skewed over time — and quantile regression approaches can suffer from quantile crossing and a limited description
+of the uncertainty in their estimates. Our model addresses both these problems simultaneously. In the second, we study
+returns to education from US census microdata originally compiled by Angrist et al. [2006]. The returns are a nonlinear
+functional of quantiles of the wage distribution and therefore well suited for analysis by density regression methods,
+which fully capture uncertainty about their estimates.
+The paper proceeds as follows. The remainder of the introduction discusses past work on density regression models.
+Section 2 gives a brief overview of BART and its application to modeling mean and variance functions. In Section 3,
+we motivate our use of BART for modeling components of the conditional density and state our full model for density
+regression, which we refer to as DR-BART. Section 4 outlines theoretical results concerning our model, namely the
+rate at which the posterior contracts about a true density. Section 5 compares DR-BART to other models for density
+regression on a variety of simulated datasets and Section 6 applies DR-BART to two real world datasets from education
+and economics. Section 7 concludes.
+1.1 Related Work
+Our proposal generalizes a common approach to density regression that uses covariate dependent mixture models. In
+these models, the conditional density is given by:
+p(y | x, θ, π) =
+k∑
+h=1
+πh(x)K(y; θh(x)), (2)
+
+allowing for k = ∞, where K(·, ·) is a positive definite kernel function and πh(x) are covariate-dependent mixture
+weights. We restrict attention to normal kernels:
+p(y | x, θ ≡ (μ, σ), π) =
+k∑
+h=1
+πh(x)φσh(x)(y − μh(x)), (3)
+where φσ (z) = (1/σ)φ(z/σ) and φ denotes the standard normal pdf – but the extension to other kernels is straightforward. In practice π or θ may not vary with x, or may vary in a limited way. (e.g., by taking μh(x) = x′βh σh(x) = σh).
+Our proposed model in (1) recovers that in (3) when f and σ are step functions with the same points of discontinuity
+(which can depend on the covariates).
+Models of the form in (3) appear in the machine learning literature as “mixtures of experts” [Jacobs et al., 1991, Jordan
+and Jacobs, 1994] where the initial focus was on using these models for flexible mean regression or classification.
+Geweke and Keane [2007] and Villani et al. [2009] study models of this form for semiparametric density regression,
+using finite k and multinomial probit and logit regression models for π(x). While it is possible to get consistency
+properties for large classes of conditional densities (see e.g. Norets et al. [2010], Pati et al. [2013], Norets and Pelenis
+[2014] and the monograph Norets and Pati [2014]), practical experience in finite samples suggests that there can be
+value in allowing the kernel variance to depend on x, as this can reduce the number of clusters required for an accurate
+approximation. Villani et al. [2009] provide simulated examples and discussion in the case of fixed k, and we will
+revisit this point in the context of the models introduced here (Section 5).
+Another approach proposes to leverage the joint model for (y, x) as a convenient device for inducing a particular
+conditional model as p(y | x, θ) = p(y, x | θ)/p(x | θ) (as in e.g. Muller et al. [1996], Park and Dunson [2010],
+among others). There is some cost to the joint modeling approach – which itself has commanded a large literature (see
+West and Escobar [1993], Muller et al. [1996] and variations in Shahbaba and Neal [2009], Taddy and Kottas [2010],
+Molitor et al. [2010], Wade et al. [2011], Dunson and Bhattacharya [2011], Hannah et al. [2011], Wade et al. [2014]) –
+in terms of computation and accuracy as the dimension of the covariate vector grows (see Hannah et al. [2011], Wade
+et al. [2014]). The posterior can also depend on the distribution of the covariates, even when care is taken to separate
+the parameter spaces in the prior, as the auxiliary joint model assumes a common clustering for the response and the
+covariates (see Griffin’s discussion of Dunson and Bhattacharya [2011]; also, Walker and Karabatsos [2013] and Wade
+et al. [2014]). Thus, other nonparametric Bayesian models focus explicitly on the conditional distributions of interest;
+these date to (at least) MacEachern’s seminal work on dependent Dirichlet processes (DDPs) [MacEachern, 1999,
+2000]. A DDP is a prior for a collection of distributions such that at each covariate value the process is marginally a
+DP. Models in this class include De Iorio et al. [2004], Griffin and Steel [2006], Dunson and Peddada [2008], De Iorio
+et al. [2009], Wang and Dunson [2011], and numerous other specializations to spatiotemporal or hierarchical models.
+Barrientos et al. [2012] characterize the DDP in terms of copulas and provide results about its support and about kernel
+mixtures using the DDP.
+2 Heteroscedastic Regression with BART priors
+2.1 Bayesian Additive Regression Trees (BART)
+Bayesian Additive Regression Trees (BART) were introduced by Chipman et al. [2010] (henceforth CGM) as a
+nonparametric prior over a regression function f designed to capture complex, nonlinear relationships and interactions.
+Specifically, for observed data pairs D = {(yi, xi); 1 ≤ i ≤ n}, CGM propose the regression model:
+yi = f (xi) + i, i
+iid
+∼ N (0, σ2). (4)
+The BART prior represents f as the sum of many piecewise constant regression trees. Each tree Th, 1 ≤ h ≤ m
+consists of a set of interior decision nodes (where decisions are generally of the form xj < c for some value c) and a set
+of bh terminal nodes. The terminal nodes have associated parameters Mh = (μh1, μh2, . . . μhbh )′. For each tree there
+is a partition of the covariate space {Ah1, . . . , Ahbh } with each element of the partition corresponding to a terminal
+node. A tree and its associated parameters define step functions:
+g(x, Th, Mh) = μhb if x ∈ Ahb (for 1 ≤ b ≤ bh). (5)
+These functions are additively combined to obtain f :
+f (x) =
+m∑
+h=1
+g(x, Th, Mh). (6)
+This model has been shown empirically and theoretically (see, e.g. Chipman et al. [2010], Jeong and Rockova [2020])
+to be accurate, highly flexible, and robust to the presence of irrelevant covariates. The default prior parameters work
+very well in practice and the model admits an efficient sampler. More details on BART can be found in the Supplement.
+
+2.2 A BART prior for variance functions
+As mentioned in the introduction, to allow for flexible density regression in finite samples, it may be useful to allow the
+variance of the process to depend on x as well. To this end, we adopt the log-linear BART prior of Murray [2021] for the
+log-variance. Specifically, consider the heteroskedastic regression problem yi = f (x) + σ2(x)i where i
+iid
+∼ N (0, σ2
+0 ).
+Murray places a log-linear BART prior on σ2(·):
+log[σ2(x)] =
+mv∑
+h=1
+g(x, T (v)
+h , M (v)
+h ),
+where {(T (v)
+h , M (v)
+h )} are trees and parameters for the variance function. The prior for the exponentiated leaf parameters
+exp(μ(v)
+hb ) is conjugate, symmetric on the log scale, and can be calibrated to match the expected prior range of the
+log-variance process. More details on BART’s extension to log-linear models can be found in the Supplement.
+3 Density Regression with BART priors
+Even with a flexible variance function, the normality assumption of heteroscedastic BART may be too restrictive; for
+example, at any covariate value it yields symmetric predictive distributions. In this section, we extend the heteroscedastic
+BART model to general density regression problems by introducing a continuous latent variable U , which is treated
+as an omitted variable independent of x. Before introducing the model in full generality we will motivate the use of
+continuous latent variables in the density estimation setting.
+3.1 Continuous latent variable priors for a single density
+Consider the following generalized location model for estimating a single density:
+p(y) =
+∫ 1
+0
+φσ (y − f (u)) du. (7)
+An equivalent representation in terms of a latent variable is
+Y = f (U ) + , U ∼ U (0, 1), ∼ N (0, σ2) (8)
+where (7) is obtained on marginalizing over U . In the limit as σ → 0, Y d
+= f (U ) where U ∼ U (0, 1). This class of
+models can be quite broad, depending on the prior for f ; if f is the quantile function of a distribution P , then Y ∼ P .
+We do not restrict f to be monotone; while it would be possible to do so, this substantially increases the computational
+burden and since subsequent inference is on the induced density for y (or y | x below) or its functionals rather than f
+itself, the monotonicity constraint is not necessary.
+Discrete location mixtures arise as a special case of this model when f is a step function. Suppose f (u) = μh for
+u ∈ [νh, νh+1), where ν is an increasing sequence on [0, 1) such that ν1 = 0 and ∑∞
+h=0(νh+1 − νh) = 1. Then we
+have:
+p(y) =
+∫ 1
+0
+φσ (y − μh)1(u ∈ [νh, νh+1))d u =
+∞∑
+h=1
+(νh+1 − νh)φσ (y − μh).
+This representation is intimately related to the augmented model used for slice sampling infinite mixture models [Walker,
+2007, Kalli et al., 2011], where a prior on f is induced via the prior on mixture component weights πh ≡ νh+1 − νh.
+Priors on mixture weights are only one way to induce the prior on f . Kundu and Dunson [2014] proposed placing a
+Gaussian process prior directly on f , suggesting models centered on a prior guess of the quantile function and using
+a squared exponential covariance function. Theoretically, this is a flexible choice [see Pati et al., 2011, Kundu and
+Dunson, 2014]; however, it introduces computational difficulties, requiring a discretization of the space that may reduce
+the quality of the subsequent inference. Furthermore, it is not immediately clear how to introduce multiple or categorical
+covariates into this framework.
+The continuous latent variable model is appealing, however. In many contexts it is more intuitive to think of distributional
+features as arising from some omitted or latent continuous variables, and not from heterogeneity due to multiple
+independent subpopulations. Adapting BART to this setting yields priors for f which incorporate covariates flexibly,
+are approximately smooth, and do not require discretization of the latent variable a priori.
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINTu < ⇡1 + ⇡2
+u < ⇡1 + ⇡2 + ⇡3u < ⇡1
+✓1 ✓2 ✓3 ✓40 ⇡1 ⇡1 + ⇡2 ⇡1 + ⇡2 + ⇡3 1
+u
+g(u)
+✓1
+✓2
+✓3
+✓4
+Figure 1: Representing a step function (left) as a binary tree (right).u < ⇡1 + ⇡2
+u < ⇡1 + ⇡2 + ⇡3
+u < ⇡1
+✓1 ✓2 ✓3
+X 2 A
+✓5✓4
+Figure 2: Modifying the tree in Fig. 1 to incorporate covariates
+3.2 Density Regression with BART (DR-BART)
+To motivate the use of tree-based priors, recall that the normal location mixture model corresponds to a step function for
+f , which can also be represented as a binary tree (Fig. 1). In the tree-based representation, incorporating covariates
+is simply a matter of introducing additional covariate-based splitting rules; Figure 2 modifies the tree to split on x.
+Marginalizing over the latent variable in this example gives the two conditional densities:
+p(y | x ∈ A) =π1φσ (y − θ1) + π2φσ (y − θ2) + (π3 + π4)φσ (y − θ3) (9)
+p(y | x 6 ∈ A) =π1φσ (y − θ1) + π2φσ (y − θ2) + π3φσ (y − θ4) + π4φσ (y − θ5) (10)
+The resulting model has some interesting properties. There are shared components and shared weights (e.g. θ1, θ2 and
+π1, π2) but also components and weights that are unique to each conditional distribution (e.g. π3 + π4 versus π3, π4).
+This allows borrowing of information across the covariate space, with the degree of borrowing controlled by the tree
+structure. Trees with multiple interior splits on x allow the model to capture multiscale structure, as the degree of
+borrowing varies across the covariate space. In the extreme case, a tree that splits on x before splitting on U will yield
+two independent density estimates, while a tree that doesn’t split on U yields a standard Bayesian CART model.
+In practice, a single tree model will probably be inadequate for many applications. With many covariates, nearly smooth
+mean functions, or highly skewed/multimodal distributions the tree will have to grow quite large. Additionally, the
+presence of the latent variable U will tend to yield poor mixing and further complicate the design of MCMC algorithms
+for the single tree model (see Chipman et al. [1998], Denison et al. [1998] for discussion of the complications arising in
+MCMC for single tree models without latent variables).
+A BART prior for f is a natural alternative to a single tree model and additional flexibility can be obtained by modeling
+the variance function as well. For density regression we modify both BART priors from Section 2 to include a latent
+variable U . The most general model for density regression with BART (DR-BART) is:
+U ∼ U [0, 1], ∼ N (0, σ2
+0 ) (11)
+Y = f (x, U ) + exp[v(x, U )/2]. (12)
+Letting σ(x, u) = exp[v(x, u)/2]σ0, the density function at x is
+p(y | x) =
+∫ 1
+0
+φσ(x,u)(y − f (x, u)) du, (13)
+
+a location-scale mixture of normals. In addition to the full DR-BART model, two reduced models are potentially of
+interest:
+1. Location-only mixture (DR-BART-L): Constant bandwidth, σ(x, u) ≡ σ0
+2. Location mixture with heteroscedasticity (DR-BART-LH): Covariate-dependent
+bandwidth parameter, σ(x, u) ≡ σ(x) = exp[v(x)/2]σ0
+Priors for the DR-BART parameters are specified as follows:
+• f , the location function: The CGM BART prior with k = 2 and m = 250 trees. We also require that the leaves
+of each tree contain at least 5 observations. In the context of DR-BART this condition is related to priors on
+mixture models for a single density that require all the components to be occupied (see e.g. Diebolt and Robert
+[1994]).
+• v, the bandwidth function: The BART variance prior from Section 2, with 100 trees and a0 (a hyperparameter
+for σ(x, u) defined in the Supplement) calibrated to a reasonable range, as described in the Supplement.
+• Depending on the model, σ2
+0 is either fixed (DR-BART, DR-BART-LH) or given a further inverse gamma prior
+(DR-BART-L): σ2
+0 ∼ IG(ν0/2, ν0ξ0/2), with ξ0 a prior guess at an appropriate bandwidth. In DR-BART-L,
+posterior inferences are insensitive to reasonable specifications of ξ0, but allowing ν0 → 0 puts too much mass
+near 0. Since σ2
+0 is not identified separately from the flexible variance function ν in the full DR-BART/DR-
+BART-LH models, the prior should be very informative and in practice fixing it at a sensible guess (some
+fraction of the sample variance or of the variance of the OLS residuals) seems to work well. It could also be
+elicited more formally.
+Results appear to be more or less insensitive to the numbers of trees in f and v provided they are large enough, and
+the values chosen here reflect experience with mean regression BART and the belief that variance functions are less
+complex than location functions.
+Before describing posterior sampling we will describe the properties of f and v and provide some intuition for their
+roles in the model.
+3.2.1 The location function f
+With a BART prior for f , f (x, u) decomposes as
+f (x, u) =
+m∑
+h=1
+g((x, u), Th, Mh) ≡ fx(x) + fxu(x, u) + fu(u). (14)
+The three functions in (14) are defined (from left to right) as the sum of the trees splitting only on x, on both x and u,
+and only on u. These terms can capture covariate effects that are pure location shifts, covariate-dependent distributional
+features, and distributional features common across covariate space (respectively). Using posterior samples of the trees
+to try to infer which variables influence the responses and in what manner is somewhat fraught, however. For example,
+it is possible that a tree in fxu(x, u) split trivially on U in that the leaf parameters on either side of the split are nearly
+identical or cancelled by the contribution of other trees. This is essentially the same difficulty reported by CGM in
+doing variables selection in BART mean regression by counting the trees splitting on a particular variable. But (14)
+does give some insight into how the model can capture the complex effects that x may have on the distribution of Y ,
+even with a constant bandwidth.
+Since f and v are step functions, this model is equivalent to a discrete mixture of normal distributions. But the prior
+is much different than the usual priors in covariate-dependent mixture models. First, the number of distinct mixture
+components with positive probability varies across covariate space like in the single tree model. Second, unlike in the
+single tree model, the components are correlated a priori; given a fixed set of m trees T we have:
+Cov(f (x, u), f (x′, u′)) = σ2
+μN [(x, u), (x′, u′)] (15)
+Cor(f (x, u), f (x′, u′)) = N [(x, u), (x′, u′)]/m (16)
+where N [(x, u), (x′, u′)] is the number of trees where (x, u) and (x′, u′) are in the same leaf. It follows from (16) that
+if |u − u′| > |u − u′′|, then
+Cov(f (x, u), f (x, u′)) ≥ Cov(f (x, u), f (x, u′′)) (17)
+Cor(f (x, u), f (x, u′)) ≥ Cor(f (x, u), f (x, u′′)). (18)
+Given the potentially strong correlation, it is misleading to think of the steps in f as “mixture components” in the usual
+sense.
+
+3.2.2 The bandwidth function v
+A covariate-adaptive bandwidth parameter will often be important in these models. Since U and are independent, in
+the DR-BART-L model Var(Y | x) ≥ Var(σ0) = σ2
+0 . On the other hand, in the DR-BART-LH model Var(Y | x) ≥
+Var(exp[v(x)/2]) = σ(x)2. In a model without a covariate adaptive bandwidth, σ2
+0 must be at least as small as the
+most concentrated predictive density to avoid oversmoothing, yielding much rougher density estimates elsewhere. The
+efficiency of the MCMC sampler suffers as well, as smaller bandwidths imply more concentrated distributions for Ui. A
+covariate dependent bandwidth might be preferable for this reason, even if a single bandwidth seems like a reasonable
+simplification.
+The full DR-BART model has an additional degree of flexibility due to scale mixing. It can allow v(x, u) to grow large
+in some areas of of U -space, effectively “turning off” portions of f (x, u) or capturing relatively flat areas of the density.
+The behavior of the different models is easiest to understand with an example, presented in Section 5.
+3.2.3 Posterior Sampling
+Generating samples from the posterior with MCMC is straightforward. Conditional on values for the latent variables
+u = (u1, u2, . . . , un), DR-BART reduces to the heteroscedastic BART model so that sampling for the other parameters
+proceeds as described in the Supplement. The latent ui have full conditionals
+p(ui | −) ∝ φσ(x,u)(y − f (x, u))1
+(
+u ∈ B(T, T (v))
+)
+, (19)
+where B(T, T (v)) is the set of possible u-values; that is, those that do not yield trees with leaves having fewer than 5
+observations. Since f and σ are step functions, (19) is piecewise constant, so ui can be updated with a Gibbs step: If
+u∗
+1 < u∗
+2 < · · · < u∗
+k are the points of discontinuity of (19) and u∗
+0 = 0, u∗
+k−1 = 1, the Gibbs step first samples an
+interval from
+Pr(ui ∈ (u∗
+h, u∗
+h+1) | −) ∝ φσ(x,˜uh)(y − f (x, ˜uh))1
+(
+u ∈ B(T, T (v))
+)
+, (20)
+where ˜uh = (u∗
+h+1 − u∗
+h)/2 (or any other point in the interval) and then ui is sampled uniformly from the selected
+interval. Note that 1(u ∈ B(T, T (v))) necessarily equals either 0 or 1 on the entire interval (u∗
+h, u∗
+h+1) for each h by
+construction.
+While conceptually simple, the Gibbs sampling update can require a large number of likelihood evaluations (k is often
+well into the hundreds). On the other hand, a Metropolis step is difficult to tune because (19) is in general multimodal.
+An efficient alternative that doesn’t require tuning is slice sampling which introduces latent variables ωi so that
+p(ωi, ui | −) ∝ 1(ωi < φσ(x,u)(y − f (x, u))1
+(
+u ∈ B(T, T (v))
+)
+. (21)
+Sampling proceeds using the techniques developed in Neal [2003]. The slice sampler is much more efficient, which
+tends to make up for any loss in theoretical efficiency or mixing.
+4 Theory
+Here, we present some properties of the DR-BART model, showing that our proposed prior generates trees that are
+almost surely finite and upper bounding the rate at which DR-BART estimates the conditional density p(y | x). We
+focus on the special case where the predictors xi ∈ [0, 1]p are continuous. This is a common assumption when studying
+theoretical properties of density regression models [e.g. Chung and Dunson, 2012, Pati et al., 2013, Li et al., 2020]. The
+assumption is even more innocuous here, as BART is invariant to monotone transformations of the covariates. Proofs
+can be found in the Supplement.
+Theorem 1. Assume that the prior over a binary tree is as in CGM, but with a continuous uniform prior on splitting
+locations and no restriction to nonempty leaves. A tree sampled from this prior has finite depth with probability one.
+Thus, introducing a latent u into the prior does not affect the finite depth of the trees. We now focus on providing upper
+bounds for the posterior concentration rate n of the posterior. A rate n ↓ 0 is said to be a rate of convergence of
+the posterior with respect to a divergence measure h if there exists a positive constant M such that Π{h(p0, pf,σ ) ≥
+M n | Dn} → 0 in F0-probability, where Dn = {(Xi, Yi) : i = 1 . . . , n} and (Xi, Yi) iid
+∼ F0(dx, dy) = p0(y |
+x) dy FX(dx).
+The conditional density of y induced by our model is given by the convolution
+pf,σ (y | x) =
+∫
+φσ(x,u)(y − f (x, u)) du,
+
+and the limit σ(x, u) → 0 is associated with a random variable with quantile function f (x, u) if f (x, u) is monotonically
+increasing in u. This suggests that a reasonable strategy for establishing that pf,σ is close to p0 is to show that f (x, u)
+is close to the true conditional quantile function f0(x, u).
+We characterize the concentration of DR-BART with respect to the integrated Hellinger distance, defined:
+h(p, q) = ( ∫ (√p(y|x) − √q(y|x))2 dy FX(dx))1/2. Two other divergence measures which will be useful for
+us are the generalized Kullback-Leibler divergences KL(p1‖p2) = ∫ p1 log(p1/p2) dy FX(dx) and V (p1‖p2) =∫ p1 log2(p1/p2) dy FX(dx).
+To study the posterior concentration of DR-BART, we make use of results from (i) Jeong and Rockova [2020] involving
+the concentration of BART in a regression setting and (ii) Pati et al. [2011], Zhou et al. [2017] who leverage similar
+results about Gaussian processes to show convergence in a latent variable model similar to the one considered here. Our
+proof extends both of these works in fundamental ways. We extend Jeong and Rockova [2020] by introducing latent
+variables into the tree structure. While having immediate implications for DR-BART this also lays the groundwork
+for concentration results for latent variable BART models that we will consider in the future. Compared to Pati et al.
+[2011], we not only introduce covariates into the setup, but also place a non-trivial DR-BART prior over the bandwidth,
+compared to their choice of a parametric, covariate-independent prior.
+Next, we outline conditions required for our proof. Throughout, we will write a . b to mean that there exists a positive
+constant C, possibly depending on p0 and on hyperparameters but otherwise independent of n, p, or any other variables,
+such that a ≤ Cb.
+Condition F (on p0) We assume that log p0(y | x) is α-Hölder as a map from [0, 1]p+1 to R for some 0 < α ≤ 2.
+Additionally, we assume log p0 is d0-sparse in the sense that it depends on (y, x) only through the coordinates in
+S0 ⊆ {1, . . . , p+1} where |S0| = d0, d0 = o(log(n)), and d0 log p = o(n). Lastly, we assume that ||f0||∞ . √log n.
+Remark 1. The assumption that log p0 is α-Hölder implies that p0 is bounded and bounded away from 0. Condition F
+is used both to ensure that p0 can be well-approximated with convolutions and to ensure that ‖f − f0‖∞ is small with
+sufficiently large prior probability.
+Condition P (on Π) Let S ⊆ {1, . . . , p + 1} denote the coordinates of x which the trees f (x, u) and v(x, u) split on.
+(P1) The support set S of (f, σ) has prior π(S) = (p+1
+D
+)−1πD (D) where D ≡ |S| and πD (d) is an exponentially
+decaying prior satisfying a1(p + 1)−a3 πD (d − 1) ≤ πD (d) ≤ a2(p + 1)−a4 πD (d − 1) for some positive
+constants a1, a2, a3, a4 and d = 1, . . . , p + 1.
+(P2) Given S, each tree Th, h = 1, . . . , m and T (v)
+h , h = 1, . . . , mv is assigned the branching process prior with
+splitting proportion q(d) = νd for some ν ∈ (0, 1/2).
+(P3) The leaf node parameters μhl of Th are assigned independent N (0, σ2
+μ) priors.
+(P4) The log-variance function is given by v(x, u) = ξ + ∑mv
+h=1 g(x, u; T (v)
+h , M (v)
+h ) where e−ξ ∼ Gam(aσ , bσ )
+and μ(v)
+hl
+iid
+∼ πv where πv is a strictly positive density supported on an interval [−V, V ].
+(P5) Splits in the tree ensemble can occur only at a number bn of candidate split points Zn ⊆ [0, 1]p+1, which are
+selected from uniformly. Additionally, log bn . log n.
+(P6) For each n there exists a decision treê T and leaf node valueŝ M built from the candidate split-points in Zn
+such that the regression tree f ?(x, u) = g(x, u;̂ T ,̂ M ) satisfies ‖f0 − f ?‖∞ . (log n/n)β/(2β+d0) where
+β = min{α, 1}.
+Remark 2. Though P4 constrains the support of πv , ξ is unbounded, allowing the variance function to have arbitrary
+scale even as the trees grant arbitrary flexibility in its shape.
+Remark 3. The only assumption which is seemingly beyond our direct control is P6, which asserts that f0 can be
+uniformly approximated with a single decision tree using the candidate split points Zn. Jeong and Rockova [2020] give
+several valid configurations of split points for which P6 would hold; for example, when Zn is a regular grid of size
+bn ncp for c a sufficiently large constant if Condition F holds.
+Under these assumptions, we have the following theorem:
+Theorem 2. Assume that Condition F and Condition P hold. Then, there exists a positive constant M such that
+Π{h(p0, pf,σ ) ≥ M n | Dn} → 0 in F0-probability, where n = (n/ log n)− α
+α+1 × β
+2β+d0 + √d0 log(p + 1)/n, where
+β = min{α, 1}.
+
+Remark 4. The gap between what is attainable by DR-BART-LH is larger than might be expected, as the rate is removed
+by a factor of α/(α + 1) from the minimax rate. The reason this occurs is that Condition F implies f0(x, u) has Hölder
+smoothness of α + 1 > 1 in u, whereas BART is not known to be able to adapt to smoothness levels higher than 1.
+If we modify Condition F to state that f0(x, u) is α + 1-smooth as a function of (u, x) (as opposed to just in u) then
+it is possible to show that replacing the BART model with the SBART model of Linero and Yang [2018] gives the
+rate nα/(2α+d0) log(n)−α(d0+1)/(2α+d0) + √d0 log(p + 1)/n adaptively over α and S0 for α ∈ (0, 2]; extending these
+results to higher α using results of Plummer et al. [2021] is deferred to future work.
+As argued by Li et al. [2020], the posterior rate of convergence is (bounded by) a sequence n with n2
+n → ∞ if we can
+find positive constants C1, . . . , C4 such that, for every sufficiently large n, there exists a set Gn of conditional densities
+satisfying the following:
+(G1) Π{pf,σ ∈ KLp0 (C1n)} ≥ exp{−C2n2
+n}, with KLp0 () = {p : KL(p0‖p), V (p0‖p) ≤ 2}
+(G2) Π(Gc
+n) ≤ C3 exp{−(C2 + 4)n2
+n}.
+(G3) log N (Gn, ¯n, h) ≤ C4n2
+n where ¯n is a constant multiple of n and N (Gn, , d) denotes the -covering
+number of Gn with respect to d [see, e.g. Ghosal et al., 2000].
+The following two lemmas proved in the course of establishing Theorems 2 and 5 of Jeong and Rockova [2020] play a
+key role in establishing our results. The first ensures the prior on f places sufficient mass around f0 and is essential in
+establishing G1.
+Lemma 1. Suppose that Condition F and Condition P hold and let δn = (log n/n)β/(2β+d0). Then for sufficiently
+large n we have
+− log Π(‖f − f0‖∞ ≤ δn | S = S0) . nδ2
+n.
+The second lemma ensures that the support of the BART prior is “small” in a suitable sense, allowing us to verify G2
+and G3.
+Lemma 2. Let F denote the collection of decision tree ensembles with m trees which (i) split on no more than
+d variables, (ii) have at most K leaf nodes per tree, (iii) have at most bn candidate split points, and (iv) satisfy
+suphl |μhl| ≤ U . Then
+log N (F, , ‖ · ‖∞) . d log(p + 1) + K log
+( dmbm
+n KU
+
+)
+.
+Finally, Lemma 3 connects h(p, q), KL(p‖q), and V (p‖q) to the supremum norm.
+Lemma 3. Suppose that Condition F holds. Then there exists a constant CKL independent of (n, p) such that, for
+sufficiently small , we have
+KLp0 (CKL) ⊇ {σ(x, u) ≡ σ is constant, σ ∈ (1/α, 21/α), ‖f − f0‖∞ ≤ 1+1/α)}.
+Additionally, for any bounded measurable functions f1, f2, log σ1, log σ2 : [0, 1]p+1 → R:
+h(pf1,σ1 , pf2,σ2 ) . √‖ log σ1 − log σ2‖∞ + ‖f1 − f2‖∞
+infx,u σ1(x, u) ∧ σ2(x, u) .
+Straightforward application of Lemmas 1 – 3 suffices to verify G1 – G3. The first part of Lemma 3 allows us to
+decompose the probability of the KL ball in G1 into pieces that can be bounded by Lemma 1. To verify G2, we consider
+a sieve defined by individual sieves for f , v, and ξ; the second part of Lemma 3 allows us to bound the Hellinger
+distance between a conditional density and an element in this sieve and Lemma 2 then ensures that the entropy is
+appropriately bounded. Given the sieve, G3 follows given Condition P.
+5 Simulations
+Here, we evaluate how well DR-BART and other methods estimate conditional densities and appropriately express
+uncertainty about these estimates. We do so via variants of a challenging univariate example. Additional simulation
+details can be found in the Supplement.
+
+5.1 Simulation 1: Contrasting DR-BART Models
+Here, we introduce our basic simulation setup and gain insight into the differences between DR-BART-L, DR-BART-LH,
+and the full DR-BART model, before comparing to other methods. We consider a challenging example with a single
+regressor:
+Xi
+iid
+∼ U (0, 1), Yi = f0(Xi) + i(Xi) (22)
+where
+f0(x) = 5 exp[15(x − 0.5)]/(1 + exp[15(x − 0.5)]) − 4x
+and i(Xi) is given by
+p( | X = x) = λ(x)N (; 2x − 0.6, 0.32) + (1 − λ(x))pG(exp(), 0.5 + x2, 1.0) exp(),
+where λ(x) = exp[−10(x − 0.8)2] and the second component of p( | x) is a log-Gamma distribution with scale 1 and
+shape 0.5 + x2. Figure 3 shows selected quantile processes and conditional densities. The log-Gamma component is
+skewed and heteroscedastic, and the normal component is much more concentrated. The conditional distributions are
+nearly all unimodal, but for x values around 0.4 – 0.6 the density is quite peaked around the mode with a heavy left tail.
+At x = 0.8, has exactly a N (1, 0.32) distribution.0.0 0.2 0.4 0.6 0.8 1.0
+−10 −6 −4 −2 0 2 4
+x−10 −6 −4 −2 0 2 4
+0.0 0.4 0.8 1.2
+x = 0.1
+x = 0.4
+x = 0.5
+x = 0.6
+x = 0.8
+Figure 3: (Left) Conditional quantiles of the example in Section 5. Bands are equal-tailed 98%, 90%, and 50% intervals
+as a function of x. The solid line is the median process. (Right) The conditional pdf for selected x values.
+Representative results for a single dataset are shown in Figure 4, which shows the estimated predictive density at
+x = 0.1, 0.5, 0.8. All three models do well when x = 0.8; BART captures the nonlinear mean function particularly
+well since the noise is low and symmetric, and the variance is well-estimated since a peak of approximately this width
+is present in many of the conditional densities. However, DR- BART-L predictably struggles at x = 0.1 when the
+peak disappears and the density becomes much more diffuse and skewed. Some of this severe multi-modality can be
+mitigated by adjusting the prior to include more / larger trees. But the fundamental problem is with the single bandwidth
+parameter: it must be low to capture the peak, which means that the spread in p(y|x = 0.1) has to be captured by
+f (0.1, u) varying greatly in u, yielding rougher densities.
+DR-BART-LH and DR-BART perform much better, with the full model doing slightly better, particularly when x = 0.1,
+since it is a location-scale mixture and can capture the long left tail by splitting on u in the variance function to add
+high-variance “components”. The differences are fairly modest though, and the increase in computation time is ∼25%.
+Given its comparable performance, DR-BART-LH is a viable alternative to the full model, especially when most of the
+conditional densities are not severely multimodal or skewed.
+5.2 Competing Methods
+We now compare the full DR-BART model to a variety of other methods for conditional density estimation. First, we
+compare to the Probit Stick-Breaking Process Mixture (PSBPM) in Chung and Dunson [2012]. Chung et al. model the
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINT−10 −6 −2 0 2
+0.00 0.10 0.20 0.30
+DR−BART−L
+−4 −2 0 2
+0.0 0.2 0.4 0.6 0.8
+−3 −1 1 2 3 4
+0.0 0.4 0.8 1.2
+−10 −6 −2 0 2
+0.00 0.10 0.20 0.30
+DR−BART−LH
+−4 −2 0 2
+0.0 0.2 0.4 0.6 0.8
+−3 −1 1 2 3 4
+0.0 0.4 0.8 1.2
+−10 −6 −2 0 2
+0.00 0.10 0.20 0.30
+x = 0.1
+DR−BART
+−4 −2 0 2
+0.0 0.2 0.4 0.6 0.8
+x = 0.5
+−3 −1 1 2 3 4
+0.0 0.4 0.8 1.2
+x = 0.8
+Figure 4: Representative true (dotted) and estimated (solid) densities from Simulation 1.
+conditional density p(y|x) via an infinite mixture of normal linear regressions according to mixing distributions Px:
+p(y|x) =
+∫
+φτ (y − x′β) dPx
+where the prior over the Px is defined by a covariate-dependent stick-breaking prior.
+Second, we compare to the Soft BART Density Sampler (SBART-DS) of Li et al. [2020] which models conditional
+densities by modulating a base model h(y|x, θ) via a link function Φ(μ) : p(y|x, θ) ∝ h(y|x, θ)Φ{r(y, x)}. There are
+many possible choices for h, r, and Φ; Li et al. choose to center their conditional densities on a normal linear regression:
+h(y|x, θ) = φσθ (y − x′βθ ) and Φ to be a probit link. They take r to be the weighted sum of Soft Additive Regression
+Trees [Linero and Yang, 2018] with random Fourier expansions approximating a Gaussian process in the leaf nodes, as
+in Starling et al. [2020].
+Third, we compare to a Dirichlet Process Mixture Model (DPMM) of Jara et al. [2011] that models (x, y) as jointly
+normal and computes the implied conditional of y on x.
+Lastly, we compare to a generalization of Zhou et al. [2017] that incorporates covariates into the transfer function
+μ, which has a Gaussian process prior (DR-GP). This approach is similar to ours in its use of a latent u to perform
+
+conditional density estimation. It differs in its use of 1. a Gaussian process to map (u, x) to the observed response and
+2. a homoscedastic, inverse Gamma prior on σ, instead of our BART priors on each.
+5.3 Simulation 2: Univariate Example
+Here, we consider the same simulation as above. We simulate n = 800 data points from model (22) and fit all methods.
+Fits and credible intervals for a representative simulation are shown in Figure 5. We see that DR-BART estimates
+the mean well with appropriate uncertainty quantification across all conditional densities, though it struggles to fully
+capture the peak of the normal density at x = 0.8 given how concentrated it is. Most the other methods are able to
+fit the densities at x = 0.1 and x = 0.8 reasonably well, but have difficulty with capturing both the peak and strong
+skew present in p(y | x = 0.5). Results aggregated across 100 simulations are shown in Table 1. As suggested by
+Figure 5, DR-BART outperforms all other methods when x ∈ {0.1, 0.5}, but falls short of always capturing the peak at
+x = 0.8. DPMM estimates p(y | x = 0.8) particularly well, which is to be expected given that it is built upon a normal
+specification.
+We next assess how well the 95% credible bands of each method cover the true p(y | x). Table 1 also displays the
+proportion of simulations where the credible bands fully contain the true density within the true 95% HDR interval. As
+Figure 5 suggests, DR-BART is able to do so consistently for x = 0.1 and x = 0.5, but not always for x = 0.8. For this
+and the next two simulations, the Supplement also contains information on credible band width and predictive coverage,
+which was consistently close to nominal for all methods but PSBPM.
+Figure 5: Representative true (solid) and estimated (dashed) densities from Simulation 2.
+
+5.4 Simulation 3: Irrelevant Covariates
+Here, we generate data as above, but supply an additional 14 irrelevant, uniformly distributed variables, with pairwise
+correlations of 0.3, to each method. For each method, we evaluate the predictive density with the irrelevant variables
+fixed to 0.5. Figure 6 and Table 2 illustrate the results. While the quality of DR-BART’s fit decreases, it compensates
+by increasing the width of its credible bands to capture the truth. DPMM and DR-GP, which in the previous simulation
+fit better at x = 0.1, 0.8 do not, however, adjust their estimates of uncertainty to counter the substantial degradation in
+their fits. Perhaps most notable is that DR-BART still has good pointwise coverage, whereas the other methods are
+overconfident in their overfitting to the irrelevant covariates. We also note that the SBART-DS credible bands are not
+more erratic than in Simulation 1, reflecting BART’s ability to perform variable selection.
+Figure 6: Representative true (solid) and estimated (dashed) densities from Simulation 3.
+DR-BART DPMM SBART-DS DR-GP PSBPM
+ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE
+x = 0.1 1 0.93 1.67 0.75 1.65 0.48 2.74 0.02 9.80 0.00
+x = 0.5 1 0.61 1.01 0.62 2.20 0.00 1.46 0.00 2.14 0.00
+x = 0.8 1 0.19 0.28 0.85 0.79 0.00 1.03 0.00 2.27 0.00
+Table 1: Error and Coverage for Simulation 2. Error is Wasserstein distance between true and estimated densities (normalized at
+each x for interpretability), averaged over 100 simulations. Coverage is the proportion of simulations in which 95% credible bands
+cover the truth within the true 95% HDR region.
+
+DR-BART DPMM SBART-DS DR-GP PSBPM
+ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE
+x = 0.1 1 0.78 1.10 0.00 0.78 0.46 2.63 0.00 5.58 0.00
+x = 0.5 1 0.94 2.96 0.00 1.97 0.00 2.23 0.00 1.97 0.00
+x = 0.8 1 1.00 1.60 0.00 0.56 0.02 2.52 0.00 1.70 0.00
+Table 2: Error and Coverage for Simulation 3. Error is Wasserstein distance between true and estimated densities (normalized at
+each x for interpretability), averaged over 50 simulations. Coverage is the proportion of simulations in which 95% credible bands
+cover the truth within the true 95% HDR region.
+5.5 Simulation 4: Insufficient Data
+Next, we explore the ability of DR-BART to appropriately express uncertainty about conditional distributions in regions
+of x-space where there is little data. To do so, we simulate y given x as in the previous experiments; however, instead of
+simulating x uniformly, we simulate it from a mixture of uniforms: 0.475 × U[0,0.4] + 0.05 × U[0.4,0.6] + 0.475 × U[0.6,1],
+where U[a,b] denotes the density of a U (a, b) random variable. With only 5% of the mass lying between x = 0.4 and
+x = 0.6, estimation of p(y | x = 0.5) is much harder. With this experiment, we expect the performance of all methods
+to degrade; we are interested in whether their uncertainty grows appropriately to account for the lack of data.
+Figure 7: Representative true (solid) and estimated (dashed) densities from Simulation 4.
+Figure 7 shows a representative simulation. Most of the methods perform better in estimating p(y | x = 0.8), as there
+is now substantially more data in that region of the space. At x = 0.5, only DR-BART and DPMM increase their
+
+DR-BART DPMM SBART-DS DR-GP PSBPM
+ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE ERROR COVERAGE
+x = 0.1 1 0.96 1.55 0.94 1.59 0.36 2.87 0.02 10.35 0.00
+x = 0.5 1 0.54 1.34 0.56 1.91 0.02 1.34 0.00 1.26 0.00
+x = 0.8 1 0.16 0.29 0.80 0.79 0.02 1.01 0.00 2.69 0.00
+Table 3: Error and Coverage for Simulation 4. Error is Wasserstein distance between true and estimated densities (normalized at
+each x for interpretability), averaged over 50 simulations. Coverage is the proportion of simulations in which 95% credible bands
+cover the truth within the true 95% HDR region.
+a = 0 a = 1 a = 5 a = 15 a = 25 a = 35
+DR-B S-DS DR-B S-DS DR-B S-DS DR-B S-DS DR-B S-DS DR-B S-DS
+x = 0.1 0.39 0.56 0.20 0.55 0.37 0.50 0.39 0.62 0.82 0.97 0.37 1.04
+x = 0.5 0.76 1.09 0.74 0.85 0.89 0.91 0.39 1.50 0.71 1.57 0.80 2.20
+x = 0.8 1.11 0.94 1.32 0.96 1.05 1.31 1.05 2.53 1.26 2.90 1.04 3.25
+Table 4: Wasserstein distance between true, estimated densities in Simulation 5, averaged over 50 simulations. As a increases
+and the true mean becomes increasingly nonlinear, SBART-DS (S-DS) is hindered by its reliance on a linear base model, while
+DR-BART (DR-B) is unaffected .
+uncertainty in their estimation; the other methods have relatively poor fits with insufficient uncertainty about them.
+Table 3 summarizes this information across 50 simulations. DR-BART performs better in predicting p(y | x = 0.5), but
+the relative performance for x ∈ {0.1, 0.8} is comparable to that in Section 5.3. Table 3 also supports the observation
+that DR-BART and DPMM are unique in increasing the uncertainty in their estimates in response to the lack of data.
+5.6 Simulation 5: Comparison of BART Models
+Here, we further compare DR-BART to SBART-DS. Because both are built off of (S)BART models, we expect them
+to share many desirable properties, such as high flexibility and the ability to identify interaction effects and perform
+variable selection. SBART-DS, however, is centered on a base model, which may degrade the fit when the truth is far
+from the base model. Furthermore, there are cases in which prior information suggesting a reasonable base model may
+be lacking. To explore reliance on the base model, we run the original univariate simulation, but change the mean to be
+f0(x) = a(x − 0.5)2. For small a, the mean is approximately linear for x ∈ [0, 1], as specified by SBART-DS. But as
+a increases, it becomes increasingly nonlinear and we expect performance to degrade. Using n = 1500, we run 50
+simulations for each a ∈ {0, 1, 5, 15, 25, 35}, summarized in Table 4. For small a, both methods perform well. But the
+increasing nonlinearity of the mean as a increases hinders SBART-DS’ performance deteriorates, while DR-BART is
+unaffected.
+6 Applications
+We consider two applications of DR-BART. In both cases, we fit DR-BART-LH; the full DR-BART model gave similar
+results since both applications involve fairly well-behaved densities. For all models, σ2
+0 is set to be half the standard
+deviation of the OLS residuals and results seem to be insensitive to reasonable choices of this value. We also set
+a0 = log(√4)−2. For each model, 10,000 MCMC samples are collected after a burn-in of 10,000 iterations. The
+estimands of interest in both sections are functions of quantiles; we will use Q(s | x) to denote the quantile function of
+P (y | x).
+6.1 Calculating Student Growth
+We consider the estimation of student growth from a series of test scores, using anonymized mathematics test scores
+provided in the SGP R package [Betebenner et al., 2011]. Castellano and Ho [2013] gives an overview of current
+mean and quantile regression approaches to this problem, as well as some consideration to the substantive problem
+of measuring student growth. Statistically, the problem reduces to estimating a series of conditional densities p(yt |
+yt−1, yt−2, . . . , y0). These distributions are heteroscedastic and tend to become skewed as they approach the extremes.
+The current state of the art is the quantile regression methodology implemented in the SGP package and detailed in
+
+Betebenner [2009]. The quantile regression models are specified as
+Qyt (s | yt−1, . . . y0) =
+t−1∑
+r=0
+η(s)
+r (yr ). (23)
+where each function η(s)
+r (·) is given a B-spline basis expansion. This model is fit at each of the 99 percentiles to
+approximate the conditional distribution. This procedure does not yield valid estimates for percentiles of the conditional
+distribution in general, due to quantile crossing (though this can be corrected post-hoc [Chernozhukov et al., 2010]).
+Assessing uncertainty in this framework is challenging as well, and analysis generally relies solely on point estimates.
+Bayesian density regression addresses both problems simultaneously.
+We fit independent DR-BART-LH models to scores from grades 4-7, each conditional on all the previous scores as
+well as the grade 3 scores. For simplicity we took a subsample of 3,000 students with complete data from grades
+3-7. An interesting feature of this data is the interactions between previous test scores on the predictive distributions.
+One mechanism for this is regression to the mean: large jumps in test scores are unlikely to be sustained. Figure 8
+gives an example, displaying posterior predictive densities for grade 5 scores when fixing grade 3 and 4 scores at all
+combinations of their marginal quartiles. In the absence of interactions the shift between the pairs of solid and dashed
+densities would be equal. Figure 9 further suggests the presence of an interaction effect. When y4 = 455, y3 has a
+smaller effect on the quantiles of p(y5 | y4, y3) than when y4 = 538. Note that the additive model in (23) cannot
+capture such an interaction and requires the curves to be equal.400 500 600 700
+0.000 0.004 0.008 0.012 Y4 = 455
+Y4 = 538
+Y3 = 425
+Y3 = 523
+Figure 8: Four posterior predictive distributions for grade 5 scores obtained by setting grade 3 and 4 scores at each
+combination of their marginal quartiles. The effect of the grade 3 score on the predictive distribution clearly depends on
+the value of the grade 4 score, an important interaction that DR-BART is well-equipped to capture.
+A key objective in student growth modeling is computing growth quantile targets. A growth quantile is a quantile of
+the predictive distribution for the current test score given the score history. Intuitively, it provides a measure of how
+well a student performed on the test relative to academic peers (the hypothetical population of students with identical
+test history). A growth quantile target is the level of consecutive quantile growth that would be required to achieve
+pre-established achievement targets. For these data, there are four achievement levels used to define achievement targets:
+Unsatisfactory, Partially Proficient, Proficient, or Advanced. Growth quantile targets answer questions like “What level
+of sustained growth is necessary for a student with grade 3 test score y3 to be Proficient by grade 7?”. This is different
+than simulating score trajectories and computing the probability that a student reaches a target. Growth quantile targets
+are intended to promote a “what will it take” attitude over a fatalistic “where will s/he be” attitude [Betebenner, 2011].
+The current methodology for computing growth quantile targets uses a series of point estimates, ignoring uncertainty in
+the quantile curve estimates. But this uncertainty is generally not negligible, particularly for students with extreme test
+scores. To illustrate, we computed posterior samples of growth quantile curves for a hypothetical third grade student
+who scored at the cusp of Unsatisfactory/Partially Proficient on the third grade math test. Figure 10 plots this student’s
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINT0.0 0.2 0.4 0.6 0.8 1.0
+−20 0 20 40 60 80
+Grade 4 = 455
+0.0 0.2 0.4 0.6 0.8 1.0
+−20 0 20 40 60 80
+Grade 4 = 538
+Figure 9: Quantile effects Qy5 (s | y4, y3 = 523) − Qy5 (s | y4, y3 = 425) for y4 = 455, 538 along with 90% credible
+intervals. Under Betebenner [2009]’s additive model these two curves are forced to be equal. This reveals a likely
+interaction between grade 3 and grade 4 scores: the posterior mean of the 538 curve is nearly outside the 455 credible
+interval.
+growth quantile curves and 90% credible intervals for grades 4-7. It is easy to read off growth quantile targets from
+these charts: For example, the bottom right panel of Figure 10 shows that if the student sustains 60th percentile growth
+in grades 5,6 and 7, there is a 95% probability of remaining partially proficient in grade 7. Having a 50% chance of
+reaching proficiency in grade 7 would require sustained growth at the 80th percentile, which is probably unattainable
+without some new intervention. Similar curves can be computed starting with any grade and any score history.
+In particular, we analyze a subset of public use microdata from the U.S. Census, originally compiled by Angrist et al.
+[2006] to estimate returns to education across the income distribution. For the 1980, 1990 and 2000 samples they
+extracted all U.S. born white and black men aged 40-49 with positive annual earnings and positive hours worked in the
+year prior to the Census. Records with imputed values were excluded, and wages were adjusted to 1989 dollars. Angrist
+et al. [2006] and its supplementary materials contain details of how the data were obtained and cleaned. The response is
+log monthly wages, and the covariates include years of education, experience (defined as age − education − 12) and
+race (white or black). The study objective was to estimate returns to education as a function of quantile index. Taking
+Q as the quantile function of wages, the return to education at quantile index s is
+100 × Q(s | x2) − Q(s | x1)
+Q(s | x1) , (24)
+the predicted percentage change in monthly wage from modifying education in x1 to yield x2. While Angrist et al.
+[2006] fit a linear quantile regression to estimate the effect of each additional year of education, we fit DR-BART-LH to
+each census sample separately, subsampling 5000 units from each, and study the difference between 12 and 16 years of
+education. In general the effect of a single additional year of schooling is probably heterogenous. For example, the
+difference in earnings between 11 and 12 years of schooling should be larger than the difference between 10 and 11,
+because 12 years of education in the U.S. typically indicates that the respondent completed high school. BART readily
+accommodates non-smooth features in the regression function, while usual econometric analyses assume that regression
+functions are linear or quadratic in education (or experience).
+Figure 11 shows the return to education for a 45 year old white male, comparing 12 to 16 years of schooling. In 1990,
+returns were highest at low and high quantiles, whereas in 2000 the returns are actually increasing as a function of the
+quantile index. Other covariate vectors show similar patterns, although the exact estimates vary (and are somewhat
+unstable for black men due to small sample size). Angrist et al. [2006] found a similar pattern in the returns at the
+population level and verified it using additional data from the Current Population Survey, so this seems to be a robust
+finding.
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINT0.2 0.4 0.6 0.8
+340 380 420 460
+Grade 4
+U PP P
+0.2 0.4 0.6 0.8
+300 350 400 450 500
+Grade 5
+U PP P
+0.2 0.4 0.6 0.8
+300 400 500
+Grade 6
+U PP P
+0.2 0.4 0.6 0.8
+300 400 500 600
+Grade 7
+U PP P
+Figure 10: Projected scores as a function of quantile growth for a student at the cusp of Unsatisfactory/Partial Proficiency
+in grade three. The solid line is the posterior mean and dashed lines are pointwise 90% credible intervals. Shaded
+regions correspond to achievement thresholds: Unsatisfactory (U), Partially Proficient (PP), Proficient (P).
+7 Conclusion
+In this paper, we introduced a new nonparametric model, DR-BART, extending Bayesian Additive Regression Trees to
+the novel and challenging setting of density regression. This model has the appeal of being flexible yet easy to specify
+and understand, with few prior parameters to set. This distinguishes DR-BART from other nonparametric Bayesian
+methods for density regression, which often include collections of infinite dimensional regression parameters. Inference
+via MCMC is fast, with acceptable mixing in our examples obtained in a matter of minutes for datasets with thousands
+of observations. We showed DR-BART to empirically outperform a variety of other density regression methods in its
+ability to point estimate conditional densities and to express uncertainty about these estimates. Lastly, we extended
+previous work on posterior concentration results for BART and for density estimation via a latent variable model to
+prove concentration rates for DR-BART.
+Having introduced the latent variable as a modeling device a natural question is whether it might represent some real
+structure in the scientific problem, like measurement error in x, some combination of omitted variables, or a latent
+construct like ability or motivation. Any of these seem plausible in the applications presented here. In the educational
+testing application we treated the latent variables as independent. This is a useful “saturated” model for the joint
+distribution of test scores, but models for dependence across these variables or lower-dimensional representations based
+on shared latent variables may be more scientifically meaningful or efficient. Further modeling of latent variables within
+BART is a promising area for future work, even beyond the setting of density regression.
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINT0.2 0.4 0.6 0.8
+60 80 100
+1990
+Quantile Index
+Percent Increase0.2 0.4 0.6 0.8
+20 40 60 80 100
+2000
+Quantile Index
+Percent Increase
+Figure 11: Returns to education (16 years versus 12 years) for a 45 year old white man.
+References
+D. Wittman. What Lies Beneath: Using p(z) To Reduce Systematic Photometric Redshift Errors. The Astrophysical
+Journal, 700(2):L174–L177, jul 2009.
+George Karabatsos and Stephen G. Walker. Bayesian unimodal density regression for causal inference. Technical
+report, Society for Research on Educational Effectiveness, May 2011.
+Tilmann Gneiting and Matthias Katzfuss. Probabilistic forecasting. Annual Review of Statistics and Its Application, 1:
+125–151, 2014.
+Dan A. Black, Jose Galdo, and Jeffrey A. Smith. Evaluating the worker profiling and reemployment services system
+using a regression discontinuity approach. The American Economic Review, 97(2):104–107, 2007. ISSN 00028282.
+Joseph B. Kadane and Surya T. Tokdar. Simultaneous Linear Quantile Regression: A Semiparametric Bayesian
+Approach. Bayesian Analysis, 7(1):51 – 72, 2012. doi:10.1214/12-BA702.
+Maxime Sangnier, Olivier Fercoq, and d’Alché Buc Florence. Joint Quantile Regression in Vector-Valued RKHSs. In
+Advances in Neural Information Processing Systems, 2016.
+Victor Chernozhukov, Iván Fernández-Val, and Alfred Galichon. Quantile and probability curves without crossing.
+Econometrica, 78(3):1093–1125, 2010.
+Michael Gerfin. Income distribution, income inequality and life cycle effects - a nonparametric analysis for Switzerland.
+Swiss Journal of Economics and Statistics, 130:509–522, 1994.
+Mary C. Daly and Robert G. Valletta. Inequality and poverty in United States: The effects of rising dispersion of men’s
+earnings and changing family behaviour. Economica, 73:75–98, 2006.
+Debdeep Pati, Anirban Bhattacharya, and David Dunson. Posterior Convergence Rates in Non-linear Latent Variable
+Models, 2011.
+S. Kundu and D. B. Dunson. Latent factor models for density estimation. Biometrika, 101(3):641–654, June 2014.
+ISSN 0006-3444. doi:10.1093/biomet/asu019.
+Shuang Zhou, Debdeep Pati, Anirban Bhattacharya, and David Dunson. Adaptive posterior convergence rates in
+non-linear latent variable models, 2017.
+A. R. Linero and Y. Yang. Bayesian regression tree ensembles that adapt to smoothness and sparsity. Journal of the
+Royal Statistical Society: Series B, 80(5), 2018.
+Damian W Betebenner, Adam VanIwaarden, Ben Domingue, Yi Shang, Jonathan Weeks, John Stewart, Jinnie Choi,
+Xin Wei, Hi Shin Shim, Xiaoyuan Tan, et al. SGP: An R package for the calculation and visualization of student
+growth percentiles & percentile growth trajectories. 2011.
+
+Joshua Angrist, Victor Chernozhukov, and Iván Fernández-Val. Quantile regression under misspecification, with an
+application to the US wage structure. Econometrica, 74(2):539–563, 2006.
+Robert A Jacobs, Michael I Jordan, Steven J Nowlan, and Geoffrey E Hinton. Adaptive mixtures of local experts.
+Neural Computation, 3(1):79–87, 1991.
+Michael I Jordan and Robert A Jacobs. Hierarchical mixtures of experts and the em algorithm. Neural computation, 6
+(2):181–214, 1994.
+John Geweke and Michael Keane. Smoothly mixing regressions. Journal of Econometrics, 138(1):252–290, 2007.
+Mattias Villani, Robert Kohn, and Paolo Giordani. Regression density estimation using smooth adaptive Gaussian
+mixtures. Journal of Econometrics, 153(2):155–173, 2009.
+Andriy Norets et al. Approximation of conditional densities by smooth mixtures of regressions. The Annals of Statistics,
+38(3):1733–1766, 2010.
+Debdeep Pati, David B Dunson, and Surya T Tokdar. Posterior consistency in conditional distribution estimation.
+Journal of Multivariate Analysis, 116:456–472, 2013.
+Andriy Norets and Justinas Pelenis. Posterior consistency in conditional density estimation by covariate dependent
+mixtures. Econometric Theory, 30(03):606–646, 2014.
+Andriy Norets and Debdeep Pati. Adaptive Bayesian estimation of conditional densities, 2014.
+P. Muller, A. Erkanli, and M. West. Bayesian curve fitting using multivariate normal mixtures. Biometrika, 83(1):67–79,
+March 1996. ISSN 0006-3444. doi:10.1093/biomet/83.1.67.
+Ju-Hyun Park and David B Dunson. Bayesian generalized product partition model. Statistica Sinica, 20(20):1203–1226,
+2010.
+Mike West and Michael D Escobar. Hierarchical priors and mixture models, with applications in regression and density
+estimation. Duke University, 1993.
+Babak Shahbaba and Radford Neal. Nonlinear Models Using Dirichlet Process Mixtures. The Journal of Machine
+Learning Research, 10:1829–1850, December 2009. ISSN 1532-4435.
+Matthew A. Taddy and Athanasios Kottas. A Bayesian Nonparametric Approach to Inference for Quantile Regression. Journal of Business & Economic Statistics, 28(3):357–369, July 2010. ISSN 0735-0015.
+doi:10.1198/jbes.2009.07331.
+John Molitor, Michail Papathomas, Michael Jerrett, and Sylvia Richardson. Bayesian profile regression with an
+application to the National survey of children’s health. Biostatistics, 11(3):484–98, July 2010. ISSN 1468-4357.
+doi:10.1093/biostatistics/kxq013.
+Sara Wade, Silvia Mongelluzzo, and Sonia Petrone. An Enriched Conjugate Prior for Bayesian Nonparametric Inference.
+Bayesian Analysis, 6(3):359–385, 2011.
+David B Dunson and Abhishek Bhattacharya. Nonparametric Bayes Regression and Classification Through Mixtures of
+Product Kernels. In Jose M. Bernardo, M. J. Bayarri, James O. Berger, A. P. Dawid, David Heckerman, Adrian F. M.
+Smith, and Mike West, editors, Proceedings of 9th Valencia International Conference on Bayesian Statistics. Oxford
+University Press, 2011.
+Lauren A. Hannah, David M. Blei, and Warren B. Powell. Dirichlet Process Mixtures of Generalized Linear Models.
+The Journal of Machine Learning Research, pages 1923–1953, July 2011. ISSN 1532-4435.
+Sara Wade, DB Dunson, Sonia Petrone, and Lorenzo Trippa. Improving Prediction from Dirichlet Process Mixtures via
+Enrichment. Journal of Machine Learning Research, 15:1041–1071, 2014.
+Stephen G. Walker and George Karabatsos. Revisiting Bayesian curve fitting using multivariate normal mixtures.
+In Paul Damien, Petros Dellaportas, Nicholas G. Polson, and David A. Stephens, editors, Bayesian Theory and
+Applications. Oxford University Press, 01 edition, 3 2013. ISBN 9780199695607.
+Steven N MacEachern. Dependent nonparametric processes. In ASA proceedings of the section on Bayesian statistical
+science, pages 50–55, 1999.
+Steven N MacEachern. Dependent Dirichlet processes. Unpublished manuscript, Department of Statistics, The Ohio
+State University, 2000.
+Maria De Iorio, Peter Müller, Gary L Rosner, and Steven N MacEachern. An ANOVA model for dependent random
+measures. Journal of the American Statistical Association, 99(465):205–215, 2004.
+Jim E Griffin and MF J Steel. Order-based dependent Dirichlet processes. Journal of the American Statistical
+Association, 101(473):179–194, 2006.
+
+David B Dunson and Shyamal D Peddada. Bayesian nonparametric inference on stochastic ordering. Biometrika, 95(4):
+859–874, 2008.
+Maria De Iorio, Wesley O Johnson, Peter Müller, and Gary L Rosner. Bayesian nonparametric nonproportional hazards
+survival modeling. Biometrics, 65(3):762–771, 2009.
+Lianming Wang and David B Dunson. Bayesian isotonic density regression. Biometrika, 98(3):537–551, 2011.
+Andrés F. Barrientos, Alejandro Jara, and Fernando A. Quintana. On the support of MacEachern’s dependent Dirichlet
+processes and extensions. Bayesian Analysis, 7(2):277–310, 06 2012. doi:10.1214/12-BA709.
+Hugh A. Chipman, Edward I. George, and Robert E. McCulloch. BART: Bayesian additive regression trees. The Annals
+of Applied Statistics, 4(1):266–298, March 2010. ISSN 1941-7330.
+Seonghyun Jeong and Veronika Rockova. The art of BART: On flexibility of Bayesian forests, 2020.
+Jared S Murray. Log-linear bayesian additive regression trees for multinomial logistic and count regression models.
+Journal of the American Statistical Association, pages 1–14, 2021.
+Stephen G. Walker. Sampling the Dirichlet Mixture Model with Slices. Communications in Statistics - Simulation and
+Computation, 36(1):45–54, January 2007. ISSN 0361-0918. doi:10.1080/03610910601096262.
+Maria Kalli, JE Griffin, and SG Walker. Slice sampling mixture models. Statistics and Computing, 21(1):93–105,
+September 2011. ISSN 0960-3174. doi:10.1007/s11222-009-9150-y.
+Hugh A Chipman, Edward I George, and Robert E McCulloch. Bayesian CART model search. Journal of the American
+Statistical Association, 93(443):935–948, 1998.
+David GT Denison, Bani K Mallick, and Adrian FM Smith. A Bayesian CART algorithm. Biometrika, 85(2):363–377,
+1998.
+Jean Diebolt and Christian P Robert. Estimation of finite mixture distributions through Bayesian sampling. Journal of
+the Royal Statistical Society. Series B, pages 363–375, 1994.
+Radford M Neal. Slice sampling. Annals of Statistics, pages 705–741, 2003.
+Yeonseung Chung and David Dunson. Nonparametric bayes conditional distribution modeling with variable selection.
+Journal of the American Statistical Association, 2012.
+Yinpu Li, Antonio R. Linero, and Jared S. Murray. Adaptive conditional distribution estimation with Bayesian decision
+tree ensembles, 2020.
+Sean Plummer, Shuang Zhou, Anirban Bhattacharya, David Dunson, and Debdeep Pati. Statistical guarantees for
+transformation based models with applications to implicit variational inference. In The 24th Intl. Conference on
+Artificial Intelligence and Statistics, AISTATS 2021, 2021.
+Shen Ghosal, Jayanta K. Ghosh, and A.W. van der Vaart. Convergence Rates of Posterior Distributions. Annals of
+Statistics, 28(2):500––531, 2000.
+Jennifer Starling, Jared Murray, Carlos Carvalho, Radek Bukowski, and James Scott. BART with targeted smoothing:
+An analysis of patient-specific stillbirth risk. Annals of Applied Statistics, 14(1), 2020.
+Alejandro Jara, Timothy Hanson, Fernando A. Quintana, Peter Múller, and Gary L. Rosner. DPpackage: Bayesian
+Semi- and Nonparametric Modeling in R. Journal of Statistical Software, 40(5), 2011.
+Katherine Elizabeth Castellano and Andrew Dean Ho. Contrasting OLS and quantile regression approaches to student
+“growth” percentiles. Journal of Educational and Behavioral Statistics, 38(2):190–215, 2013.
+D Betebenner. Norm-and criterion-referenced student growth. Educational Measurement: Issues and Practice, 28(4):
+42–51, 2009.
+Damian W Betebenner. A technical overview of the student growth percentile methodology: Student growth percentiles
+and percentile growth projections/trajectories. the national center for the improvement of educational assessment,
+2011.
+Matthew T. Pratola, Hugh A. Chipman, James R. Gattiker, David M. Higdon, Robert McCulloch, and William N. Rust.
+Parallel Bayesian additive regression trees. Journal of Computational and Graphical Statistics, 23(3):830–852, 2014.
+doi:10.1080/10618600.2013.841584.
+Justin Bleich and Adam Kapelner. Bayesian Additive Regression Trees With Parametric Models of Heteroskedasticity.
+arXiv preprint arXiv:1402.5397, February 2014.
+Shen Ghosal and Aad van der Vaart. Convergence Rates of Posterior Distributions for Noniid Observations. Annals of
+Statistics, 35:192––223, 2007.
+Stan Development Team. RStan: the R interface to Stan, 2020. R package version 2.21.2.
+
+8 Supplement
+8.1 BART
+In this section, we review the basic details of Bayesian Additive Regression Trees (BART). We refer the reader to
+Chipman et al. [2010] for a full exposition.
+8.1.1 Model and Priors
+Chipman et al. consider the regression model
+yi = f (xi) + i, i
+iid
+∼ N (0, σ2)
+and place a BART prior on f . Such a prior represents the function as the sum of m many piecewise constant regression
+trees. Each tree Th, 1 ≤ h ≤ m consists of a set of interior decision nodes (where decisions are generally of
+the form xj < c for some value c) and a set of bh terminal nodes. The terminal nodes have associated parameters
+Mh = (μh1, μh2, . . . μhbh )′. For each tree there is a partition of the covariate space {Ah1, . . . , Ahbh } with each
+element of the partition corresponding to a terminal node. A tree and its associated parameters define step functions:
+g(x, Th, Mh) = μhb if x ∈ Ahb (for 1 ≤ b ≤ bh). (25)
+These functions are additively combined to obtain f :
+f (x) =
+m∑
+h=1
+g(x, Th, Mh). (26)
+In the spirit of boosting, each term in the sum is constrained by a strong prior to be a “weak learner"; that is, the prior on
+(Th, Mh) strongly favors small trees and leaf parameters that are near zero. Each tree independently follows the prior
+described by Chipman et al. [1998], where the probability that a node at depth d splits (is not terminal) is given by
+α(1 + d)−β , α ∈ (0, 1), β ∈ [0, ∞). (27)
+A variable to split on, and a cutpoint to split at, are then selected uniformly at random from the available splitting rules.
+We follow CGM throughout by taking α = 0.95 and β = 2. Traditionally the prior on cutpoints for the jth variable
+is a discrete uniform distribution over a uniformly spaced grid or some collection of quantiles of {xij : 1 ≤ i ≤ n}.
+Most implementations of tree-based models also require that the terminal nodes not be empty, or contain at least 5
+observations.
+To set the priors on M , CGM suggest scaling the data to lie in ± 0.5 and assign the leaf parameters independent priors:
+μhb ∼ N (0, σ2
+μ) where σμ = 1/(2k√m). (28)
+CGM recommend 1 ≤ k ≤ 3, with k = 2 as a reasonable default choice. This prior shrinks gl(x) strongly toward zero,
+while ensuring that the induced prior for f (x) is centered at zero and puts approximately 95% of the prior mass within
+±0.5. Larger values of k imply increasing degrees of shrinkage. Performance is fairly insensitive to the number of trees
+m, as long as it is large enough. In practice, m = 200 is a common choice.
+8.1.2 Posterior Sampling
+Chipman et al. [2010] provide full details of the MCMC algorithm used to fit BART. A key ingredient of the sampler
+is performing blocked updates for (ThMh | {(Tl, Ml}l6 =h, −). This “backfitting” step utilizes the fact that the full
+conditional for (Th, Mh) depends on {(Tl, Ml}l6 =h and y only through the residuals
+Rhi =
+
+yi −
+m∑
+l6 =h
+g(xi, Tl, Ml)
+
+ ∼ N (g(xi, Th, Mh), σ2), (29)
+These residuals follow the single tree model studied by Chipman et al. [1998] with parameters (Th, Mh, σ2), so the
+Chipman et al. [1998] Metroplis-Hastings update can be embedded within the BART Gibbs sampler to sample (Th, Mh)
+jointly from their full conditional. Since Mh has a normal prior, the integrated likelihood p(Rh | Th, σ2) is available in
+closed form. Therefore (Th, Mh) can be updated in a block by sampling Th marginally over Mh with a Metropolis step
+and then sampling Mh from its full conditional given the new Th. Complete details including proposal distributions are
+given in Chipman et al. [1998] (the results in this paper use a smaller set of propsal distributions, outlined in Pratola
+et al. [2014]). This blocked update enhances mixing and obviates the need for transdimensional MCMC algorithms due
+to the changing dimensionality of Mh.
+
+8.2 Details on Heteroscedastic Regression with BART priors
+8.2.1 Model and Priors
+Here, we give an overview of the Murray [2021] extension of the BART prior to model variance functions. Begin with
+the loglinear model
+v(x) =
+mv∑
+h=1
+g(x, T (v)
+h , M (v)
+h ) (30)
+where {(T (v)
+h , M (v)
+h )} are trees and parameters for the variance functions. To collect posterior samples, a variant of
+the backfitting MCMC algorithm is possible. Suppose we are updating (T (v)
+h , M (v)
+h ). The first step is constructing the
+scaled residuals
+R(v)
+hi = (Yi − f (xi))
+exp[∑m
+l6 =h g(x, T (v)
+l , M (v)
+l )] . (31)
+Now R(v)
+hi ∼ N (0, σ2 exp[g(x, T (v)
+h , M (v)
+h )]) so we have
+p(R(v)
+h | T (v)
+h , M (v)
+h , σ2) =
+b(v)
+h∏
+l=1
+∏
+i:xi∈Al
+1
+σ0 exp[μ(v)
+hl /2] φ
+(
+R(v)
+ih
+σ2
+0 exp[μ(v)
+hl ]
+)
+(32)
+As a normal prior for μ(v)
+hb is no longer conditionally conjugate, Murray introduces another prior which is symmetric
+about 0 on the log scale and also admits closed form representations for the integrated likelihood and full conditional
+distribution. This prior is specified as an equal probability mixture of gamma and inverse gamma distributions with the
+same parameters. Let τ (v)
+hb := exp(μ(v)
+hb ). Then, the prior is:
+p
+(
+τ (v)
+hb
+)
+= 1
+2
+ba
+Γ(a)
+(
+τ (v)
+hb
+)−a−1
+exp
+(
+−b/τ (v)
+hb
+)
++ 1
+2
+ba
+Γ(a)
+(
+τ (v)
+hb
+)a−1
+exp
+(
+−bτ (v)
+hb
+)
+(33)
+Throughout this paper we take a = b = a0mv . To motivate this choice, note that if τ (v)
+hb has density (33) with
+a = b = a0mv then log(τ (v)
+hb ) d
+= (−1)Zh log(Wh) where Zh
+iid
+∼ Bern(0.5) and Wh
+iid
+∼ Ga(a0mv , a0mv ). The first
+two moments of log(τ (v)
+hb )) are 0 and (a0mv )−1 and for large a0mv its distribution is nearly normal since the Gamma
+distributions are so concentrated near 1. Thus, marginally, v(x) will be approximately distributed N (0, 1/a0) and
+can be scaled to match the a priori expected range of the log-variance process. Even for relatively small a0mv this
+approximation is excellent; see Figure 12. The marginal prior for log(v(x)) is nearly normal for a0mv = 5 and is
+indistinguishable from the normal density when a0mv is greater than 25. In practice mv will generally be at least
+100. To set a0, note that a0 = [log(√d)]−2 implies that Pr(exp[v(x)] ∈ (σ2
+0 /d, dσ2
+0 )) ≈ 0.95. For example, taking
+a0 = 1.5 makes d about 5. In practice, values of d around 2-4 tend to work well; much larger and the risk of overfitting
+and degenerate bandwidths increases.
+8.2.2 Posterior Sampling
+Let nhb = ∑n
+i=1 1
+(
+xi ∈ A(v)
+hb
+)
+, the number of observations in leaf b of T (v)
+h , and let r2
+hb = ∑n
+i=1[R(v)
+hi ]21
+(
+xi ∈ A(v)
+hb
+)
+be the sum of squared residuals in each leaf. Under (33) the full conditional distribution for τ (v)
+hb is another mixture
+distribution:
+p(τ (v)
+hb | R(v)
+h , σ2) ∝ Γ(nhb/2 + a)
+(b + r2
+hb/2)nhb/2+a pIG(τ (v)
+hb , nhb/2 + a, b + r2
+hb/2)
++ 2K(nhb/2−a)(√2br2
+hb)
+(2b/r2
+hb)(a−nhb/2)/2 pGIG(a − nhb/2, b, r2
+hb/2)
+(34)
+where Kp(x) is the modified Bessel function of the second kind, pIG is the pdf of an inverse gamma random variable
+with rate b, and pGIG is the pdf of a generalized inverse Gaussian random variable:
+pGIG(τ ; λ, ψ, χ) = (ψ/χ)(λ/2)
+2Kλ(√ψχ) τ λ−1 exp
+[
+− 1
+2 (ψτ + χ/τ )
+]
+
+Density Regression with Bayesian Additive Regression Trees A PREPRINT−6 −2 2 4 6
+0.0 0.1 0.2 0.3 0.4
+m[v] = 1
+−6 −2 2 4 6
+0.0 0.1 0.2 0.3 0.4
+m[v] = 5
+−6 −2 2 4 6
+0.0 0.1 0.2 0.3 0.4
+m[v] = 25
+−6 −2 2 4 6
+0.0 0.1 0.2 0.3 0.4
+m[v] = 100
+Figure 12: Marginal prior on v(x) for a0 = 1 and a range of mv . The blue dashed line is the standard normal density.
+The integrated likelihood is
+P (R(v)
+h | T (v)
+h , σ2) =
+b(v)
+h∏
+l=1
+1
+2(2π)nhl/2
+ba
+Γ(a)
+(
+Γ(nhl/2 + a)
+(b + r2
+hl/2)nhl/2+a + 2K(nhl/2−a)(√2br2
+hl)
+(2b/r2
+hl)(a−nhl/2)/2
+)
+. (36)
+Block updating (T (v)
+h , M (v)
+h ) proceeds by substituting the integrated likelihood (36) into the Metropolis step for T (v)
+h
+and drawing M (v)
+h by sampling each τ (v)
+hbh from (36). Given v, updates for the rest of the parameters are straightforward
+although the integrated likelihood and full conditionals also have to be adjusted in the update for (Th, Mh) to account
+for the heteroscedastic residuals. See Bleich and Kapelner [2014] for details.
+8.3 Proofs of Theorems
+Proof of Theorem 1
+Let Nd be the number of nodes at depth d of a tree sampled from this prior. There are 2d−1 pairs of possible nodes at
+depth d. Label these pairs by 1 ≤ i ≤ 2d−1 and define U (d)
+i as 1 if the ith pair of nodes exists and 0 otherwise, so that
+Nd = ∑2d−1
+i=1 2U (d)
+i . Now U (d)
+i = 1 if and only if all its parents are splitting nodes, so Pr(U (d)
+i = 1) = E(U (d)
+i ) =
+∏d−1
+s=0 α(1 + s)−β = αd(d!)−β . Then E(Nd) = ∑2d−1
+i=1 2αd(d!)−β = (2α)d(d!)−β . Since Nd is nonnegative,
+Pr(Nd ≥ 1) ≤ E(Nd). Since ∑∞
+d=0 E(Nd) = ∑∞
+d=0(2α)d(d!)−β < ∞, Pr(Nd ≥ 1 i.o.) = 0 so the tree is almost
+surely finite.
+Proof of Theorem 2
+As discussed in Section 4, we must find constants C1, ..., C4 and a sieve Gn that allow us to verify conditions G1, G2,
+and G3. We first prove the conditions using Lemmas 1 – 3; in the next subsection we prove a series of Lemmas allowing
+us to establish Lemma 3.
+Proof of G1. Let δn = (log n/n)β/(2β+d0) and let ˜n = (log n/n) α
+α+1 × β
+2β+d0 .
+Applying Lemma 3 with = ˜n, for sufficiently large n we have
+− log Π{KLp0 (CKL˜n)} ≤ − log Π(S = S0) − log Π(‖f − f0‖∞ ≤ δn | S = S0)
+− log Π{σ(x, u) ≡ σ is constant, σ ∈ [˜1/α
+n , 2˜1/α
+n ] | S = S0}. (37)
+As argued by Jeong and Rockova [2020], P1 implies − log Π(S = S0) . d0 log(p + 1) . n2
+n. Next, by Lemma 1
+we have − log Π(‖f − f0‖∞ ≤ δn | S = S0) . nδ2
+n . n2
+n. Finally, note that with σn = ˜1/α
+n , by P4 and standard
+
+properties of the inverse gamma distribution we can bound the final term of (37) by
+− log Π{eξ ∈ [1.2σn, 1.8σn], sup
+hl
+|μ(v)
+hl | ≤ 0.1/mv , all trees have depth 0 | S = S0}
+. − log Π{eξ ∈ [1.2σn, 1.8σn]} . σ−1
+n . n2
+n.
+Combining these facts, we get − log Π{KLp0 (CKL˜n)} . n2
+n, and because ˜n ≤ n this implies that G1 holds for
+some choice of C1 and C2.
+Proof of G2 and G3. Let κ be a large constant to be determined later and define Ff as in Lemma 2 with the choices
+d = κn2
+n/ log(p + 1), K = bκn2
+n/ log nc, U 2 = κn2
+n, and = n/(n2
+n). Let ˜v denote the tree-based contribution
+to the variance function, without the intercept: ˜v := v(x, u) − ξ. Then, we similarly define F˜v but with the choice
+= 2
+n and U = V . Lastly, define ` = 1/(κn2
+n) and u = eκn2
+n . We take the set G to be given by
+G = {pf,σ : f ∈ Ff , ˜v ∈ F˜v , ξ ∈ [log `, log u]}.
+Let̂ Ff and̂ F˜v denote n/(n2
+n) and 2
+n nets of Ff and F˜v respectively and let̂ R denote an 2
+n-net of [log `, log u].
+Given a pf1,σ1 ∈ G we can find f2 ∈̂ Ff , ˜v2 ∈̂ F˜v , and ξ2 ∈̂ R such that, by Lemma 3:
+h(pf1,σ1 , pf2,σ2 ) ≤ Ch
+{√22
+n + emv V n(κn2
+n)
+n2
+n
+}
+≤ Cκn,
+for a global constant Ch and a constant Cκ depending only on the constant κ and the prior. Hence
+log N (G, Cκn, h) ≤ log N (Ff , n/(n2
+n), ‖ · ‖∞) + log N (F˜v , 2
+n, ‖ · ‖∞) + log log u + log `−1
+2
+n
+.
+By Lemma 2, each term is easily verified to be bounded by a constant multiple of κn2
+n so that log N (G, Cκn, h) .
+κn2
+n.
+Next we compute the complementary probability bound. First, by the union bound:
+Π(p /∈ G) ≤ Π(ξ < log `) + Π(ξ > log u) + Π(D > d)
++ Π(f /∈ Ff | D ≤ d) + Π(v /∈ F˜v | D ≤ d). (38)
+Using standard properties of the inverse gamma distribution we have
+log Π(ξ < log `) . −`−1 = −κn2
+n,
+log Π(ξ > log u) . − log u = −κn2
+n.
+By P1 we also have log Π(D > d) . −d log(p + 1) = −κn2
+n. Next, if D ≤ d but f /∈ Ff then either (i) Km > K
+for some m where Km is the number of leaf nodes in tree m or (ii) Km ≤ K for all m, but suph` |μh`| > U . Hence,
+by the tail properties of Gaussian random variables,
+Π(f /∈ Ff | D ≤ d) ≤ Π(Km > K for some m) + Π(sup
+h`
+|μh`| > U | Km ≤ K for all m)
+≤ mΠ(K1 > K) + Kme−U 2/(2σ2
+μ).
+As noted in the proof of Theorem 2 of Jeong and Rockova [2020] we have log Π(K1 > K) . −K log K . −κn2
+n
+while −U 2/(2σ2
+μ) . −κn2
+n by our choice of U . Hence log Π(f /∈ Ff | D ≤ d) . −κn2
+n as well, provided that n
+is sufficiently large. Finally, the only way for ˜v /∈ F˜v to occur when D ≤ d is for at least one tree to have more than
+K leaf nodes, and we have already seen that the log of this probability is bounded by a constant multiple of −κn2
+n.
+Putting all of these facts together and bounding each term of (38) by the maximum, we have
+Π(p /∈ G) ≤ exp{−CG κn2
+n}
+for some small constant CG depending only on the prior. By taking κ larger than (C2 + 4)/CG we have Π(p /∈
+G) ≤ exp{−(C2 + 4)n2
+n} and log N (G, ¯n, h) ≤ C5n¯2
+n for some constant C5 and ¯n a constant multiple of n, as
+desired.
+
+Proof of Supporting Lemmas
+As before, we use a . b to mean there is a positive constant C which can be computed from the prior and p0,
+independent of n and p, such that a ≤ Cb. Unless otherwise stated, the constant is assumed to be universal in the sense
+that if we write f (x; ξ) . g(x) then we have f (x; ξ) ≤ Cg(x) for all (x, ξ) (unless ξ is part of the prior or a function
+of p0).
+Throughout this section, φσ ∗ p0(y | x) denotes the convolution ∫ φσ (y − z) p0(z | x) dz where φσ (z) =
+(2πσ2)−1/2e−z2/(2σ2). When σ(x, u) is a constant we note that φσ ∗ p0(y | x) = pf0,σ .
+Lemma 4. Suppose p0 satisfies Condition F. Then for σ < 1, we have
+p0(y | x) . φσ ∗ p0(y | x)
+Proof. By Condition F, p0(y | x) is uniformly bounded and bounded away from 0 on [0, 1]. First, if y /∈ [0, 1] then we
+have φσ ∗ p0(y | x) > 0 = p0(y | x) so that φσ ∗ p0(y | x) > Cp0(y | x) for any positive constant C; hence we can
+assume without loss of generality that y ∈ [0, 1]. Let M = infy,x p0(y | x) and write
+φσ ∗ p0(y | x) =
+∫ 1
+0
+φσ (y − z) p0(z | x) dz
+≥ M
+∫ 1
+0
+φσ (y − z) dz
+= M
+∫ y
+y−1
+φσ (u) du.
+≥ M
+∫ 1
+0
+φσ (u) du ≥ M/3 ≥ M
+3 supy,x p0(y | x) p0(y | x),
+where the second inequality follows from the fact U (y; σ) = Φ{y/σ} − Φ{(y − 1)/σ} is minimized at y = 1
+for y ∈ [0, 1] and all σ, and the third inequality follows from the fact that U (1; σ) > 1/3 for all σ < 1. Hence
+φσ ∗ p0(y | x) & p0(y | x) for σ < 1.
+Lemma 5. If p0 satisfies Condition F and σ(x, u) is constant with σ < 1 then
+log ‖p0/pf,σ ‖∞ ≤ Cinf + ‖f − f0‖2
+∞
+σ2 ,
+for some Cinf .
+Proof. The proof is essentially the same as the proof of Lemma 6.2 of Zhou et al. [2017]. We write
+pf,σ (y | x) = 1
+√2πσ
+∫ 1
+0
+exp
+{
+− (y − f (x, u))2
+2σ2
+}
+≥ √2 exp{−‖f − f0‖2
+∞/σ2}
+∫ 1
+0
+1
+√2πσ2/2 exp
+{
+− (y − f0(x, u))2
+σ2
+}
+= √2 exp{−‖f − f0‖2
+∞/σ2}φσ/√2 ∗ p0(y | x).
+Therefore, using the fact that φσ/√2 ∗ p0(y | x) & p0(y | x) we have
+log p0(y | x)
+pf,σ (y | x) ≤ Cinf + ‖f − f0‖2
+∞
+σ2
+for some constant Cinf .
+Lemma 6. Let p0 satisfy Condition F. Then ‖p0 − φσ ∗ p0‖∞ . σα for sufficiently small σ.
+
+Proof. Suppose α ≤ 1. Let L = sup(y,x)6=(y′,x′)
+|p0(y|x)−p0(y′|x′)|
+‖(y−y′,x−x′)‖α , which is finite by Condition F. Then:
+|p0(y | x) − φσ ∗ p0(y | x)| = |p0(y | x) −
+∫
+φσ (u)p0(y − u | x) du|
+= |
+∫
+p0(y | x)φσ (u) du − φσ (u)p0(y − u | x) du|
+≤
+∫
+|p0(y | x)φσ (u) − p0(y − u | x)φσ (u)| du
+≤ L
+∫
+|u|α φσ (u) du . σα.
+For 1 < α ≤ 2, let ˙p0(y | x) = d
+dy p0(y | x) and let L = sup(y,x)6 =(y′,x′)
+| ˙p0(y|x)− ˙p0(y′|x′)|
+‖(y,x)−(y′,x′)‖α−1 , which is finite by
+Condition F.
+Then:
+p0(y − u | x) = p0(y | x) − u ˙p0(y′ | x) + u ˙p0(y) − u ˙p0(y | x)
+for some y′ between y and y − u, depending on (y, x, u). Integrating with respect to φσ (u), the term u ˙p0(y | x) drops;
+then taking the absolute value we have:
+∣
+∣
+∣
+∣
+∫
+(p0(y − u | x) − p0(y | x))φσ (u) du
+∣
+∣
+∣
+∣ =
+∣
+∣
+∣
+∣
+∫
+u( ˙p0(y | x) − ˙p(y′ | x))φσ (u) du
+∣
+∣
+∣
+∣
+The left hand side becomes |p0(y | x) − φσ ∗ p0(y | x)| and the right hand side is upper bounded by:
+∫
+|u( ˙p0(y) − ˙p0(y′))φσ (u)| du ≤ L
+∫
+|u|αφσ (u) du . σα
+yielding the stated result.
+Lemma 7. Suppose Condition F holds. Then for sufficiently small σ we have
+∫
+p0(y | x) log p0(y | x)
+φσ ∗ p0(y | x) dy FX(dx) . σ2α.
+Proof. For fixed x we can bound the Kullback-Leibler divergence in terms of the chi-squared divergence as
+∫
+p0(y | x) log p0(y | x)
+φσ ∗ p0(y | x) dy FX(dx) ≤
+∫ (p0(y | x) − φσ ∗ p0(y | x))2
+φσ ∗ p0(y | x) dy FX(dx).
+By Lemma 4 and Condition F, we have that the denominator is bounded away from 0 for small enough σ. Lemma 6
+further tells us that the numerator is O(σ2α), giving the result.
+Proof of Lemma 3
+We first establish the second statement. Let h2
+x(p, q) = ∫ {p(y | x)1/2 − q(y | x)1/2}2 dy denote the usual Hellinger
+distance between p(· | x) and q(· | x). We begin by noting that, by Cauchy-Schwarz,
+pf1,σ1 (y | x) pf2,σ2 (y | x) ≥
+{∫ 1
+0
+√φσ1 (y − f1(x, u))φσ2 (y − f2(x, u))
+}2
+.
+By Fubini’s Theorem and the usual formula for the affinity between normal distributions we have
+h2
+x(pf1,σ1 , pf2,σ2 ) ≤ 1 −
+∫ 1
+0
+∫ √φσ1 (y − f1(x, u))φσ2 (y − f2(x, u)) dy du
+=
+∫ 1
+0
+1 −
+√
+2σ1(x, u)σ2(x, u)
+σ1(x, u)2 + σ2(x, u)2 exp
+{
+− (f1(x, u) − f2(x, u))2
+4(σ1(x, u)2 + σ2(x, u)2)
+}
+du
+(39)
+By the triangle inequality we have h2
+x(pf1,σ1 , pf2,σ2 ) ≤ 2{h2
+x(pf1,σ1 , pf1,σ2 ) + h2
+x(pf1,σ2 pf2,σ2 )}. Now, note from the
+inequality 1 − e−|x| ≤ |x| that for any σ1, σ2 we have
+1 −
+√
+2σ1σ2
+σ2
+1 + σ2
+2
+≤ 1 −
+√
+σ2
+1 ∧ σ2
+2
+σ2
+1 ∨ σ2
+2
+= 1 − exp{−| log σ1 − log σ2|} ≤ | log σ1 − log σ2|.
+
+Hence using (39) with f1 in place of f2 gives
+h2
+x(pf1,σ1 , pf1,σ2 ) ≤
+∫ 1
+0
+| log σ1(x, u) − log σ2(x, u)| du ≤ ‖ log σ1 − log σ2‖∞.
+Next, we use (39) with σ2 in place of σ1 to get
+h2
+x(pf1,σ2 , pf2,σ2 ) ≤
+∫ 1
+0
+1 − exp
+{
+− (f1(x, u) − f2(x, u))2
+4σ2(x, u)2
+}
+du
+≤
+∫ 1
+0
+(f1(x, u) − f2(x, u))2
+4σ2(x, u)2 du
+≤ ‖f1 − f2‖2
+∞
+4 infu σ2(x, u)2 .
+Putting these together we get
+h2
+x(pf1,σ1 , pf2,σ2 ) ≤ 2
+{
+‖ log σ1 − log σ2‖∞ + ‖f1 − f2‖2
+∞
+4 infu σ1(x, u)2 ∧ σ2(x, u)2
+}
+.
+Integrating with respect to FX(dx) and taking the square root gives the result.
+To prove the first bound, fix x and suppose pf,σ is such that σ(x, u) is constant, σ ∈ (1/α, 21/α), and ‖f − f0‖∞ ≤
+1+1/α. Note that φσ ∗ p0 = pf0,σ . For any pf,σ , applying the triangle inequality we have
+h2
+x(p0, pf,σ ) ≤ 2{h2
+x(p0, pf0,σ ) + h2
+x(pf0,σ , pf,σ )}.
+Using the fact that h2
+x(p, q) ≤ ∫ p log(p/q) dy, the proof of Lemma 7 gives h2
+x(p0, pf0,σ ) . σ2α . 2 for sufficiently
+small . Next, we have
+h2
+x(pf0,σ , pf,σ ) ≤ 1 − exp
+{
+− ‖f − f0‖2
+∞
+8σ2
+}
+. ‖f − f0‖2
+∞
+σ2 . 2+2/α
+2/α . 2.
+Combining these facts and integrating with respect to FX(dx) gives h2(p0, pf σ ) . 2. An application of Lemma 8 of
+Ghosal and van der Vaart [2007] and Lemma 5 gives K(p0‖pf,σ ) . 2 and V (p0‖pf,σ ) . 2 as well; let CKL denote
+the constant which makes KL(p0‖pf,σ ) ∨ V (p0‖pf,σ ) ≤ C2
+KL2. Hence pf,σ ∈ KL(CKL), proving the result.
+8.4 Simulation Details
+8.4.1 Implementation
+Code for conducting these simulations can be found at: https://github.com/vittorioorlandi/DR-BART.
+Implementation details are as below:
+• DR-BART DR-BART was implemented in R using the Rcpp package.
+• DR-GP We implemented DR-GP via the rstan package on CRAN for interfacing with Stan [Stan Development Team, 2020]. We followed Kundu and Dunson [2014], used a squared exponential kernel for the
+Gaussian Process, and introduced covariates appropriately.
+• SBART-DS The code for SBART-DS was graciously provided by Li et al.
+• PSBPM This method was run via the implementation on the author’s GitHub at: https://github.com/
+david-dunson/probit-stick-breaking. Prior parameters were as suggested in Chung and Dunson
+[2012].
+• DPMM The code for DPMM was taken from version 1.17 of the archived CRAN package DPpackage,
+which can be found here: https://cran.r-project.org/src/contrib/Archive/DPpackage/. Prior
+parameters were left at their defaults.
+All methods were run for 25,000 iterations of burn-in, after which 25,000 posterior samples were saved.
+
+8.4.2 Predicted Coverage and Credible Band Width
+Here, we provide additional information on 1. the predictive coverage and 2. the credible band width of each method
+across various simulation settings. To compute the predictive coverage, an additional n = 1000 test points were
+generated for each run of a simulation. The predicted coverage for a run is the proportion of the test points that were
+contained in the 95% HDR intervals; the reported values are averages across all runs of a simulation. The reported
+widths are average widths – across runs of a simulation – of 95% posterior credible bands within the 95% HDR region
+of the true density. That is, we evaluate credible band width in a high density region of the data. The predictive coverage
+below shows that all methods expect for PSBPM consistently have good predictive coverage. The information on
+credible bands is useful in conjunction with the coverage results in the main text, as it helps show which of the methods
+that undercover tend to do so because they are unreasonably confident in their estimates (e.g. DR-GP and PSBPM)
+versus those that simply do not capture the shape of the density well enough (e.g. SBART-DS).
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.95 0.95 0.93 0.96 0.63
+0.5 0.95 0.95 0.96 0.96 0.75
+0.8 0.99 0.97 0.97 0.99 0.00
+Table 5: Mean predictive coverage of 95% predictive intervals, across runs of Simulation 1.
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.12 0.13 0.07 0.08 0.07
+0.5 0.26 0.20 0.17 0.10 0.12
+0.8 0.67 0.33 0.27 0.20 0.00
+Table 6: Mean 95% credible band width within the true 95% HDR region, averaged across runs of Simulation 1.
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.31 0.1 0.07 0.05 0.08
+0.5 0.53 0.1 0.17 0.07 0.12
+0.8 1.55 0.3 0.27 0.20 0.00
+Table 7: Mean 95% credible band width within the true 95% HDR region, averaged across runs of Simulation 2.
+8.5 Applications
+Code for performing these analyses can be found at: https://github.com/vittorioorlandi/DR-BART. The data
+for the application on returns to education can be found here. The data for the student growth application can be found
+in the SGPdata R package.
+
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.92 0.94 0.93 0.90 0.64
+0.5 0.94 0.97 0.95 0.97 0.73
+0.8 1.00 0.99 0.97 1.00 0.00
+Table 8: Mean predictive coverage of 95% predictive intervals, across runs of Simulation 2.
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.95 0.95 0.94 0.96 0.61
+0.5 0.95 0.97 0.96 0.97 0.78
+0.8 1.00 0.96 0.97 0.99 0.00
+Table 9: Mean predictive coverage of 95% predictive intervals, across runs of Simulation 3.
+x DR-BART DPMM SBART-DS DR-GP PSBPM
+0.1 0.11 0.13 0.07 0.08 0.07
+0.5 0.33 0.34 0.24 0.16 0.17
+0.8 0.63 0.33 0.25 0.20 0.00
+Table 10: Mean 95% credible band width within the true 95% HDR region, averaged across runs of Simulation 3.

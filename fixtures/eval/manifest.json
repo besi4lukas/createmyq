@@ -1,0 +1,922 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "se-pdf-nist-ssdf",
+      "label": "accepted",
+      "detected": null,
+      "topic": "security",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "NIST SP 800-218: Secure Software Development Framework (SSDF) Version 1.1",
+      "source": {
+        "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-218.pdf",
+        "citation": "Souppaya, Scarfone, Dodson. NIST Special Publication 800-218, February 2022.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Secure development practices for software producers: code review, testing, build integrity, vulnerability response. Core software engineering."
+    },
+    {
+      "id": "se-pdf-nist-developer-verification",
+      "label": "accepted",
+      "detected": null,
+      "topic": "testing",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "NISTIR 8397: Guidelines on Minimum Standards for Developer Verification of Software",
+      "source": {
+        "url": "https://nvlpubs.nist.gov/nistpubs/ir/2021/NIST.IR.8397.pdf",
+        "citation": "Black, Guttman, Okun. NIST Interagency Report 8397, October 2021.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Threat modelling, static analysis, fuzzing, unit and regression testing for developers. Testing and verification."
+    },
+    {
+      "id": "se-pdf-nist-microservices-security",
+      "label": "accepted",
+      "detected": null,
+      "topic": "architecture",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "NIST SP 800-204: Security Strategies for Microservices-based Application Systems",
+      "source": {
+        "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-204.pdf",
+        "citation": "Chandramouli. NIST Special Publication 800-204, August 2019.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Microservice architecture, API gateways, service mesh, circuit breakers. Exactly 50 pages: the longest PDF the upload limit allows."
+    },
+    {
+      "id": "se-pdf-arxiv-flaky-tests-js",
+      "label": "accepted",
+      "detected": null,
+      "topic": "testing",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "An Empirical Study of Flaky Tests in JavaScript",
+      "source": {
+        "url": "https://arxiv.org/pdf/2207.01047v1",
+        "citation": "Hashemi, Tahir, Rasheed. arXiv:2207.01047 [cs.SE], 2022.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Empirical study of flaky tests in JavaScript projects (async waits, concurrency, test order). Research paper format with tables."
+    },
+    {
+      "id": "se-pdf-arxiv-fast-raft",
+      "label": "accepted",
+      "detected": null,
+      "topic": "distributed systems",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "Implementation and Evaluation of Fast Raft for Hierarchical Consensus",
+      "source": {
+        "url": "https://arxiv.org/pdf/2506.17793v1",
+        "citation": "Melnychuk, SebaRaj. arXiv:2506.17793 [cs.DC], 2025.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Raft consensus optimisation, implementation in Go on Kubernetes, latency measurements. A short (4-page) PDF."
+    },
+    {
+      "id": "se-pdf-arxiv-monolith-migration",
+      "label": "accepted",
+      "detected": null,
+      "topic": "architecture",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "Stepwise Migration of a Monolith to a Microservices Architecture: Performance and Migration Effort Evaluation",
+      "source": {
+        "url": "https://arxiv.org/pdf/2201.07226v1",
+        "citation": "Faustino, Gonçalves, Portela, Rito Silva. arXiv:2201.07226 [cs.SE], 2022.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Decomposing a monolith into microservices, domain transactions, performance trade-offs. Software architecture."
+    },
+    {
+      "id": "se-pdf-arxiv-jovis-postgres",
+      "label": "accepted",
+      "detected": null,
+      "topic": "databases",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "Jovis: A Visualization Tool for PostgreSQL Query Optimizer",
+      "source": {
+        "url": "https://arxiv.org/pdf/2411.14788v2",
+        "citation": "Choi, Han, Koo, Moon. arXiv:2411.14788 [cs.DB], 2024.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "PostgreSQL query planning (dynamic programming, GEQO), plan visualisation for developers. Databases."
+    },
+    {
+      "id": "se-pdf-cisa-secure-by-design",
+      "label": "accepted",
+      "detected": null,
+      "topic": "security",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "Cybersecurity policy aimed at software manufacturers. Much of it is about memory-safe languages, secure defaults and the SDLC, but it is written as government guidance, not engineering instruction. Proposed: accepted.",
+      "kind": "pdf",
+      "title": "Shifting the Balance of Cybersecurity Risk: Principles and Approaches for Secure by Design Software",
+      "source": {
+        "url": "https://www.cisa.gov/sites/default/files/2023-10/SecureByDesign_1025_508c.pdf",
+        "citation": "CISA, NSA, FBI and international partners, October 2023 (TLP:CLEAR).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Co-sealed by non-US agencies, so its licence is not clearly public domain: kept as a reference and fetched on demand."
+    },
+    {
+      "id": "se-article-wiki-continuous-integration",
+      "label": "accepted",
+      "detected": null,
+      "topic": "devops",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Continuous integration (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Continuous_integration&oldid=1375762225",
+        "citation": "Wikipedia contributors, \"Continuous integration\", revision 1375762225.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "CI practice: build automation, test automation, trunk-based development. DevOps."
+    },
+    {
+      "id": "se-article-wiki-sql-injection",
+      "label": "accepted",
+      "detected": null,
+      "topic": "security",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "SQL injection (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=SQL_injection&oldid=1378358865",
+        "citation": "Wikipedia contributors, \"SQL injection\", revision 1378358865.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Application security: injection attacks, parameterised queries, escaping. Includes a history section of breaches, which is mostly news-like."
+    },
+    {
+      "id": "se-article-wiki-rust",
+      "label": "accepted",
+      "detected": null,
+      "topic": "languages",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Rust (programming language) (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Rust_(programming_language)&oldid=1378876146",
+        "citation": "Wikipedia contributors, \"Rust (programming language)\", revision 1378876146.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Programming language: ownership, borrowing, type system, tooling. A long article that opens with history and community."
+    },
+    {
+      "id": "se-article-wiki-rest",
+      "label": "accepted",
+      "detected": null,
+      "topic": "apis",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "REST (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=REST&oldid=1378750602",
+        "citation": "Wikipedia contributors, \"REST\", revision 1378750602.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Architectural style for web APIs: resources, statelessness, uniform interface, HATEOAS."
+    },
+    {
+      "id": "se-article-wiki-hash-table",
+      "label": "accepted",
+      "detected": null,
+      "topic": "algorithms",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Hash table (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Hash_table&oldid=1376684313",
+        "citation": "Wikipedia contributors, \"Hash table\", revision 1376684313.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Data structure every engineer uses: hashing, collision resolution, load factor, resizing. Has some probability, but in an engineering context."
+    },
+    {
+      "id": "se-article-wiki-database-index",
+      "label": "accepted",
+      "detected": null,
+      "topic": "databases",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Database index (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Database_index&oldid=1357770109",
+        "citation": "Wikipedia contributors, \"Database index\", revision 1357770109.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "B-trees, clustered vs non-clustered, covering indexes. Databases."
+    },
+    {
+      "id": "se-article-wiki-two-phase-commit",
+      "label": "accepted",
+      "detected": null,
+      "topic": "distributed systems",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Two-phase commit protocol (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Two-phase_commit_protocol&oldid=1321432957",
+        "citation": "Wikipedia contributors, \"Two-phase commit protocol\", revision 1321432957.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Atomic commitment across participants, coordinator failure, blocking. A short article."
+    },
+    {
+      "id": "se-article-mdn-http-caching",
+      "label": "accepted",
+      "detected": null,
+      "topic": "apis",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "HTTP caching (MDN Web Docs)",
+      "source": {
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching",
+        "citation": "Mozilla Contributors, \"HTTP caching\", MDN Web Docs.",
+        "licence": "CC-BY-SA-2.5",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.5/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Cache-Control, validation, ETags, private vs shared caches. Web/API engineering docs, not a paper or encyclopedia."
+    },
+    {
+      "id": "se-article-google-code-review",
+      "label": "accepted",
+      "detected": null,
+      "topic": "process",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "What to look for in a code review (Google Engineering Practices)",
+      "source": {
+        "url": "https://google.github.io/eng-practices/review/reviewer/looking-for.html",
+        "citation": "Google, \"Google Engineering Practices Documentation\".",
+        "licence": "CC-BY-3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Engineering-process guidance (design, complexity, tests, naming, comments) written for reviewers. Borderline because it reads like management advice, but it is about code."
+    },
+    {
+      "id": "se-article-wiki-conways-law",
+      "label": "accepted",
+      "detected": null,
+      "topic": "architecture",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "Conway's law (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Conway%27s_law&oldid=1371656014",
+        "citation": "Wikipedia contributors, \"Conway's law\", revision 1371656014.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "How organisation structure shapes system design. Reads like organisational sociology, but it is a standard software architecture idea (inverse Conway manoeuvre, team topologies)."
+    },
+    {
+      "id": "se-article-google-rules-of-ml",
+      "label": "accepted",
+      "detected": null,
+      "topic": "ml engineering",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "Machine-learning engineering: pipelines, monitoring, training-serving skew, feature engineering. It is about building production ML systems, not ML theory. Proposed: accepted.",
+      "kind": "article",
+      "title": "Rules of Machine Learning: Best Practices for ML Engineering",
+      "source": {
+        "url": "https://developers.google.com/machine-learning/guides/rules-of-ml?hl=en",
+        "citation": "Martin Zinkevich, Google for Developers.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "The ?hl=en parameter matters: without it the site may answer in another language based on the caller's location."
+    },
+    {
+      "id": "se-article-wiki-etl",
+      "label": "accepted",
+      "detected": null,
+      "topic": "data engineering",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "Data engineering: pipelines, staging, incremental loads, parallelism. Close to databases and backend work but often treated as its own discipline. Proposed: accepted.",
+      "kind": "article",
+      "title": "Extract, transform, load (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Extract,_transform,_load&oldid=1364353374",
+        "citation": "Wikipedia contributors, \"Extract, transform, load\", revision 1364353374.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "ETL pipeline design and tooling."
+    },
+    {
+      "id": "se-article-fowler-test-pyramid",
+      "label": "accepted",
+      "detected": null,
+      "topic": "testing",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "The Practical Test Pyramid (martinfowler.com)",
+      "source": {
+        "url": "https://martinfowler.com/articles/practical-test-pyramid.html",
+        "citation": "Ham Vocke, martinfowler.com, 2018.",
+        "licence": "all-rights-reserved",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Unit, integration, contract and UI tests with Java/Spring code samples. A typical blog-style article a user would paste; copyrighted, so fetched on demand."
+    },
+    {
+      "id": "se-youtube-event-loop",
+      "label": "accepted",
+      "detected": null,
+      "topic": "languages",
+      "difficulty": "clear",
+      "kind": "youtube",
+      "title": "What the heck is the event loop anyway? | Philip Roberts | JSConf EU",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=8aGhZQkoFbQ",
+        "citation": "Philip Roberts, JSConf EU 2014 (JSConf channel).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "JavaScript runtime internals: call stack, callback queue, event loop. Manual captions."
+    },
+    {
+      "id": "se-youtube-mess-were-in",
+      "label": "accepted",
+      "detected": null,
+      "topic": "architecture",
+      "difficulty": "borderline",
+      "kind": "youtube",
+      "title": "\"The Mess We're In\" by Joe Armstrong",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=lKXe3HUG2l4",
+        "citation": "Joe Armstrong, Strange Loop 2014 keynote (Strange Loop Conference channel).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "A software complexity keynote with long detours into physics, entropy, the number of atoms and computing limits, and anecdotes. Auto captions. Must still pass."
+    },
+    {
+      "id": "se-youtube-linus-git",
+      "label": "accepted",
+      "detected": null,
+      "topic": "version control",
+      "difficulty": "borderline",
+      "kind": "youtube",
+      "title": "Tech Talk: Linus Torvalds on git",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=4XpnKHJAok8",
+        "citation": "Linus Torvalds at Google, 2007 (Google channel).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Distributed version control, branching and merging, trust networks. Long (70 min), conversational, opinionated, with Q&A. Manual captions."
+    },
+    {
+      "id": "se-youtube-kleppmann-transactions",
+      "label": "accepted",
+      "detected": null,
+      "topic": "databases",
+      "difficulty": "clear",
+      "kind": "youtube",
+      "title": "\"Transactions: myths, surprises and opportunities\" by Martin Kleppmann",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=5ZjhNTM8XU8",
+        "citation": "Martin Kleppmann, Strange Loop 2015 (Strange Loop Conference channel).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "ACID, isolation levels, race conditions, distributed transactions. Auto captions."
+    },
+    {
+      "id": "off-pdf-nhlbi-cookbook",
+      "label": "refused",
+      "detected": "cooking",
+      "detectedSynonyms": ["recipes", "food", "home cooking"],
+      "topic": "cooking",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "Heart-Healthy Home Cooking African American Style",
+      "source": {
+        "url": "https://www.nhlbi.nih.gov/sites/default/files/publications/WEHL-RecipeBook_508.pdf",
+        "citation": "National Heart, Lung, and Blood Institute (NIH Publication No. 21-HL-3792), February 2021.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "A 44-page recipe book. The STM-22 case: must be refused with \"This looks like cooking. CreateMyQ only covers software engineering right now.\""
+    },
+    {
+      "id": "off-pdf-cfpb-savings",
+      "label": "refused",
+      "detected": "personal finance",
+      "detectedSynonyms": ["saving money", "budgeting", "finance"],
+      "topic": "personal finance",
+      "difficulty": "clear",
+      "kind": "pdf",
+      "title": "Building your savings? Start with small goals. (Your Money, Your Goals)",
+      "source": {
+        "url": "https://files.consumerfinance.gov/f/documents/cfpb_ymyg-savings-booklet.pdf",
+        "citation": "Consumer Financial Protection Bureau.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "A savings workbook with worksheets."
+    },
+    {
+      "id": "off-pdf-cftc-virtual-currency",
+      "label": "refused",
+      "detected": "cryptocurrency trading",
+      "detectedSynonyms": ["crypto trading", "cryptocurrency", "investing", "trading"],
+      "topic": "crypto trading",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "Customer Advisory: Understand the Risks of Virtual Currency Trading",
+      "source": {
+        "url": "https://www.cftc.gov/sites/default/files/2019-12/customeradvisory_urvct121517.pdf",
+        "citation": "U.S. Commodity Futures Trading Commission, December 2017.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: mentions platforms, wallets, hacking and cyber risk, but is about trading. A very short (2-page) PDF."
+    },
+    {
+      "id": "off-pdf-arxiv-group-theory",
+      "label": "refused",
+      "detected": "pure mathematics",
+      "detectedSynonyms": ["mathematics", "group theory", "algebra"],
+      "topic": "pure mathematics",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "On groups well represented as automorphism groups of groups",
+      "source": {
+        "url": "https://arxiv.org/pdf/2407.09279v1",
+        "citation": "Asgharzadeh, Golshani, Herden, Shelah. arXiv:2407.09279 [math.GR], 2024.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: formal, theorem-proof structure that resembles a CS theory paper."
+    },
+    {
+      "id": "off-pdf-arxiv-coffee-pendulum",
+      "label": "refused",
+      "detected": "physics",
+      "detectedSynonyms": ["classical mechanics", "fluid dynamics"],
+      "topic": "physics",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "Sloshing in coffee as a pumped pendulum",
+      "source": {
+        "url": "https://arxiv.org/pdf/2106.11435v1",
+        "citation": "Guarín-Zapata. arXiv:2106.11435 [physics.class-ph], 2021.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: physics with numerical simulation (equations, code-like parameters), but not software."
+    },
+    {
+      "id": "off-pdf-arxiv-bart-density-regression",
+      "label": "refused",
+      "detected": "statistics",
+      "detectedSynonyms": ["data science", "statistical modelling", "machine learning"],
+      "topic": "statistics",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "Density Regression with Bayesian Additive Regression Trees",
+      "source": {
+        "url": "https://arxiv.org/pdf/2112.12259v1",
+        "citation": "Orlandi, Murray, Linero, Volfovsky. arXiv:2112.12259 [stat.ME], 2021.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: statistical methodology with MCMC samplers and simulations, no software engineering."
+    },
+    {
+      "id": "off-pdf-arxiv-circuits-geometry",
+      "label": "refused",
+      "detected": "electrical engineering",
+      "detectedSynonyms": ["electronics", "circuit analysis", "power systems"],
+      "topic": "electrical engineering",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "Beyond Phasors: Solving Non-Sinusoidal Electrical Circuits using Geometry",
+      "source": {
+        "url": "https://arxiv.org/pdf/2511.06997v1",
+        "citation": "Castillo-Martínez, Baños, Montoya. arXiv:2511.06997, 2025.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: engineering, but electrical, not software."
+    },
+    {
+      "id": "off-pdf-arxiv-product-managers-ai",
+      "label": "refused",
+      "detected": "product management",
+      "detectedSynonyms": ["business", "AI ethics", "management"],
+      "topic": "product management",
+      "difficulty": "borderline",
+      "kind": "pdf",
+      "title": "Guardrails versus Gatekeepers: Understanding Product Managers' Ethical Decision-Making in Generative AI",
+      "source": {
+        "url": "https://arxiv.org/pdf/2501.16531v2",
+        "citation": "Smith, Luka, Osborne, Lattimore, Newman, Mittelstadt, Nonnecke. arXiv:2501.16531, 2025.",
+        "licence": "CC-BY-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: interview study of product managers at tech companies building AI products. About roles, ethics and organisations, not engineering."
+    },
+    {
+      "id": "off-pdf-nist-csf",
+      "label": "refused",
+      "detected": "cybersecurity governance",
+      "detectedSynonyms": ["cybersecurity risk management", "cybersecurity policy", "IT governance"],
+      "topic": "cybersecurity policy",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "Organisational cybersecurity risk governance (Govern, Identify, Protect, Detect, Respond, Recover). No code, no SDLC; aimed at executives and risk managers. Proposed: refused. Contrast se-pdf-nist-ssdf (accepted) and se-pdf-cisa-secure-by-design (ambiguous, accepted).",
+      "kind": "pdf",
+      "title": "The NIST Cybersecurity Framework (CSF) 2.0",
+      "source": {
+        "url": "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
+        "citation": "NIST Cybersecurity White Paper 29, February 2024.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative if refused: security vocabulary throughout, but governance rather than building software."
+    },
+    {
+      "id": "off-article-wiki-companion-planting",
+      "label": "refused",
+      "detected": "gardening",
+      "detectedSynonyms": ["horticulture", "agriculture"],
+      "topic": "gardening",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Companion planting (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Companion_planting&oldid=1373653221",
+        "citation": "Wikipedia contributors, \"Companion planting\", revision 1373653221.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Gardening."
+    },
+    {
+      "id": "off-article-wiki-battle-of-hastings",
+      "label": "refused",
+      "detected": "history",
+      "detectedSynonyms": ["medieval history", "military history"],
+      "topic": "history",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Battle of Hastings (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Battle_of_Hastings&oldid=1376904169",
+        "citation": "Wikipedia contributors, \"Battle of Hastings\", revision 1376904169.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Medieval history. A long featured article."
+    },
+    {
+      "id": "off-article-wiki-offside",
+      "label": "refused",
+      "detected": "football",
+      "detectedSynonyms": ["sports", "soccer", "association football"],
+      "topic": "sports",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Offside (association football) (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Offside_(association_football)&oldid=1376943390",
+        "citation": "Wikipedia contributors, \"Offside (association football)\", revision 1376943390.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Sports rules. Rule-heavy text, which a keyword classifier could confuse with a specification."
+    },
+    {
+      "id": "off-article-wiki-circle-of-fifths",
+      "label": "refused",
+      "detected": "music theory",
+      "detectedSynonyms": ["music"],
+      "topic": "music theory",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Circle of fifths (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Circle_of_fifths&oldid=1367778468",
+        "citation": "Wikipedia contributors, \"Circle of fifths\", revision 1367778468.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Music theory."
+    },
+    {
+      "id": "off-article-gutenberg-gift-of-the-magi",
+      "label": "refused",
+      "detected": "fiction",
+      "detectedSynonyms": ["a short story", "literature"],
+      "topic": "fiction",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "The Gift of the Magi (O. Henry)",
+      "source": {
+        "url": "https://www.gutenberg.org/cache/epub/7256/pg7256-images.html",
+        "citation": "O. Henry, 1905. Project Gutenberg eBook #7256.",
+        "licence": "public-domain",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "A short story. Public domain in the US; the stored text is the story only, without Project Gutenberg's trademark or licence text."
+    },
+    {
+      "id": "off-article-wiki-eniac",
+      "label": "refused",
+      "detected": "computer history",
+      "detectedSynonyms": ["history of computing", "computer hardware", "history"],
+      "topic": "computing history",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "History of an early computer: vacuum tubes, wiring panels, and the women who programmed it by plugboard. Computing, but hardware and history rather than software engineering. Proposed: refused.",
+      "kind": "article",
+      "title": "ENIAC (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=ENIAC&oldid=1378744539",
+        "citation": "Wikipedia contributors, \"ENIAC\", revision 1378744539.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: full of computing words (programming, programmers, stored program) but about hardware history."
+    },
+    {
+      "id": "off-article-wiki-op-amp",
+      "label": "refused",
+      "detected": "electronics",
+      "detectedSynonyms": ["electrical engineering", "circuit design", "hardware"],
+      "topic": "electrical engineering",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "Operational amplifier (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Operational_amplifier&oldid=1378476597",
+        "citation": "Wikipedia contributors, \"Operational amplifier\", revision 1378476597.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: analog electronics/hardware design."
+    },
+    {
+      "id": "off-article-wiki-scrum",
+      "label": "refused",
+      "detected": "project management",
+      "detectedSynonyms": ["agile project management", "management"],
+      "topic": "project management",
+      "difficulty": "borderline",
+      "ambiguous": true,
+      "ambiguity": "Scrum began in software teams and most readers use it there, but the framework itself (roles, sprints, backlogs, ceremonies) is generic project management. Proposed: refused. If accepted, a positive must move to balance the set.",
+      "kind": "article",
+      "title": "Scrum (project management) (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Scrum_(project_management)&oldid=1375724138",
+        "citation": "Wikipedia contributors, \"Scrum (project management)\", revision 1375724138.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative if refused: mentions developers, increments and software throughout."
+    },
+    {
+      "id": "off-article-wiki-photosynthesis",
+      "label": "refused",
+      "detected": "biology",
+      "detectedSynonyms": ["plant biology", "biochemistry", "science"],
+      "topic": "biology",
+      "difficulty": "clear",
+      "kind": "article",
+      "title": "Photosynthesis (Wikipedia)",
+      "source": {
+        "url": "https://en.wikipedia.org/w/index.php?title=Photosynthesis&oldid=1371284103",
+        "citation": "Wikipedia contributors, \"Photosynthesis\", revision 1371284103.",
+        "licence": "CC-BY-SA-4.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Natural science."
+    },
+    {
+      "id": "off-article-nist-eda",
+      "label": "refused",
+      "detected": "statistics",
+      "detectedSynonyms": ["data analysis", "data science"],
+      "topic": "statistics",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "What is EDA? (NIST/SEMATECH e-Handbook of Statistical Methods)",
+      "source": {
+        "url": "https://www.itl.nist.gov/div898/handbook/eda/section1/eda11.htm",
+        "citation": "NIST/SEMATECH e-Handbook of Statistical Methods, section 1.1.1.",
+        "licence": "us-government-work",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "repo",
+      "rationale": "Hard negative: data analysis without software engineering. Very short (under 3,000 chars), so it is a single chunk: the shortest source in the set."
+    },
+    {
+      "id": "off-article-ms-excel-formulas",
+      "label": "refused",
+      "detected": "spreadsheet help",
+      "detectedSynonyms": ["Microsoft Excel", "office software", "IT help", "spreadsheets"],
+      "topic": "it help desk",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "Overview of formulas in Excel (Microsoft Support)",
+      "source": {
+        "url": "https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173",
+        "citation": "Microsoft Support.",
+        "licence": "all-rights-reserved",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Hard negative: formulas, functions, references and operators look like programming, but this is end-user software help."
+    },
+    {
+      "id": "off-article-doctorow-little-brother",
+      "label": "refused",
+      "detected": "fiction",
+      "detectedSynonyms": ["a novel", "literature"],
+      "topic": "fiction",
+      "difficulty": "borderline",
+      "kind": "article",
+      "title": "Little Brother (Cory Doctorow, full text)",
+      "source": {
+        "url": "https://craphound.com/littlebrother/Cory_Doctorow_-_Little_Brother.htm",
+        "citation": "Cory Doctorow, Little Brother, 2008. Published by the author under CC BY-NC-SA 3.0.",
+        "licence": "CC-BY-NC-SA-3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Hard negative: a novel whose teenage hacker narrator explains Linux, cryptography and Xbox hacking. Non-commercial licence, so fetched on demand. Very long (about 650,000 chars): the longest source in the set. Its first and last chunks are the Creative Commons notice and legal code, so start/end samples alone don't look like fiction."
+    },
+    {
+      "id": "off-youtube-babish-sourdough",
+      "label": "refused",
+      "detected": "cooking",
+      "detectedSynonyms": ["baking", "bread making", "food"],
+      "topic": "cooking",
+      "difficulty": "clear",
+      "kind": "youtube",
+      "title": "Sourdough Bread | Basics with Babish (feat. Joshua Weissman)",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=bSYdABrPrtM",
+        "citation": "Binging with Babish channel, 2020.",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Cooking video. Auto captions."
+    },
+    {
+      "id": "off-youtube-crashcourse-agriculture",
+      "label": "refused",
+      "detected": "history",
+      "detectedSynonyms": ["world history", "prehistory"],
+      "topic": "history",
+      "difficulty": "clear",
+      "kind": "youtube",
+      "title": "The Agricultural Revolution: Crash Course World History #1",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=Yocja_N5s1I",
+        "citation": "John Green, CrashCourse channel, 2012.",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "History lecture. Manual captions."
+    },
+    {
+      "id": "off-youtube-lewin-physics",
+      "label": "refused",
+      "detected": "physics",
+      "detectedSynonyms": ["classical mechanics", "science"],
+      "topic": "physics",
+      "difficulty": "borderline",
+      "kind": "youtube",
+      "title": "8.01x - Lect 1 - Powers of 10, Units, Dimensions, Uncertainties, Scaling Arguments",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=GtOGurrUPmQ",
+        "citation": "Walter Lewin, MIT 8.01 (Lectures by Walter Lewin channel).",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Hard negative: a technical university lecture with measurement and units, not software. Manual captions."
+    },
+    {
+      "id": "off-youtube-excel-vlookup",
+      "label": "refused",
+      "detected": "spreadsheet help",
+      "detectedSynonyms": ["Microsoft Excel", "office software", "spreadsheets"],
+      "topic": "it help desk",
+      "difficulty": "borderline",
+      "kind": "youtube",
+      "title": "VLOOKUP in Excel | Step-by-Step Tutorial for Beginners",
+      "source": {
+        "url": "https://www.youtube.com/watch?v=xIynD1gFOLo",
+        "citation": "Kevin Stratvert channel.",
+        "licence": "unknown",
+        "retrieved": "2026-10-07"
+      },
+      "storage": "fetch",
+      "rationale": "Hard negative: lookups, tables and formulas, but end-user spreadsheet help. A short (6-minute) video."
+    }
+  ]
+}

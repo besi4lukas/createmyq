@@ -16,7 +16,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check": "drizzle-kit check",
     "db:seed": "tsx scripts/seed.ts",
-    "extract": "tsx scripts/extract.ts"
+    "extract": "tsx scripts/extract.ts",
+    "eval:check": "tsx scripts/eval/check.ts",
+    "eval:snapshot": "tsx scripts/eval/snapshot.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

@@ -1,0 +1,89 @@
+Customer Advisory: Understand the Risks of Virtual Currency Trading
+The U.S. Commodity Futures Trading Commission (CFTC) is issuing this customer advisory to
+inform the public of possible risks associated with investing or speculating in virtual currencies
+or recently launched Bitcoin futures and options.
+Virtual currency is a digital representation of value that
+functions as a medium of exchange, a unit of account, or a
+store of value, but it does not have legal tender status.
+Virtual currencies are sometimes exchanged for U.S.
+dollars or other currencies around the world, but they are
+not currently backed nor supported by any government or
+central bank. Their value is completely derived by market
+forces of supply and demand, and they are more volatile
+than traditional fiat currencies. Profits and losses related to
+this volatility are amplified in margined futures contracts.
+For hedgers – those who own Bitcoin or other virtual
+currencies and who are looking to protect themselves
+against potential losses or looking to buy virtual currencies
+at some point in the future – futures contracts and options
+are intended to provide protection against this volatility.
+However, like all futures products, speculating in these
+markets should be considered a high-risk transaction.
+What makes virtual currency risky?
+Purchasing virtual currencies on the cash market – spending dollars to purchase Bitcoin for your personal
+wallet, for example – comes with a number of risks, including:
+ most cash markets are not regulated or supervised by a government agency;
+ platforms in the cash market may lack critical system safeguards, including customer protections;
+ volatile cash market price swings or flash crashes;
+ cash market manipulation;
+ cyber risks, such as hacking customer wallets; and/or
+ platforms selling from their own accounts and putting customers at an unfair disadvantage.
+It’s also important to note that market changes that affect the cash market price of a virtual currency may
+ultimately affect the price of virtual currency futures and options.
+When customers purchase a virtual currency-based futures contract, they may not be entitled to
+receive the actual virtual currency, depending on the particular contract. Under most futures
+contracts currently being offered, customers are buying the right to receive or pay the amount of an
+underlying commodity value in dollars at some point in the future. Such futures contracts are said to be
+“cash settled.” Customers will pay or receive (depending on which side of the contract they have taken –
+Bitcoin is a Commodity
+Bitcoin and other virtual currencies
+have been determined to be
+commodities under the Commodity
+Exchange Act (CEA). The
+Commission primarily regulates
+commodity derivatives contracts that
+are based on underlying commodities.
+While its regulatory oversight authority
+over commodity cash markets is
+limited, the CFTC maintains general
+anti-fraud and manipulation
+enforcement authority over virtual
+currency cash markets as a commodity
+in interstate commerce.
+
+long or short) the dollar equivalent of the virtual currency based on an index or auction price specified in
+the contract. Thus, customers should inform themselves as to how the index or auction prices used to
+settle the contract are determined.
+Entering into futures contracts through leveraged accounts can amplify the risks of trading the
+product. Typically, participants only fund futures contracts at a fraction of the underlying commodity price
+when using a margin account. This creates “leverage,” and leverage amplifies the underlying risk, making
+a change in the cash price even more significant. When prices move in the customers’ favor, leverage
+provides them with more profit for a relatively small investment. But, when markets go against customers’
+positions, they will be forced to refill their margin accounts or close out their positions, and in the end may
+lose more than their initial investments.
+Beware of related fraud
+Virtual currencies are commonly targeted by hackers and criminals who commit fraud. There is no
+assurance of recourse if your virtual currency is stolen. Be careful how and where you store your virtual
+currency. The CFTC has received complaints about virtual currency exchange scams, as well as Ponzi
+and “pyramid” schemes.
+If you decide to buy virtual currencies or derivatives based on them, remember these tips:
+ If someone tries to sell you an investment in options or futures on virtual currencies, including
+Bitcoin, verify they are registered with the CFTC. Visit SmartCheck.gov to check registrations or
+learn more about common investment frauds.
+ Remember—much of the virtual currency cash market operates through Internet-based trading
+platforms that may be unregulated and unsupervised.
+ Do not invest in products or strategies you do not understand.
+ Be sure you understand the risks and how the product can lose money, as well as the likelihood
+of loss. Only speculate with money you can afford to lose.
+ There is no such thing as a guaranteed investment or trading strategy. If someone tells you there
+is no risk of losing money, do not invest.
+ Investors should conduct extensive research into the legitimacy of virtual currency platforms and
+digital wallets before providing credit card information, wiring money, or offering sensitive
+personal information.
+ The SEC has also warned that some token sales or initial coin offerings (ICOs) can be used to
+improperly entice investors with promises of high returns.1
+If you believe you may have been the victim of fraud, or to report suspicious activity, contact us at
+866.366.2382 or visit CFTC.gov/TipOrComplaint.
+1 See https://www.sec.gov/oiea/investor-alerts-and-bulletins/ib_coinofferings.
+The CFTC has provided this information as a service to investors. It is neither a legal interpretation nor a statement of CFTC policy.
+If you have questions concerning the meaning or application of a particular law or rule, consult an attorney.
