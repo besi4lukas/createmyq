@@ -25,11 +25,19 @@
   ],
   // STM-9: one UserSession per user (idFromName(users.id)): the quiz in progress
   // and preferences. SQLite-backed; the class is exported from worker/index.ts.
+  // STM-16: one GenerationLock per content fingerprint (idFromName(fingerprint)):
+  // which Workflow run may fill that content's question bank right now.
   "durable_objects": {
-    "bindings": [{ "name": "USER_SESSION", "class_name": "UserSession" }]
+    "bindings": [
+      { "name": "USER_SESSION", "class_name": "UserSession" },
+      { "name": "GENERATION_LOCK", "class_name": "GenerationLock" }
+    ]
   },
   // Never edit or remove an applied migration; add a new tag instead.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["UserSession"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["UserSession"] },
+    { "tag": "v2", "new_sqlite_classes": ["GenerationLock"] }
+  ],
   // STM-13: PDF uploads. The browser PUTs straight to R2 with a presigned URL
   // (S3 API, signed in worker/uploads/presign.ts); the Worker only signs and
   // then HEADs the object through this binding. `remote: true` so local dev
@@ -77,6 +85,5 @@
   // CLERK_JWT_KEY (Clerk dashboard → API keys → JWKS Public Key, PEM). It is a
   // secret, not a var: `npx wrangler secret put CLERK_JWT_KEY` in prod, .dev.vars locally.
   // Bindings arrive with their tickets, not before:
-  //   STM-16 Durable Object: generation lock
   //   STM-18 AI Gateway
 }

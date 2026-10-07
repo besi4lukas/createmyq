@@ -16,6 +16,10 @@ describe("allowedFrom", () => {
   it("fails only a source that is processing", () => {
     expect(sourceStatus.enumValues.filter((from) => canMove(from, "failed"))).toEqual(["processing"]);
   });
+
+  it("marks a duplicate only from processing, or again when the step re-runs", () => {
+    expect(sourceStatus.enumValues.filter((from) => canMove(from, "duplicate"))).toEqual(["processing", "duplicate"]);
+  });
 });
 
 describe("instanceIdFor", () => {

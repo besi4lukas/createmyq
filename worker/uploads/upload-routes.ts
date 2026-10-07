@@ -7,18 +7,23 @@
  *                               and queue it for generation (STM-15)
  *   GET  /api/uploads/:id       the caller's own upload, with its status
  *
+ * A duplicate upload (STM-16: the same text was uploaded before) reports the
+ * status of the bank it shares, and `bankSourceId` names that bank.
+ *
  * Keys are built from the session's users.id, never from the request, so
  * another user's sourceId only ever resolves to a key under the caller's own
  * prefix (404).
  */
 import { Hono, type Context } from "hono";
-import { and, eq, exists } from "drizzle-orm";
+import { and, eq, exists, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import type { AppEnv } from "../auth/session";
 import type { Db } from "../db/client";
 import { sourceUploads, sources } from "../db/schema";
 import { apiError, readJson } from "../http";
 import type { GenerationMessage } from "../workflows/queue";
+import type { SourceStatus } from "../workflows/rules";
 import { presignPut, type R2Credentials } from "./presign";
 import {
   PDF_CONTENT_TYPE,
@@ -127,11 +132,22 @@ uploadRoutes.get("/uploads/:id", async (c) => {
   return source ? c.json({ source }) : notFound(c);
 });
 
-/** A source the user uploaded (source_uploads), or null. Never anyone else's. */
+/**
+ * A source the user uploaded (source_uploads), or null. Never anyone else's.
+ * For a duplicate, `status` is the bank's: that is what the user will get.
+ */
 async function findOwnSource(db: Db, userId: string, sourceId: string) {
+  const bank = alias(sources, "bank");
   const [row] = await db
-    .select({ id: sources.id, title: sources.title, status: sources.status, createdAt: sources.createdAt })
+    .select({
+      id: sources.id,
+      title: sources.title,
+      status: sql<SourceStatus>`coalesce(${bank.status}, ${sources.status})`,
+      bankSourceId: sql<string>`coalesce(${sources.duplicateOfId}, ${sources.id})`,
+      createdAt: sources.createdAt,
+    })
     .from(sources)
+    .leftJoin(bank, eq(bank.id, sources.duplicateOfId))
     .where(
       and(
         eq(sources.id, sourceId),
