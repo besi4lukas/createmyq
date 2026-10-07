@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sourceStatus } from "../db/schema";
-import { MAX_TEXT_CHARS, allowedFrom, fitsInStepResult, instanceIdFor, stubQuestions, type RunStatus } from "./rules";
+import { MAX_TEXT_CHARS, allowedFrom, fitsInStepResult, instanceIdFor, type RunStatus } from "./rules";
 
 describe("allowedFrom", () => {
   const canMove = (from: string, to: RunStatus) => (allowedFrom(to) as string[]).includes(from);
@@ -20,6 +20,10 @@ describe("allowedFrom", () => {
   it("marks a duplicate only from processing, or again when the step re-runs", () => {
     expect(sourceStatus.enumValues.filter((from) => canMove(from, "duplicate"))).toEqual(["processing", "duplicate"]);
   });
+
+  it("marks a bank ready only from processing, so a re-run store writes nothing", () => {
+    expect(sourceStatus.enumValues.filter((from) => canMove(from, "ready"))).toEqual(["processing"]);
+  });
 });
 
 describe("instanceIdFor", () => {
@@ -36,13 +40,5 @@ describe("fitsInStepResult", () => {
     expect(MAX_TEXT_CHARS * 2).toBeLessThan(1024 * 1024);
     expect(fitsInStepResult("x".repeat(MAX_TEXT_CHARS))).toBe(true);
     expect(fitsInStepResult("x".repeat(MAX_TEXT_CHARS + 1))).toBe(false);
-  });
-});
-
-describe("stubQuestions", () => {
-  it("is deterministic", () => {
-    expect(stubQuestions("abcdef0123456789")).toEqual(stubQuestions("abcdef0123456789"));
-    expect(stubQuestions("abcdef0123456789")).toHaveLength(20);
-    expect(stubQuestions("abcdef0123456789")[0]).toEqual({ stem: "Stub question 1 for abcdef01" });
   });
 });

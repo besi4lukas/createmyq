@@ -17,3 +17,9 @@
 # R2_ACCESS_KEY_ID=
 # R2_SECRET_ACCESS_KEY=
 # UPLOADS_BUCKET_NAME=createmyq-uploads-dev
+
+# STM-18: question generation through AI Gateway (the URL is a var in wrangler.jsonc).
+# Production: npx wrangler secret put ANTHROPIC_API_KEY
+# ANTHROPIC_API_KEY=
+# The kill switch is off in wrangler.jsonc; turn it on locally to generate.
+# GENERATION_ENABLED=true
