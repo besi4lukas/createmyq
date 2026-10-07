@@ -41,7 +41,7 @@ npm run db:generate # diff worker/db/schema.ts → new SQL migration in drizzle/
 npm run db:migrate  # apply pending migrations to DATABASE_URL_UNPOOLED (from .env.local or the shell)
 npm run db:check    # sanity-check the migration history
 npm run db:seed -- seed/<file>.json [--dry-run]  # validate a question file, then upsert it by external_id in one transaction
-npm run extract -- <file.pdf | url> [--out t.txt]  # STM-14: run extraction in Node and print chars, fingerprint, spans and a sample (writes nothing)
+npm run extract -- <file.pdf | url> [--out t.txt] [--chunks]  # STM-14: run extraction in Node and print chars, fingerprint, spans and a sample (writes nothing); --chunks also prints the STM-17 chunks
 ```
 
 Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a throwaway Neon branch first: `DATABASE_URL_UNPOOLED="$(neon connection-string <branch>)" npm run db:migrate`. pgvector is created by `drizzle/0000_enable_pgvector.sql` (drizzle-kit does not create extensions).
@@ -78,6 +78,7 @@ worker/durable/user-session.ts  UserSession DO (STM-9), one per user via idFromN
 worker/durable/generation-lock.ts  GenerationLock DO (STM-16), one per content fingerprint via idFromName(fingerprint): claim / renew / release; exported from worker/index.ts
 worker/quiz/flush.ts   STM-10: writeFinishedSession(), the one-transaction write of a finished quiz (called only by the DO)
 worker/extract/        STM-14: extractSource() (index.ts) → Extracted {text, fingerprint, title, url, spans, meta} | ExtractFailure {code, message (user-facing), retryable}. normalise.ts + fingerprint.ts (pure), pdf.ts (unpdf), article.ts (linkedom + Readability), youtube.ts (InnerTube captions), source-url.ts (URL kinds, SSRF checks), safe-fetch.ts
+worker/chunk/          STM-17: chunkSource({kind, text, title, spans}) → Chunk[] (index.ts: sections, split, join, page/time labels), headings.ts (heading detection per kind). Pure
 worker/uploads/        STM-13: upload-rules.ts (pure: schemas, size/type checks, key `uploads/<users.id>/<sourceId>.pdf`, 5-min TTL), presign.ts (aws4fetch SigV4 presigned PUT, signs Content-Type + Content-Length), upload-routes.ts (POST /api/uploads, POST /api/uploads/complete, GET /api/uploads/:id)
 worker/questions/payload.ts  Zod schemas for questions.payload per format; payloadByFormat + withFormatPayload(shape) is the one place a format joins the union
 worker/testing/       test-only: cloudflare:workers stub (aliased in vitest.config.ts) and a fake DO state; *.test.ts sit next to the code
@@ -161,6 +162,14 @@ Plain functions the Workflow will call; they never touch Postgres. Input: the PD
 - **PDF**: > 20 MB → upload message; > 50 pages → "This PDF has N pages. The limit is 50."; < 200 letters, or < 25 letters/page → the scanned-PDF message. Running headers/footers and page numbers are dropped (pages of 10+ lines only); `spans` are page ranges ("p. 3").
 - **Article**: http(s) only, default ports, no credentials, no localhost/private/link-local IP literals, re-checked on every redirect (max 5); 15 s, 5 MB. Readability picks the main text; headings become `## …`. Under 300 letters → "I couldn't find an article on that page."
 - **YouTube** (fragile, undocumented): InnerTube `/youtubei/v1/player` as the ANDROID client (no key, no OAuth; its caption URLs need no PO token), English uploaded captions before auto, srv3 XML → paragraphs with `m:ss` spans. Verified from Cloudflare's network 2026-10-05. Blocks/429/empty bodies → `youtube_blocked` (retryable); if it breaks, the client name/version in `youtube.ts` is the first thing to change.
+
+### Chunk (STM-17, `worker/chunk/`)
+Pure and deterministic; the Workflow's chunk step returns `chunkSource(...)`. `Chunk = { ordinal, start, end, headingPath: string[], location: string | null }`, matching `source_chunks` (`ordinal`, `char_start`/`char_end`, `heading_path`). The Extract step returns `title` and `spans` too, for the chunker. **Ranges, not text**: later steps take `text.slice(start, end)` from the Extract step's result (chunks of a 90k-char paper are ~3.5 KB).
+- **Ranges** are trimmed and in order; the gaps between them are whitespace only, so every non-whitespace char is in exactly one chunk.
+- **Sizes**: target 4,000 chars, max 6,000, min 1,200. A section over the max is cut into near-equal pieces at the best break near each cut: blank line > sentence end > line break > space (never mid-word unless a 6,000-char run has no space). A piece under the min joins the next (else the previous) within the max, keeping the headings both share; **two parts that share no heading stay apart** (a citation must be true of the whole chunk), except the untitled opening, which joins the first section. So short top-level sections (Acknowledgements, a 1,000-char Conclusion) can be short chunks.
+- **Headings**: article `#…######` lines standing alone between blank lines, nested by level. PDF (no font info): numbered section lines (`3.1 Execution Overview`; `1. INTRODUCTION` only in ALL CAPS, so numbered list items don't count) whose number follows the previous heading (child, next sibling, or one skipped), plus lines that are exactly Abstract / Introduction / Background / Related work / Conclusion(s) / Summary / Acknowledg(e)ments / References / Bibliography / Appendix …. A heading wrapped onto two lines keeps only its first line. YouTube: none.
+- **Path fallback**: text before the first heading, and sources with no headings, get `[title]` (tool-generated PDF titles like "Microsoft Word - x.doc" are ignored → `[]`).
+- **location**: PDF `"p. 4"` / `"pp. 4–5"`, YouTube `"3:05–7:40"` (ends where the next caption paragraph starts; the last chunk ends at its last paragraph's start), article `null`.
 
 ## User-facing messages (use these exact strings)
 

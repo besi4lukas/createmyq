@@ -109,6 +109,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-17 Chunking** · 1.5h · depends: STM-14
   Section headings preserved so questions can cite their source.
   **Done when:** chunks carry a heading path and a character range.
+  Status: in review (PR #19). Verified 2026-10-06 in Node on real extractions: MapReduce (55,135 chars → 24 chunks, median 1,736 chars, e.g. "3 Implementation › 3.1 Execution Overview (pp. 3–4)"), Raft (90,740 → 28, up to "5 … › 5.4 Safety › 5.4.2 …"), Dynamo (ACM "1. INTRODUCTION" style, 93,673 → 34), martinfowler.com/articles/microservices.html (34,183 → 11, "Characteristics … › Decentralized Governance"), YouTube JSConf event loop (manual captions, 22,170 → 6, "0:01–4:23") and Rails Conf 2012 keynote (auto captions, 35,375 → 9); every chunk in bounds, ≤ 6,000 chars, trimmed, gaps whitespace-only, deterministic; no false PDF headings seen (numbered list items, reference entries and figure numbers rejected), wrapped two-line headings keep their first line only. In workerd: a local dev server (port 5197) on throwaway Neon branch `stm-17-chunk-test` (deleted) ran the Workflow on MapReduce and Raft PDFs in `createmyq-uploads-dev` (deleted); the chunk step returned the same 24 / 28 chunks as Node (2.7 / 3.5 KB step results) and both runs completed.
 
 - [ ] **STM-18 Generation step** 🔍 · 3h · depends: STM-15, STM-17
   Zod schema per format, call through AI Gateway, validate, retry once, discard on second failure, store with citation. Target 20–25, fail below 5.
