@@ -17,6 +17,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { chunkSource, type ChunkInput } from "../chunk";
 import { withDb } from "../db/client";
 import { sources } from "../db/schema";
 import { extractSource, type ExtractInput } from "../extract";
@@ -54,7 +55,9 @@ const STUB_STEP = {
 } satisfies WorkflowStepConfig;
 
 type SourceToRead = { kind: "pdf" | "article" | "youtube"; r2Key: string | null; url: string | null };
-type Extract = { ok: true; text: string; fingerprint: string } | { ok: false; code: string; message: string };
+type Extract =
+  | { ok: true; text: string; fingerprint: string; title: ChunkInput["title"]; spans: ChunkInput["spans"] }
+  | { ok: false; code: string; message: string };
 type StepContext = { step: { name: string }; attempt: number };
 
 export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams> {
@@ -99,8 +102,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         await step.do("fingerprint", STUB_STEP, logged(async () => ({ fingerprint: extracted.fingerprint, bankExists: false })));
         // TODO(STM-21/22): sample chunks from start, middle and end; refuse off-topic sources.
         await step.do("classify", STUB_STEP, logged(async () => ({ verdict: "accepted" as const })));
-        // TODO(STM-17): real chunks with heading paths and char ranges.
-        const chunks = await step.do("chunk", STUB_STEP, logged(async () => [{ start: 0, end: extracted.text.length }]));
+        const chunks = await step.do("chunk", STUB_STEP, logged(async () => chunkSource({ kind: source.kind, ...extracted })));
         // TODO(STM-18): generate through AI Gateway, Zod-validate, retry once, drop.
         const drafts = await step.do("generate", STUB_STEP, logged(async () => stubQuestions(extracted.fingerprint)));
         // TODO(STM-19): rubric score and vector near-duplicate filter.
@@ -151,7 +153,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
       return { ok: false, code: result.code, message: result.message };
     }
     if (!fitsInStepResult(result.text)) return { ok: false, code: "too_much_text", message: TOO_MUCH_TEXT };
-    return { ok: true, text: result.text, fingerprint: result.fingerprint };
+    return { ok: true, text: result.text, fingerprint: result.fingerprint, title: result.title, spans: result.spans };
   }
 
   private async extractInput(source: SourceToRead): Promise<ExtractInput> {

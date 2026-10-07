@@ -5,21 +5,23 @@
  *   npm run extract -- ./some.pdf
  *   npm run extract -- https://martinfowler.com/articles/microservices.html
  *   npm run extract -- https://youtu.be/8aGhZQkoFbQ --out /tmp/transcript.txt
+ *   npm run extract -- ./some.pdf --chunks     # also print the STM-17 chunks
  *
  * Same code as the Worker (worker/extract), run in Node. To check it inside
  * workerd, use scripts/extract-harness (see its header).
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { chunkSource } from "../worker/chunk";
 import { extractSource, parseSourceUrl, type ExtractResult } from "../worker/extract";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { out: { type: "string" }, chars: { type: "string", default: "300" } },
+  options: { out: { type: "string" }, chars: { type: "string", default: "300" }, chunks: { type: "boolean", default: false } },
 });
 const target = positionals[0];
 if (!target) {
-  console.error("usage: npm run extract -- <file.pdf | url> [--out text.txt] [--chars 300]");
+  console.error("usage: npm run extract -- <file.pdf | url> [--out text.txt] [--chars 300] [--chunks]");
   process.exit(2);
 }
 
@@ -62,4 +64,16 @@ console.log(result.text.slice(0, Number(values.chars)));
 if (values.out) {
   writeFileSync(values.out, result.text);
   console.log(`--- full text written to ${values.out} ---`);
+}
+if (values.chunks) {
+  const chunks = chunkSource(result);
+  const sizes = chunks.map((c) => c.end - c.start).sort((a, b) => a - b);
+  const at = (q: number) => sizes[Math.min(sizes.length - 1, Math.floor(q * sizes.length))] ?? 0;
+  console.log(`--- ${chunks.length} chunks; chars min ${at(0)}, median ${at(0.5)}, max ${at(1)} ---`);
+  for (const c of chunks) {
+    const head = result.text.slice(c.start, c.end).slice(0, 80).replace(/\n/g, " ⏎ ");
+    const where = c.location ? ` (${c.location})` : "";
+    console.log(`#${c.ordinal} [${c.start}, ${c.end}) ${c.end - c.start} chars${where} ${c.headingPath.join(" › ") || "(no heading)"}`);
+    console.log(`    ${head}`);
+  }
 }
