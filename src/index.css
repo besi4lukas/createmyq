@@ -15,27 +15,27 @@
  * (The theme switch itself arrives with the Preferences screen.)
  */
 :root {
-  --bg: #161826;
-  --surface: #232532;
-  --text: #e9e9ed;
-  --accent: #9184d9;
-  --divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+  --bg: #111215;
+  --surface: #1a1b1f;
+  --text: #e6e6ea;
+  --accent: #a29cd0;
+  --divider: color-mix(in srgb, #e6e6ea 12%, transparent);
 
-  --neutral-100: #f3f5fe; --neutral-200: #e4e7f5; --neutral-300: #cfd3e5;
-  --neutral-400: #b2b6ca; --neutral-500: #9397ab; --neutral-600: #75798c;
-  --neutral-700: #595d6c; --neutral-800: #3f424d; --neutral-900: #292b31;
+  --neutral-100: #f2f2f4; --neutral-200: #e2e3e7; --neutral-300: #c9cad1;
+  --neutral-400: #a9abb4; --neutral-500: #8a8c96; --neutral-600: #6c6e78;
+  --neutral-700: #50525b; --neutral-800: #383a41; --neutral-900: #24252a;
 
-  --accent-100: #f5f4ff; --accent-200: #e7e5fe; --accent-300: #d2cefd;
-  --accent-400: #b5abfc; --accent-500: #968ae0; --accent-600: #796cbf;
-  --accent-700: #5d5294; --accent-800: #423a6a; --accent-900: #2b2741;
+  --accent-100: #eeedf6; --accent-200: #dcdaec; --accent-300: #c3bfdf;
+  --accent-400: #a6a0cc; --accent-500: #8b84b8; --accent-600: #6f699a;
+  --accent-700: #555175; --accent-800: #3c3a52; --accent-900: #28273a;
 
-  --wrong: oklch(0.78 0.11 30);
-  --wrong-bg: oklch(0.28 0.04 30);
-  --wrong-bd: oklch(0.58 0.09 30);
+  --wrong: oklch(0.76 0.08 30);
+  --wrong-bg: oklch(0.24 0.025 30);
+  --wrong-bd: oklch(0.5 0.06 30);
 
-  --elev-sm: 0 0 0 1px #3f424d;
-  --elev-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
-  --elev-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+  --elev-sm: 0 0 0 1px #2a2b31;
+  --elev-md: 0 0 0 1px #33353b, 0 8px 24px rgba(0, 0, 0, 0.5);
+  --elev-lg: 0 0 0 1px #3d3f46, 0 18px 48px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 
@@ -131,11 +131,9 @@
   --shadow-md: var(--elev-md);
   --shadow-lg: var(--elev-lg);
   --shadow-selected: inset 0 0 0 1px var(--accent);
-  --shadow-glow: 0 0 32px color-mix(in srgb, var(--accent) 35%, transparent);
 
-  /* The results score's glow (Results B). */
+  /* No glows: elevation is the 1px edge + black ambient shadow above, nothing else. */
   --text-shadow-*: initial;
-  --text-shadow-glow: 0 0 48px color-mix(in srgb, var(--accent) 45%, transparent);
 
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -149,9 +147,7 @@
 
 @layer base {
   html, body {
-    background:
-      radial-gradient(1200px 600px at 20% -10%, var(--accent-900), transparent 60%) no-repeat,
-      var(--bg);
+    background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
   }

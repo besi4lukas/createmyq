@@ -8,7 +8,7 @@ export function LogoMark({ large = false }: { large?: boolean }) {
       aria-hidden="true"
       className={
         large
-          ? "grid size-11 place-items-center rounded-tile border border-accent text-h4 font-semibold text-accent shadow-glow"
+          ? "grid size-11 place-items-center rounded-tile border border-accent text-h4 font-semibold text-accent"
           : "grid size-7 place-items-center rounded-md border border-accent text-ui font-semibold text-accent"
       }
     >
