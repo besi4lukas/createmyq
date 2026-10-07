@@ -59,12 +59,17 @@
   // `createmyq` (create it first: dashboard → AI → AI Gateway). The key is the
   // secret ANTHROPIC_API_KEY. GENERATION_ENABLED is the kill switch: anything
   // but "true" fails every new run with a clear message before any model call.
-  // Off until STM-24's daily cap and spend ceiling exist; .dev.vars turns it on locally.
+  // The daily cap and spend ceiling (STM-24) are automatic gates behind it; .dev.vars turns it on locally.
   "vars": {
     "R2_ACCOUNT_ID": "037430f3820d50ee00c0ee8ed692bc00",
     "UPLOADS_BUCKET_NAME": "createmyq-uploads",
     "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/037430f3820d50ee00c0ee8ed692bc00/createmyq/anthropic",
-    "GENERATION_ENABLED": "false"
+    "GENERATION_ENABLED": "false",
+    // STM-24: generation runs per user per day (the user's local day; worker/limits/daily-cap.ts)
+    // and dollars per UTC calendar month across everyone (spend recorded in model_calls;
+    // worker/limits/spend.ts). Crossing the ceiling stops new runs before any model call.
+    "DAILY_GENERATION_CAP": "3",
+    "SPEND_CEILING_USD": "15"
   },
   // STM-15: making questions runs in the background, never in a request or a
   // user's Durable Object. POST /api/uploads/complete sends { sourceId } to the
