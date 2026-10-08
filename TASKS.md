@@ -129,8 +129,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
   Status: done (PR #22, CI run 37706749646). Open: the 6 `ambiguous` entries (CISA Secure by Design, Rules of ML, ETL accepted; NIST CSF, ENIAC, Scrum refused) still carry proposed labels awaiting a ruling. Verified 2026-10-07: `fixtures/eval/manifest.json` (Zod-validated) lists 50 real sources, 25 accepted / 25 refused (PDF 8/9, article 13/12, YouTube 4/4; 22 borderline incl. hard negatives such as pure maths, physics, EE, statistics, Excel help, crypto trading, product management and a hacker novel; the STM-22 cooking PDF). 38 entries have committed text (public domain, US gov, CC BY, CC BY-SA; 1.6 MB, extracted by `extractSource`), 12 are fetched on demand into gitignored `.cache/` (copyrighted pages, YouTube captions, CC BY-NC-SA novel, CISA PDF). `npm run eval:check` from a clean clone: cold 50/50 loaded, 0 failures (~6 s, network for the 12 fetch entries), warm and `--offline` 50/50 in < 0.1 s. Six entries are `ambiguous` with proposed labels awaiting a ruling (see `fixtures/eval/README.md`). No synthetic entries.
 
 - [ ] **STM-21 `Classifier` interface + benchmark** · 3h · depends: STM-20
-  Two implementations, Jev and a single model call, plus a benchmark script scoring both on accuracy, latency and cost. The gate must clear **90% accuracy** before going live.
-  **Done when:** both implementations have real numbers, and swapping them is a one-line change.
+  Three implementations: an **embedding classifier** (Workers AI Qwen3 embeddings vs fixed label descriptions), a **single Claude Haiku call**, and the **combined classifier** (embeddings first, Haiku when embedding confidence is low), plus a benchmark script scoring all three on accuracy, latency and cost. The gate must clear **90% accuracy** before going live.
+  _Changed 2026-10-07:_ originally "Jev and a single model call". Jev (Workers AI `typesafe/jev`) needs prepaid AI Gateway credits, which the account doesn't have, and the user chose not to add them; the embedding + Haiku fallback design matches the pipeline's Classify step ("low confidence falls through to one model call").
+  **Done when:** all three have real numbers, and swapping the active classifier is a one-line change.
+  _Status:_ in review. Real run 2026-10-07 on the 50-entry set (`fixtures/eval/results/STM-21.md`): embedding, Haiku and fallback all 100% (44/44) on the unambiguous entries (gate cleared; 95% lower bound 93.4%), 83.3% (5/6) on the ambiguous ones, 98% overall; refused precision/recall 100%. Cost per 1,000 sources: embedding $0.04, Haiku $3.18, fallback (t = 0.9, 14% to Haiku) $0.47. `detected` match 87.5% / 91.7% / 91.7%. Active: `ACTIVE_CLASSIFIER = "fallback"`, `FALLBACK_THRESHOLD = 0.9` in `worker/classifier/index.ts` (the set cannot choose a threshold: every value scores 44/44). Not wired into the Workflow (STM-22).
 
 - [ ] **STM-22 Wire the gate into the Workflow** · 1.5h · depends: STM-21
   Sample chunks from start, middle and end, aggregate, fall through to the model on low confidence, record every decision with its inputs.
@@ -191,6 +193,6 @@ These are in the design tab's "What ships in beta" or FR list, but no ticket abo
 | Risk | Signal | Response |
 |---|---|---|
 | Question quality is mediocre | I would not want to answer my own generated questions | Stop feature work and spend a day on the generation prompt and rubric |
-| Jev underperforms the baseline | STM-21 shows worse accuracy or no cost saving | Keep the model classifier and the interface, and write up the comparison |
+| Embedding gate underperforms the model on real uploads | STM-21/22: embeddings less accurate than Haiku, a high fall-through rate, or wrong `detected` phrases in decision logs | Raise `FALLBACK_THRESHOLD` or switch `ACTIVE_CLASSIFIER` to `"model"` (one line, ~$0.003 per source), and add the misses to the eval set |
 | DO → Postgres flush is flaky | Sessions missing after finish | Stop and fix immediately |
 | Sprint runs long | Two days behind by Day 4 | Take all three cuts at once |

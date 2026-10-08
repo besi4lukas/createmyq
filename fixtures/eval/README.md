@@ -7,6 +7,7 @@ npm run eval:check                 # load all 50, print the breakdown, exit 1 on
 npm run eval:check -- --offline    # no network; fails if a fetch entry isn't cached yet
 npm run eval:check -- --show off-pdf-nhlbi-cookbook   # also print text and samples for one entry
 npm run eval:snapshot -- <id>      # (re)write a committed text from its real source
+npm run eval:bench                 # STM-21: score the classifiers (needs scripts/classifier-harness running; billed, ~$0.17 a full run)
 ```
 
 In code:

@@ -16,5 +16,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["worker"]
+  "include": ["worker", "scripts/classifier-harness"]
 }

@@ -97,7 +97,7 @@ export const questionOrigin = pgEnum("question_origin", ["seed", "generated"]);
 export const sessionKind = pgEnum("session_kind", ["category", "source", "review"]);
 export const sessionMode = pgEnum("session_mode", ["practice", "exam"]);
 export const answerVerdict = pgEnum("answer_verdict", ["correct", "partial", "incorrect"]);
-/** Whether code, the classifier (Jev) or a model decided the verdict. */
+/** Whether code, the classifier (STM-21: embeddings, worker/classifier/) or a model decided the verdict. */
 export const gradedBy = pgEnum("graded_by", ["code", "classifier", "model"]);
 
 // ---------------------------------------------------------------------------
@@ -198,8 +198,8 @@ export const sources = pgTable(
     detectedNiche: text("detected_niche"),
     confidence: real("confidence"),
     reason: text("reason"),
-    classifiedBy: text("classified_by"), // added: e.g. "jev" or "model"
-    classificationInputs: jsonb("classification_inputs"), // added: sampled chunks + per-chunk scores (STM-22)
+    classifiedBy: text("classified_by"), // added: "embedding" or "model" (worker/classifier ClassifiedBy; STM-22 writes it)
+    classificationInputs: jsonb("classification_inputs"), // added: sampled chunks + per-chunk scores (Classification.embedding / .primary, STM-22)
     error: text("error"), // added: the user-facing failure message
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
