@@ -20,7 +20,7 @@
  * Only when the session was inserted (a conflict returns before it), and
  * behind a savepoint: if that step fails, it is rolled back and logged, and the
  * session still commits. Results come first; a miss row heals itself the next
- * time the question is answered (or with scripts/refresh-misses.ts).
+ * time the question is answered.
  */
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client";
