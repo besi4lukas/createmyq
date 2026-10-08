@@ -1,0 +1,892 @@
+Beyond Phasors: Solving Non-Sinusoidal Electrical
+Circuits using Geometry
+Javier Castillo-Mart´ınez, Raul Ba˜nos and Francisco G. Montoya
+Abstract—Classical phasor analysis is fundamentally limited
+to sinusoidal single-frequency conditions, which poses challenges
+when working in the presence of harmonics. Furthermore, the
+conventional solution, which consists of decomposing signals
+using Fourier series and applying superposition, is a fragmented
+process that does not provide a unified solution in the frequency
+domain. This paper overcomes this limitation by introducing a
+complete and direct approach for multi-harmonic AC circuits
+using Geometric Algebra (GA). In this way, all non-sinusoidal
+voltage and current waveforms are represented as simple vectors
+in a 2N -dimensional Euclidean space. The relationship between
+these vectors is characterized by a single and unified geometric
+transformation termed the rotoflex. This operator elevates the
+concept of impedance from a set of complex numbers per frequency to a single multivector that holistically captures the circuit
+response, while unifying the magnitude scale (flextance) and
+phase rotation (rotance) across all harmonics. Thus, this work
+establishes GA as a structurally unified and efficient alternative
+to phasor analysis, providing a more rigorous foundation for
+electrical circuit analysis. The methodology is validated through
+case studies that demonstrate perfect numerical consistency with
+traditional methods and superior performance.
+I. INTRODUCTION
+Complex numbers are widely used in electrical circuit
+analysis, a practice that originates from the phasor method
+introduced by Charles Proteus Steinmetz in 1893 [1]. Since
+then, its application has become widespread, significantly
+simplifying the analysis of sinusoidal alternating current (AC)
+circuits and networks under steady-state conditions [2]. However, while early electrical systems were predominantly linear,
+for which the phasor method was entirely sufficient, the proliferation of non-linear loads is now ongoing and widespread.
+This trend is attributed to several key factors, including the
+widespread adoption of energy-efficient LED lighting [3] and
+the widespread use of power electronics in both household
+appliances and HVAC/R systems [4]. Furthermore, a substantial contributor to this phenomenon is the industrial sector,
+where non-linear high-power loads, such as variable frequency
+drives (VFDs), electric arc furnaces, welding equipment, and
+electrolysis processes, are prevalent and significantly distort
+current waveforms [5]. Critically, the large-scale integration
+of renewable energy sources via their associated inverters and
+converters further aggravates the introduction of non-linearities
+in voltage and current waveforms [6].
+Within this operational context, the classical phasor method
+exhibits fundamental limitations, as its applicability is restricted to linear circuits with purely sinusoidal sources, and
+its analytical power is limited to calculations in the frequency domain at a single fundamental frequency [7]. The
+conventional workaround for non-sinusoidal signals involves
+decomposing the waveforms using the Fourier series and then
+applying superposition to analyze each harmonic individually
+[8]. This decomposition, however, exposes a core dimensional restriction of complex algebra: each harmonic must
+be represented in its own two-dimensional complex plane.
+These orthogonal frequency planes cannot be aggregated in
+the frequency domain using conventional complex numbers,
+which are inherently limited to represent planar quantities [9],
+forcing the final results to be reconstructed in the time domain
+[10]. This constraint precludes a unified frequency domain
+solution and prevents direct corroboration of principles such
+as energy conservation across all harmonics [11]. Furthermore,
+the traditional formalism offers limited geometric insight, as
+the imaginary unit j is an abstract algebraic tool with no direct
+geometric equivalent. This fragments physical quantities such
+as power into separate real and imaginary parts, obscuring
+their nature as unified geometric entities. Several alternatives
+for analyzing non-linear systems exist, including simulations
+in the time domain, where the circuit is modeled as a system of
+non-linear integro-differential equations, which are then solved
+numerically step by step [12]. Another approach is state-space
+analysis, which remains relevant today in fields such as renewable energy grids [13]. Other methods, such as the dynamic
+phasor approach, have been proposed to unify the time and
+frequency domains but face significant limitations, including
+the assumption of slow-varying dynamics and inaccuracies in
+capturing the dynamic response [14].
+While complex algebra has been the cornerstone of
+frequency-domain analysis, Geometric Algebra (GA) presents
+a more general and unifying mathematical system that contains
+complex numbers as a subset. In this context, Menti et al.
+[10] first applied GA to represent power under non-sinusoidal
+conditions, introducing the ”power multivector”. Subsequently,
+a Generalized Complex Geometric Algebra (GCGA) was
+established to offer a more detailed geometric interpretation
+of apparent power [15], with research extending to analysis of
+power flow with harmonics [16]. Furthermore, GA has been
+shown to subsume and generalize classical tools such as the
+Clarke and Park transformations [17] and has been applied
+to solve contemporary engineering challenges [18]. Beyond
+power systems, its applicability has also been explored in
+signal processing [19]. This body of work establishes GA not
+only as an alternative, but as a more encompassing language
+that unifies disparate concepts into a single, coherent, and
+geometrically intuitive structure.
+While the application of Geometric Algebra (GA) to electrical circuit analysis has been addressed in a growing body
+of literature, a comprehensive framework that offers a direct
+arXiv:2511.06997v1 [eess.SY] 10 Nov 2025
+
+solution based solely on GA principles has yet to be presented.
+Existing approaches often integrate GA as a conceptual or
+partial tool rather than as a self-contained end-to-end methodology. Thus, this paper addresses this gap by presenting, for
+the first time, a complete methodology for the frequencydomain analysis of electrical circuits under non-sinusoidal
+conditions using exclusively Geometric Algebra. In contrast
+to the classical phasor method, which requires a sequential,
+harmonic-by-harmonic analysis, this framework provides a
+direct solution that simultaneously accounts for all frequency
+components. This novel framework can be extended to any
+field within electrical engineering beyond circuit analysis,
+including power systems, electrical machines, or high-voltage
+transmission lines, to mention a few.
+The main contributions of this approach are summarized as
+follows:
+• It establishes a unified algebraic structure that resolves the
+complete non-sinusoidal problem in a single operation,
+avoiding the traditional decomposition required by the
+Fourier series and superposition principle.
+• It transcends the two-dimensional limitation of complex
+numbers, which can only represent a single harmonic
+in the Argand plane, by employing a 2N -dimensional
+Euclidean space. This framework concurrently solves for
+N harmonics and is computationally more efficient than
+the classical per-harmonic complex-number solution.
+• It preserves the intuitive link between the frequency and
+time domains by establishing a direct correspondence
+between its multivector elements and the complete nonsinusoidal waveforms, thus generalizing the relationship
+between a single phasor and a single sine wave.
+The remainder of this article is structured as follows:
+Section II describes the fundamentals of geometric algebra,
+as well as the new operators proposed to address the problem
+posed; Section III formally presents the proposed method;
+Section IV presents the experimental analysis and shows
+how the results obtained in different test circuits support the
+advantages of the new method; and Section V summarizes the
+findings and suggests the potential of this methodology for
+future exploration in other electrical engineering applications.
+II. THEORETICAL BACKGROUND
+This section outlines the mathematical foundations of Euclidean Geometric Algebra. First, the key concepts of the
+algebra are presented, followed by the definitions of its most
+relevant operations and properties.
+A. Fundamentals of Euclidean Geometric Algebra
+Geometric Algebra (GA), built on the ideas of Grassmann
+and Clifford, offers a unified and geometrically intuitive
+mathematical framework [20], [21]. This work specifically
+uses the Euclidean Geometric Algebra Gn, generated from
+an n-dimensional real vector space. This space is endowed
+with an inner product and an orthonormal basis of vectors
+{σ1, σ2, . . . , σn} that satisfy the relation σ2
+i = σi · σi = 1.
+The elements of this algebra are constructed from basis
+elements, or blades, which are classified by their grade, or
+geometric dimensionality. The simplest element is a grade-
+0 blade, which is a scalar (α, β ∈ R). A grade-1 blade
+is a vector representing a 1D oriented entity. Higher-grade
+blades are formed through the outer product; for example,
+a grade-2 blade, or bivector a ∧ b, represents an oriented
+plane. This concept is generalized to a grade blade j or a jvector, which represents an oriented j-dimensional subspace.
+The most general element in Gn is the multivector, a linear
+combination of blades of different grades:
+M =
+nX
+j=0
+⟨M ⟩j (1)
+where ⟨M ⟩j is the grade-j part of the multivector M .
+The two operations that define the structure of GA are the
+outer product and the geometric product.
+Outer Product (∧): The outer product of two vectors a and
+b generates a bivector a ∧ b. Its magnitude corresponds to
+the area of the parallelogram spanned by the vectors, and its
+orientation defines the plane they contain. It is associative and
+anticommutative for vectors:
+a ∧ b = −b ∧ a (2)
+This property implies a ∧ a = 0, which encodes the idea
+that two collinear vectors do not define an area.
+Geometric Product: This is the central operation of GA
+and is denoted by juxtaposition. The geometric product of two
+vectors a and b is defined as:
+ab = a · b + a ∧ b (3)
+This product combines the symmetric inner product (scalar
+part, a · b) and the antisymmetric outer product (bivector part,
+a ∧ b). It is associative and, crucially, invertible for non-null
+vectors, a property that allows for division by vectors in a
+manner analogous to division by complex numbers.
+B. Properties and Notation
+From the geometric product, several highly useful operations are derived [21]. The most important for this work are
+the reverse, the inverse, and rotation.
+• Reverse: The reverse operation, denoted by †, consists
+of reversing the order of all vector products within a
+multivector. Given a j-vector Aj , its reverse is defined as
+A†
+j = (−1)j(j−1)/2Aj . In this framework, the traditional
+complex conjugate is subsumed as a special case of the
+reverse operation.
+• Inverse: Any non-null vector a has a unique multiplicative inverse, given by:
+a−1 = a
+a2 = a
+|a|2 (4)
+• Vector Rotation: One of GA’s most powerful features is
+its ability to perform rotations algebraically. Rotations are
+universally handled in any dimension using an operator
+called a rotor, denoted by R. A vector b is rotated into a
+vector a (of the same magnitude) through the sandwich
+product:
+a = R∗bR†
+∗ (5)
+
+σ1 σ2
+σ3
+φb
+a
+ˆB
+Fig. 1: Rotation of a vector b to a vector a by an angle φ
+within a plane ˆB.
+TABLE I: Notation used in this paper.
+Symbol Description
+α, β, . . . Scalars (lowercase Greek letters)
+a, b, . . . Vectors (lowercase bold Latin letters)
+B, F , . . . Bivectors (uppercase bold Latin letters)
+M , N , R, . . . Multivectors (uppercase bold Latin letters)
+ab Geometric product of a and b
+a · b Inner product
+a ∧ b Outer product
+M † Reverse of the multivector M
+M −1 Inverse of the multivector M
+|M | Magnitude of the multivector M
+⟨M ⟩j Projection of the multivector M onto the grade-j
+subspace
+The rotor itself can be constructed from the plane of
+rotation and the desired angle. For a rotation with an
+angle φ in the plane defined by the unit bivector ˆB (see
+Fig 1), the rotor is formed using the half-angle:
+R∗ = cos
+φ
+2
+
++ ˆB sin
+φ
+2
+
+= e φ
+2 ˆB (6)
+To ensure clarity, the notation used throughout this paper is
+summarized in Table I.
+III. PROPOSED METHODOLOGY
+A. The GA Framework for AC Circuit Analysis
+Formally, this representation establishes a direct isomorphism between a time-domain signal and a GA vector. A nonsinusoidal signal u(t), expanded into its Fourier series up to
+the N-th harmonic, is given by:
+u(t) = Udc + √2
+NX
+h=1
+Uh cos(hωt − αh)
+= Udc + √2
+NX
+h=1
+(Uh,c cos(hωt) + Uh,s sin(hωt))
+(7)
+where the coefficients Uh,c = Uh cos αh and Uh,s = Uh sin αh
+are the RMS values of the cosine and sine components of
+the h-th harmonic, respectively. Ignoring the DC component
+for AC analysis, this set of 2N coefficients is mapped to
+the components of a single vector u in a 2N -dimensional
+Euclidean space [16]:
+u = X uh =
+NX
+h=1
+(u2h−1σ2h−1 + u2hσ2h)
+=
+NX
+h=1
+Uhe−αh ˆBh σ2h−1
+(8)
+where u2h−1 = Uh,c, u2h = Uh,s and ˆBh = σ2h−1 ∧ σ2h =
+σ2h−1,2h. The basis vectors {σj } are constant, orthonormal
+vectors, analogous to standard Cartesian basis vectors. The
+entire time dependence of the signal is thus encoded in
+this static vector representation, which captures its complete
+harmonic content.
+The analysis of alternating current (AC) circuits with linear
+loads is traditionally performed using complex numbers. Although effective for single-frequency conditions, the validity
+of this method collapses in the presence of harmonics. The
+conventional workaround involves decomposing the waveform
+via a Fourier Series and applying superposition, an inefficient
+process that requires solving the circuit for each harmonic
+individually. Geometric Algebra (GA) provides a powerful
+mathematical framework to overcome this limitation. Thus,
+voltage and current are represented as vectors, u and i, in a
+geometric space where their Fourier coefficients serve as coordinates. In this formulation, the relationship between voltage
+and current becomes a purely geometric transformation, where
+the output vector is a scaled and rotated version of the input
+vector.
+The most general form of this transformation is expressed
+through the sandwich product, which is robust for rotations in
+any dimension. For a generic scaling factor k and a half-angle
+rotor R⋆, the dual transformations can be written as:
+i = kR⋆uR†
+⋆, u = k−1R†
+⋆iR⋆ (9)
+While universally applicable, this operation can be simplified
+into a more compact, direct transformation. By choosing a
+rotor that operates within the plane defined by u and i, the
+sandwich product simplifies it to a direct geometric product
+with a full-angle rotor, R = R2
+⋆. For practical circuit analysis,
+this direct transformation is adapted to two primary reciprocal
+forms. The first, used for series circuits, calculates the current
+from the voltage:
+i = ksRsu (10)
+Here, ks is a scalar named the series flextance, defined as
+ks = ∥i∥/∥u∥ (with units of Siemens, S), and Rs is the series
+rotance that performs the rotation from u to i.
+The second form, used for parallel circuits, calculates the
+voltage from the current:
+u = kpRpi (11)
+Here, kp is the parallel flextance, noting its reciprocal definition kp = ∥u∥/∥i∥ (with units of Ohms, Ω) and the rotor Rp
+is the parallel rotance that rotates i to u.
+The primary advantage of this formulation is the ability to
+consolidate scaling and rotation into a single unified operator.
+
+This combined operator is named rotoflex, denoted by Θ,
+which encapsulates the product of a scaling factor k and a
+rotation operator R:
+Θ = kR (12)
+This operator admits two fundamental realizations depending on the circuit topology: the series rotoflex Θs = ksRs
+yielding i = Θsu, and the parallel rotoflex Θp = kpRp
+yielding u = Θpi. Since the rotance R is a dimensionless
+geometric operator, the units of the rotoflex Θ are identical to
+those of its flextance k. Both forms are entirely consistent and
+provide full analytical flexibility through their corresponding
+inverse relations:
+Θ−1 = (kR)−1 = k−1R−1 = k−1R† (13)
+This inverse property enables bidirectional computation
+between voltage and current in both topologies: u = Θ−1
+s i
+for the series case, and i = Θ−1
+p u for the parallel case.
+The primary contribution of this work, therefore, is to
+derive these specific rotoflex operators for fundamental RLC
+loads. By doing so, it lays the foundation for a paradigm
+that transcends the dimensional restriction of complex algebra,
+enabling for the first time a unified solution in the frequency
+domain. This approach relax the need to reconstruct the final
+response in the time domain, positioning Geometric Algebra
+as a conceptually superior framework compared to phasor
+analysis for the analysis of modern electrical circuits.
+B. Calculation of the Flextance
+The calculation of the scaling factors, or flextances, depends
+on two key components: the harmonic profile of the known
+input signal and the frequency response of the circuit’s topology. To present this calculation in a unified framework, it is
+defined a generalized approach that applies to both series and
+parallel circuits.
+The first component required is the spectral weight, γh,
+which represents the normalized magnitude of each harmonic
+component h of the known input signal signal x(t). This signal
+in vector form will be the voltage u for the series case and
+the current i for the parallel case.
+γ2
+h = x2
+2h−1 + x2
+2h
+∥x∥2 = x2
+2h−1 + x2
+2h
+P2N
+j=1 x2
+j
+= X2
+h
+P2N
+j=1 x2
+j
+(14)
+The second component is the spectral kernel, κh, which
+encodes the circuit’s frequency-dependent response to each
+harmonic. Its squared magnitude is defined generally based
+on the circuit’s dissipative and energy storing properties at the
+h-th harmonic:
+κ2
+h = 1
+D2
+h + X 2
+h
+(15)
+where Dh represents the harmonic dissipance, the dissipative
+component (related to resistance R or conductance G), and
+Xh represents the storance, the net harmonic energy storing
+component (resulting from the interplay between magnetic
+energy storage in inductors and electric energy storage in
+capacitors). The specific forms of Dh and Xh depend on the
+considered circuit topology, as detailed below.
+R L 1/C
+(a) Series RLC circuit.
+G 1/L C
+(b) Parallel RLC circuit.
+Fig. 2: The two fundamental topologies under study.
+With these generalized components, the squared flextance k
+is computed as a weighted square of the spectral kernel values:
+k2 =
+NX
+h=1
+γ2
+hκ2
+h (16)
+This unified formulation can now be specialized for series and
+parallel topologies.
+1) Case 1 - Series Circuit: When a series circuit (Fig. 2a) is
+driven by a known voltage vector u, the flextance ks represents
+an effective admittance-like (∥i∥/∥u∥). The spectral weights,
+γh, are computed from the components of u.
+For this topology, the dissipance and storance components
+correspond to Dh = R and Xh = hωL − 1
+hωC , respectively.
+Substituting these into Eq. (15) yields the series spectral kernel
+κ2
+s,h = 1
+R2 + hωL − 1
+hωC
+2 (17)
+The series flextance ks is then computed by applying the
+general formula from Eq. (16):
+ks =
+v
+u
+u
+t NX
+h=1
+γ2
+hκ2
+s,h (18)
+2) Case 2 - Parallel Circuit: Conversely, when a parallel
+circuit (Fig. 2b) is driven by a known current vector i, the
+flextance kp represents an effective impedance-like component
+(∥u∥/∥i∥). The spectral weights, γh, are computed from the
+components of i.
+For this topology, the dissipative and energy storing components correspond to Dh = G and Xh = hωC − 1
+hωL .
+Substituting these into the unified kernel definition yields the
+parallel spectral kernel
+κ2
+p,h = 1
+G2 + hωC − 1
+hωL
+2 (19)
+The parallel flextance kp is computed accordingly:
+kp =
+v
+u
+u
+t NX
+h=1
+γ2
+hκ2
+p,h (20)
+C. Calculation of the Rotance Operator
+The rotance operator, R is the rotational component of the
+corresponding rotoflex operator, Θ. Geometrically, the rotance
+performs the necessary rotation to match the orientation of
+the output vector with respect to the input. This is a single
+
+rotation in the 2N -dimensional space, which is composed of
+independent rotations within each harmonic plane.
+The calculation of this overall rotor requires knowing both
+the full input and output vectors. The procedure, therefore,
+begins by first constructing the unknown output vector. This
+is achieved by applying the known physical response of the
+circuit to each harmonic of the input vector individually. The
+h-th harmonic of a voltage vector, uh, and its corresponding
+current vector, ih, are vectors confined to the plane spanned by
+{σ2h−1, σ2h} (see Eq. (8)). The specific construction of the
+unknown harmonic vector depends on the circuit topology, as
+detailed in the following cases.
+1) Case 1 - Series Circuit: When a series circuit is driven
+by a known voltage vector u, each harmonic component of the
+output current, ih, is obtained by scaling its corresponding
+voltage harmonic uh by the spectral kernel magnitude κs,h
+and rotating it by the harmonic rotor Rh:
+ih = κs,hRs,huh (21)
+The magnitude and angle of rotation are determined by the
+circuit’s physical parameters:
+Rs,h = eφs,h ˆBh = eφs,hσ2h−1,2h
+κs,h = 1/pR2 + (hωL − 1/(hωC))2
+φs,h = arctan
+1/(hωC) − hωL
+R
+
+This geometric operation is illustrated in Fig. 3. The input
+voltage harmonic uh, with an initial phase αh, is rotated by
+the angle φh introduced by the circuit’s elements, resulting in
+the output current harmonic ih. By summing these constructed
+harmonic vectors, it is obtained the complete output current
+vector, i = P
+h ih. Once the full input vector u and the
+full constructed output vector i are known, the overall series
+rotance is computed directly from their normalized forms:
+Rs = ˆı ˆu (rotates u to i) (22)
+This direct rotor is related to the half-angle sandwich rotors
+(R⋆) by the identity Rs = R2
+⋆. Its well-known spinor form is
+given by Rs = cos φs + ˆBs sin φs, where φs is the effective
+angle between the two total vectors and ˆBs is the unit bivector
+representing the overall plane of rotation for the series case.
+2) Case 2 - Parallel Circuit: Conversely, for a parallel
+topology driven by a known current vector i, each voltage
+harmonic uh is constructed by scaling the current harmonic
+ih and applying the rotation defined by the rotance Rp,h:
+uh = κp,hRp,hih (23)
+where the parameters are now defined as:
+Rp,h = eφp,h ˆBh
+κp,h = 1/pG2 + (hωC − 1/(hωL))2
+φp,h = arctan
+1/(hωL) − hωC
+G
+
+This corresponds to an inverse rotation from the current
+vector to the voltage vector, as depicted conceptually in Fig. 3.
+The complete output voltage vector is obtained by summing
+σ2h
+uh
+ih,cap
+ih,ind
+αh
+φh,cap
+φh,ind
+ˆBh = σ2h−1 ∧ σ2h
+σ2h−1
+Fig. 3: Harmonic transformation for a series circuit. The input
+voltage vector uh is transformed into an output current vector.
+A capacitive circuit applies a clockwise rotation φh,cap, while
+an inductive circuit applies a counter-clockwise rotation φh,ind.
+the constructed harmonic vectors, u = P
+h uh. With both the
+full input vector i and the complete output vector u defined,
+the overall parallel rotance is computed as:
+Rp = ˆuˆı (rotates i to u) (24)
+This operator, like its series counterpart, represents the
+single geometric rotation in the multi-harmonic space that
+maps the input vector to the output vector for the parallel
+circuit topology. Its spinor form is Rp = cos φp + ˆBp sin φp.
+IV. VALIDATION AND RESULTS
+A. Baseline Validation: Single-Frequency Case
+Before demonstrating the framework’s multi-harmonic capabilities, it is first proved that it correctly reproduces classical phasor results in the degenerate (single-frequency) case
+(N = 1). This establishes the GA methodology as a proper
+generalization of traditional analysis.
+1) Series RLC Circuit: Consider a series RLC circuit
+excited by u(t) = U √2 cos(ωt), which maps to u = U σ1.
+Applying the series rotoflex operator Θs = ksRs with
+ks = 1/pR2 + X2
+1 (where X1 = ωL − 1/(ωC)) and
+Rs = ks(R − X1σ12), it is obtained:
+i = U R
+R2 + X2
+1
+σ1 + U X1
+R2 + X2
+1
+σ2 (25)
+This is exactly equivalent to the classical phasor solution
+I = U R
+(R2 + X2
+1 ) − j U X1
+(R2 + X2
+1 )
+under the mapping X = A − jB ←→ x = Aσ1 + Bσ2.
+2) Parallel RLC Circuit: Similarly, for a parallel RLC
+circuit with i(t) = I√2 cos(ωt) mapping to i = Iσ1, the
+parallel operator yields:
+u = IG
+G2 + B2
+1
+σ1 + IB1
+G2 + B2
+1
+σ2 (26)
+where B1 = ωC −1/(ωL), again matching the classical result
+perfectly.
+
+These validations confirm that the GA framework contains
+traditional phasor analysis as a special case. Supplementary
+material for reproducing the results of this paper are available
+at https://git.new/RotoFlex.
+Having established this baseline equivalence, it is now
+demonstrated the main advantage of the proposed method, that
+is, a method for direct multi-harmonic circuit analysis without
+decomposition or superposition.
+B. Multi-Harmonic Case Studies
+To demonstrate the framework’s core capability—direct
+solution of multi-harmonic circuits—they are now presented
+two representative case studies and compare the results against
+classical per-harmonic superposition. Beyond numerical validation, it is analyzed the geometric interpretation of the
+resulting operators, highlighting the physical insight provided
+by the GA framework.
+1) Case 1: Series RLC Circuit with Two Harmonics:
+Consider a series RLC circuit with parameters R = 3 Ω,
+L = 1 H, and C = 1 F, driven by a two-harmonic voltage
+source at fundamental frequency ω = 1 rad/s:
+u(t) = √2 cos(ωt) + 0.8√2 cos(2ωt) V (27)
+Both harmonics are in phase (α1 = α2 = 0), mapping to the
+GA vector u = σ1 + 0.8σ3 (components in Volts).
+The classical solution requires separate analysis of
+each harmonic using complex impedances Zh = R +
+j(hωL − 1/(hωC)). For the fundamental, the purely resistive
+impedance Z1 = 3 Ω yields I1 = 0.3333∠0◦ A. The second
+harmonic encounters a reactive impedance Z2 = 3 + j1.5 Ω,
+resulting in I2 = 0.2386∠−26.57◦ A. These individual phasor
+results must then be reconstructed in the time domain or
+mapped to separate GA subspaces and summed.
+In contrast, the GA framework computes the series flextance
+ks = 0.3201 S using Eq. (18), which represents the overall
+magnitude scaling across both harmonics. The series rotance
+Rs encodes the complete phase relationship between the total
+voltage and current waveforms. Its explicit form is:
+Rs = 0.9602 + 0.1016σ13 − 0.2032σ14 − 0.1626σ34 (28)
+The scalar component ⟨Rs⟩0 = 0.9602 represents the inphase alignment between voltage and current and directly
+yields the power factor PF = 0.9602. The three bivector
+terms σ13, σ14, and σ34 define the composite rotation plane
+in the four-dimensional G4 space (2N = 4 for N = 2
+harmonics). Geometrically, this corresponds to a rotation by
+an effective angle φeff = arccos(0.9602) = 16.26◦ within
+a plane that simultaneously accounts for the phase shifts of
+both harmonics. The presence of multiple bivector components
+reflects the fact that the two harmonics interact with the
+circuit’s frequency-dependent reactance differently, creating a
+composite geometric relationship that cannot be captured by
+a single complex number.
+Applying the rotoflex operator Θs = ksRs to the voltage
+vector yields the current directly: i = 0.3333σ1 + 0.2133σ3 +
+0.1067σ4 (components in Amperes). Notably, the σ4 component emerges from the geometric interaction encoded in Rs
+and represents the out-of-phase contribution of the second
+harmonic. The GA solution is numerically identical to the
+classical superposition result, but achieves this through a single
+unified transformation rather than sequential per-harmonic
+calculations.
+2) Case 2: Parallel RLC Circuit with Three Harmonics:
+The second case study examines a parallel RLC circuit with
+R = 2 Ω (G = 0.5 S), L = 3 H, and C = 0.5 F, excited by a
+three-harmonic current source at ω = 2 rad/s:
+i(t) = 1.5√2 cos(ωt) + 0.9√2 sin(2ωt) + 0.5√2 cos(3ωt) A
+The presence of the sine term in the second harmonic introduces an additional phase shift of −90◦, increasing the
+geometric complexity. This maps to i = 1.5σ1 +0.9σ4 +0.5σ5
+(components in Amperes).
+The classical approach again requires three separate calculations using per-harmonic admittances Yh = G + j(hωC −
+1/(hωL)). The susceptance varies significantly across harmonics due to the frequency-dependent reactive terms, resulting in voltage phasors with different magnitudes and angles:
+U1 = 0.7941 − j1.3235 V, U2 = −0.4396 − j0.1147 V, and
+U3 = 0.0280 − j0.1651 V. The final solution is obtained by
+summing these components across their respective frequency
+subspaces.
+The GA framework computes the parallel flextance kp =
+0.8892 Ω and the parallel rotance Rp, which now operates
+in the six-dimensional space G6 (2N = 6 for N = 3
+harmonics). The rotance operator contains 12 independent
+bivector components, reflecting the geometric complexity of
+the three-harmonic interaction.
+Rp = 0.4446 − 0.6746σ12 + 0.2241σ13 + 0.1844σ14
++ 0.1206σ15 − 0.0841σ16 + 0.4047σ24 + 0.2249σ25
+− 0.1344σ34 − 0.0747σ35 + 0.0109σ45 − 0.0505σ46
+− 0.0280σ56
+The scalar component ⟨Rp⟩0 = 0.4446 indicates a significantly lower power factor of 0.4446, corresponding to an
+effective rotation angle of φeff = 63.58◦. This large angle
+reflects the substantial phase displacement introduced by the
+reactive circuit across the three frequency components.
+The bivector structure of Rp encodes how each harmonic’s
+phase relationship with the load combines to form the overall
+geometric transformation. For instance, the dominant term
+−0.6746σ12 captures the strong reactive behavior at the fundamental frequency, while smaller cross-terms like σ13 and σ45
+represent the coupling between different harmonic subspaces.
+This geometric representation provides direct physical insight:
+the operator is not merely a list of complex numbers for each
+frequency, but a single geometric entity that describes the
+circuit’s behavior as a unified multivector transformation.
+The direct application u = kpRpi yields the full voltage
+vector directly: u = 0.7941σ1 + 1.3235σ2 − 0.4396σ3 +
+0.1147σ4 + 0.0280σ5 + 0.1651σ6 (components in Volts). The
+solution is again numerically identical to the classical result,
+but the GA formulation reveals the underlying geometric
+structure that remains hidden in the traditional frequency-byfrequency approach.
+
+TABLE II: Comparison of Classical Phasor and GA Results
+for Multi-Harmonic Case Studies
+Case Harmonic Method Magnitude Phase (◦)
+1 (Series)
+h = 1 Classical 0.33 A 0.00
+GA 0.33 A 0.00
+h = 2 Classical 0.24 A −26.57
+GA 0.24 A −26.57
+Effective rotation (GA): φeff = 16.26◦, PF = 0.96
+2 (Parallel)
+h = 1 Classical 1.54 V −59.04
+GA 1.54 V −59.04
+h = 2 Classical 0.45 V −165.39
+GA 0.45 V −165.39
+h = 3 Classical 0.17 V −80.39
+GA 0.17 V −80.39
+Effective rotation (GA): φeff = 63.58◦, PF = 0.44
+3) Comparative Analysis: Table II summarizes the numerical results for both case studies, comparing the classical phasor
+method against the proposed GA framework. The magnitude
+and phase of each harmonic component are provided for direct
+comparison, along with the overall power factor computed by
+each method. In both cases, the agreement is exact within numerical precision, validating the accuracy of the GA approach.
+Beyond numerical equivalence, the key distinction lies in
+the computational structure. The classical method requires N
+independent phasor calculations followed by summation, a
+process that scales linearly with the number of harmonics. In
+contrast, the GA method computes a single operator Θ = kR
+that directly relates the total input and output waveforms.
+While the construction of this operator involves summing
+over harmonics internally (as detailed in Section III), the
+critical difference is that the circuit solution itself is a direct
+transformation (either i = Θsu for series circuits, or u = Θpi
+for parallel circuits). It is critical to note that Θp is not
+the inverse of Θs (i.e., Θp̸ = Θ−1
+s ), these are two distinct
+operators that solve two topologically different problems.
+The proposed procedure based on GAs and real numbers
+has a lower computational cost than that required by the
+traditional phasor analysis methodology. Moreover, the GA
+framework provides geometric insight that is inaccessible
+through classical phasors. The effective rotation angle φeff and
+the bivector structure of R reveal how the circuit’s impedancelike behavior manifests as a rotation in a higher-dimensional
+space. The power factor emerges naturally as the scalar part of
+this geometric transformation, eliminating the need for artificial separation into displacement and distortion factors. These
+interpretations are not merely conceptual conveniences—they
+reflect the true geometric nature of AC circuit behavior under
+non-sinusoidal conditions.
+C. Operator Analysis and Physical Interpretation
+Having validated the framework’s accuracy through concrete examples, the fundamental properties of the rotoflex
+operator are now analized and its physical interpretation is
+explored. This provides deeper insight into the geometric
+nature of circuit behavior under non-sinusoidal conditions.
+1) General Properties of the Rotance Operator: From the
+theoretical development and case studies, several key properties of the rotance operator R emerge:
+• Unit Magnitude: The rotance always satisfies ∥R∥ = 1,
+as it performs a pure rotation without scaling. All scaling
+is captured by the flextance k.
+• Identity for Resistive Loads: For purely resistive circuits,
+the voltage and current waveforms are in phase regardless
+of harmonic content, resulting in Rs = Rp = 1 (the
+scalar identity).
+• Multivector Structure: For any load containing reactance,
+the rotance is a general multivector containing both scalar
+and bivector components. The scalar part represents the
+in-phase relationship, while the bivector parts encode the
+phase displacements across different harmonic planes.
+• Source-Load Coupling: The specific form of R depends
+on both the circuit parameters (R, L, C) and the harmonic
+content of the source. This reflects the physical reality that the overall phase relationship is determined by
+how each harmonic interacts with the load’s frequencydependent impedance.
+2) Geometric Interpretation of Power Factor: The GA
+framework provides a direct geometric definition of the true
+power factor for non-sinusoidal systems. The power factor is
+simply the cosine of the angle between the total voltage and
+current vectors in the multivector space:
+PF = cos(φ) = u · i
+∥u∥∥i∥ = ˆu · ˆı (29)
+This single scalar value encapsulates the combined effects of
+phase displacement and waveform distortion without requiring
+their artificial separation into displacement or distortion factor.
+Remarkably, this value is equivalent to the scalar part of the
+rotance operator: PF = ⟨R⟩0. Thus, the geometric operator
+that relates voltage to current directly contains the system’s
+power factor as one of its components.
+3) Behavior of Canonical Loads: The framework’s validity
+is further confirmed by examining its behavior for ideal R, L,
+and C components, where it naturally reduces to well-known
+results:
+• Pure Resistance: For a purely resistive load, the rotance
+becomes the identity (R = 1) regardless of topology, and
+the flextances reduce to Ohm’s law: ks = 1/R (series)
+and kp = R (parallel).
+• Pure Inductance: The framework correctly reproduces
+the 90◦ phase lag of current with respect to voltage
+(represented in vector GA using a counter-clockwise
+rotation, see [22]). In the series case, ks = 1/(hωL)
+and Rs = −σ12. In the parallel case, kp = hωL and
+Rp = σ12.
+• Pure Capacitance: The framework produces the complementary 90◦ phase lead of current with respect to voltage
+(clockwise rotation). In the series case, ks = hωC and
+Rs = σ12, while in the parallel case, kp = 1/(hωC) and
+Rp = −σ12.
+These special cases, derived naturally from the general
+framework, confirm its theoretical consistency with fundamental circuit principles.
+
+V. CONCLUSIONS AND FUTURE WORK
+This paper has introduced a complete mathematical framework based on Geometric Algebra (GA) that, for the first
+time, provides a direct solution method for electrical circuits
+under multi-harmonic, steady-state conditions in the frequency
+domain. The classical approach, reliant on per-harmonic decomposition and superposition, is an indirect and fragmented
+process ill-suited for the complexity of modern power systems.
+In contrast, our methodology treats non-sinusoidal waveforms
+as vectors in a higher-dimensional space, allowing the entire
+system to be solved in a single, unified mathematical operation.
+The key innovation is the introduction of the rotoflex
+operator (Θ), a multivector that combines scaling and rotation
+into one geometric entity. Its components, the flextance (k)
+and the rotance (R), are derived directly from the physical
+properties of the circuit and the harmonic content of the
+source. This provides a profound conceptual advantage, as
+circuit impedance is no longer just an abstract complex number
+but a concrete geometric transformation operator. It has been
+demonstrated that this general framework elegantly simplifies
+to classical results for canonical R, L, and C loads and
+provides a direct geometric definition of the true power factor.
+The method’s accuracy has been validated against traditional
+phasor analysis, and its native algorithmic implementation also
+proves to be computationally efficient. The unified formulation
+is inherently compatible with vector and parallel computing
+architectures, offering a path toward high-performance implementations that is conceptually unavailable to the sequential
+superposition method. This work, therefore, establishes GA
+not merely as an alternative, but as a conceptually and computationally superior successor to phasor analysis, opening a
+new and promising avenue for modern electrical engineering.
+These avenues include extending the methodology to solve
+complex electrical networks by developing rules for combining
+rotoflex operators in series, parallel, and mesh configurations,
+thus creating a full GA-based network algebra. Another direction involves implementation and performance analysis,
+which requires developing optimized software libraries (e.g.,
+in Python, Julia, or low-level implementations in C++/CUDA)
+and benchmarking computational performance against FFT-
+based superposition methods, especially for systems with
+a large number of harmonics. Furthermore, the framework
+can be extended to the analysis of electrical machines and
+drives, where GA’s ability to handle rotations in multiple
+planes could represent field transformations more intuitively
+than traditional d-q transforms. Finally, GA’s native ability to
+unify vector calculus and algebra can be leveraged to create
+multiscale models that bridge lumped-element circuit theory
+with Maxwell’s equations for high-frequency, signal integrity,
+and EMC applications.
+REFERENCES
+[1] C. P. Steinmetz, “Complex quantities and their use in electrical engineering,” in Proceedings of the International Electrical Congress Held
+in the City of Chicago, August 21st to 25th, 1893, (New York), pp. 33–
+75, American Institute of Electrical Engineers, 1894.
+[2] S. Kariyawasam, J. Wijekoon, and A. Rajapakse, “Assessment of the
+performance of phasor-based and transients-based faulted phase identification techniques in the presence of inverter interfaced resources,”
+Energies, vol. 16, no. 2, p. 640, 2023.
+[3] F. Montoya, J. Castillo, et al., “Power quality in modern lighting:
+Comparison of led, microled and cfl lamps,” Renew. Energy Power Qual.
+J, vol. 1, no. 14, pp. 500–505, 2016.
+[4] V. Nu˜nez-Ram´ırez, N. F. Guerrero-Rodr´ıguez, R. O. Batista-Jorge,
+R. Mercado-Ravelo, F. Ram´ırez-Rivera, J. A. Ferreira, and R. D.
+Ramos-Ciprian, “Harmonic distortion caused by non-linear household
+loads: Measurement and modelling,” Results in Engineering, vol. 25,
+p. 104483, 2025.
+[5] J. C. Das, Power System Analysis: Short-Circuit, Load Flow, and
+Harmonics. Boca Raton, FL, USA: CRC Press, 2002.
+[6] F. Blaabjerg, R. Teodorescu, M. Liserre, and A. V. Timbus, “Overview
+of control and grid synchronization for distributed power generation
+systems,” IEEE Transactions on Industrial Electronics, vol. 53, no. 5,
+pp. 1398–1409, 2006.
+[7] C. K. Alexander and M. N. O. Sadiku, Fundamentals of Electric
+Circuits. New York, NY, USA: McGraw-Hill Education, 7th ed., 2021.
+[8] G. Carpinelli, A. Testa, et al., “Modeling and simulation of the propagation of harmonic in electric power networks, part i: Concepts, models
+and simulation techniques,” IEEE Transactions on Power Delivery, 1996.
+[9] M. Castro-N´u˜nez, D. Londo˜no-Monsalve, and R. Castro-Puche, “Theorems of compensation and tellegen in non-sinusoidal circuits via
+geometric algebra,” The Journal of Engineering, vol. 2019, no. 4,
+pp. 3409–3417, 2019.
+[10] A. Menti, T. Zacharias, and J. Milias-Argitis, “Geometric algebra: A
+powerful tool for representing power under nonsinusoidal conditions,”
+IEEE Transactions on Circuits and Systems I: Regular Papers, vol. 54,
+no. 3, pp. 601–609, 2007.
+[11] M. Castro-N´u˜nez, D. Londo˜no-Monsalve, and R. Castro-Puche, “M, the
+conservative power quantity based on the flow of energy,” The Journal
+of Engineering, 2016.
+[12] F. Li, Y. Wang, F. Wu, Y. Huang, Y. Liu, X. Zhang, and M. Ma, “Review
+of real-time simulation of power electronics,” Journal of Modern Power
+Systems and Clean Energy, vol. 8, no. 4, pp. 796–808, 2020.
+[13] Y. Han, H. Sun, B. Huang, S. Qin, Q. Mu, and Y. Yu, “Discrete-time
+state-space construction method for sso analysis of renewable power
+generation integrated ac/dc hybrid system,” IEEE Transactions on Power
+Systems, vol. 37, no. 3, pp. 2322–2334, 2021.
+[14] J. Belikov and Y. Levron, “Uses and misuses of quasi-static timevarying phasor models in power systems,” IEEE Transactions on Power
+Delivery, vol. 33, no. 6, pp. 3263–3266, 2018.
+[15] M. Castilla, J. C. Bravo, M. Ord´o˜nez, and J. C. Monta˜no, “Clifford
+theory: A geometrical interpretation of multivectorial apparent power,”
+IEEE Transactions on Circuits and Systems I: Regular Papers, vol. 55,
+no. 10, pp. 3358–3367, 2008.
+[16] F. G. Montoya, R. Ba˜nos, A. Alcayde, and F. M. Arrabal-Campos,
+“Analysis of power flow under non-sinusoidal conditions in the presence
+of harmonics and interharmonics using geometric algebra,” International
+Journal of Electrical Power & Energy Systems, vol. 111, pp. 486–492,
+2019.
+[17] F. G. Montoya and A. H. Eid, “Formulating the geometric foundation of
+clarke, park, and fbd transformations by means of clifford’s geometric
+algebra,” Mathematical Methods in the Applied Sciences, vol. 45, no. 8,
+pp. 4252–4277, 2022.
+[18] P. Salmer´on, A. P´erez-Vall´es, J. L. Flores-Garrido, and J. A. G´omez-
+Gal´an, “Application of a multidimensional approach in the compensation
+of industrial loads,” IEEE Access, vol. 12, pp. 8038–8051, 2024.
+[19] F. G. Montoya, R. Ba˜nos, A. Alcayde, F. M. Arrabal-Campos, and
+J. Rold´an-P´erez, “Geometric algebra applied to multiphase electrical
+circuits in mixed time-frequency domain by means of hypercomplex
+hilbert transform,” Mathematics, vol. 10, no. 9, p. 1419, 2022.
+[20] D. Hestenes, Clifford Algebra to Geometric Calculus: A Unified Language for Mathematics and Physics. Fundamental Theories of Physics,
+Springer Netherlands, 1986.
+[21] C. Doran and A. Lasenby, Geometric Algebra for Physicists. Cambridge
+University Press, 2003.
+[22] F. G. Montoya, R. Ba˜nos, A. Alcayde, and F. M. Arrabal-Campos,
+“Geometric algebra for teaching ac circuit theory,” International Journal
+of Circuit Theory and Applications, vol. 49, no. 11, pp. 3473–3487,
+2021.

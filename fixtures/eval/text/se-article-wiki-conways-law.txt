@@ -1,0 +1,55 @@
+From Wikipedia, the free encyclopedia
+
+Conway's law describes the link between communication structure of organizations and the systems they design. It is named after the computer scientist and programmer Melvin Conway, who introduced the idea in 1967.[1] His original wording was:[2][3]
+
+[O]rganizations which design systems (in the broad sense used here) are constrained to produce designs which are copies of the communication structures of these organizations.
+
+— Melvin E. Conway, How Do Committees Invent?
+
+The law is based on the reasoning that in order for a product to function, the authors and designers of its component parts must communicate with each other in order to ensure compatibility between the components. Therefore, the technical structure of a system will reflect the social boundaries of the organizations that produced it, across which communication is more difficult. In colloquial terms, it means complex products end up "shaped like" the organizational structure they are designed in or designed for. The law is applied primarily in the field of software architecture, though Conway directed it more broadly and its assumptions and conclusions apply to most technical fields.
+
+The law is, in a strict sense, only about correspondence; it does not state that communication structure is the cause of system structure, merely describes the connection. Different commentators have taken various positions on the direction of causality; that technical design causes the organization to restructure to fit,[4] that the organizational structure dictates the technical design,[5] or both.[6][7][8] Conway's law was intended originally as a sociological observation[citation needed], but many other interpretations are possible. The New Hacker's Dictionary entry uses it in a primarily humorous context,[9] while participants at the 1968 National Symposium on Modular Programming considered it sufficiently serious and universal to dub it 'Conway's Law'.[10] Opinions also vary on the desirability of the phenomenon; some say that the mirroring pattern is a helpful feature of such systems, while other interpretations say it's an undesirable result of organizational bias.[citation needed] Middle positions describe it as a necessary feature of compromise, undesirable in the abstract but necessary to handle human limitations.[11]
+
+Nigel Bevan stated in a 1997 paper, regarding usability issues in websites: "Organizations often produce web sites with a content and structure which mirrors the internal concerns of the organization rather than the needs of the users of the site."[12]
+
+Evidence in support of Conway's law has been published by a team of Massachusetts Institute of Technology (MIT) and Harvard Business School researchers who, using "the mirroring hypothesis" as an equivalent term for Conway's law, found "strong evidence to support the mirroring hypothesis", and that the "product developed by the loosely-coupled organization is significantly more modular than the product from the tightly-coupled organization". The authors highlight the impact of "organizational design decisions on the technical structure of the artifacts that these organizations subsequently develop".[13]
+
+Additional and likewise supportive case studies of Conway's law have been conducted by Nagappan, Murphy and Basili at the University of Maryland in collaboration with Microsoft,[14] and by Syeed and Hammouda at Tampere University of Technology in Finland.[15]
+
+Edward Yourdon and Larry Constantine, in their 1979 book on Structured Design, gave a more strongly stated variation of Conway's Law:[10]
+
+The structure of any system designed by an organization is isomorphic to the structure of the organization.
+
+James O. Coplien and Neil B. Harrison stated in a 2004 book concerned with organizational patterns of agile software development:[16]
+
+If the parts of an organization (e.g., teams, departments, or subdivisions) do not closely reflect the essential parts of the product, or if the relationships between organizations do not reflect the relationships between product parts, then the project will be in trouble ... Therefore: Make sure the organization is compatible with the product architecture.
+
+- Cognitive dimensions of notations
+- Deutsch limit
+- Organizational theory
+- Inner-platform effect
+- Isomorphism (sociology)
+- Good regulator
+
+- ↑ Conway, Melvin. "Conway's Law". Mel Conway's Home Page. Archived from the original on 2019-09-29. Retrieved 2019-09-29.
+- ↑ Conway, Melvin E. (April 1968). "How do Committees Invent?". Datamation. 14 (5): 28–31. Archived from the original on 2019-10-10. Retrieved 2019-10-10. […] organizations which design systems […] are constrained to produce designs which are copies of the communication structures of these organizations.
+- ↑ Conway, Melvin (1968). "How do committees invent" (PDF). Datamation: 28–31.
+- ↑ Chandler, A. D. (1977). The Visible Hand: The Managerial Revolution in American Business. Harvard University Press, Cambridge, MA.
+- ↑ Henderson, R. M., & Clark, K. B. (1990). Architectural innovation: The reconfiguration of existing product technologies and the failure of established firms. Administrative science quarterly, 9-30.
+- ↑ Baldwin, C. Y., & Clark, K. B. (2000). Design rules: The power of modularity (Vol. 1). Chapter 7. MIT press. (Chapters 1 and 14 are counted as a descriptive industry study.)
+- ↑ Fixson, S. K., & Park, J. K. (2008). The power of integrality: Linkages between product architecture, innovation, and industry structure. Research Policy, 37(8), 1296-1316.
+- ↑ "The Mirroring Hypothesis: Theory, Evidence and Exceptions", Lyra J. Colfer, Carliss Y. Baldwin https://www.hbs.edu/ris/Publication%20Files/16-124_7ae90679-0ce6-4d72-9e9d-828872c7af49.pdf
+- ↑ Raymond1996
+- 1 2 Yourdon, Edward; Constantine, Larry L. (1979). Structured Design: Fundamentals of a Discipline of Computer Program and Systems Design (2nd ed.). Englewood Cliffs, N.J.: Prentice Hall. ISBN 0138544719. OCLC 4503223. Conway's Law: The structure of a system reflects the structure of the organization that built it. Conway's Law has been stated even more strongly: The structure of any system designed by an organization is isomorphic to the structure of the organization.
+- ↑ Muratori, Casey (15 March 2022), The Only Unbreakable Law, retrieved 2022-03-21
+- ↑ Bevan, Nigel (November 1997). "Usability issues in website design" (PDF). Design of Computing Systems: Social and Ergonomic Considerations. Proceedings of the Seventh International Conference on Human-Computer Interaction (HCI International '97). Vol. 2. San Francisco, California, USA: Elsevier. pp. 803–806.
+- ↑ MacCormack, Alan; Rusnak, John; Baldwin, Carliss Y. (2011). "Exploring the Duality between Product and Organizational Architectures: A Test of the Mirroring Hypothesis" (PDF). SSRN Working Paper Series. doi:10.2139/ssrn.1104745. ISSN 1556-5068. S2CID 16097528. We find strong evidence to support the mirroring hypothesis. In all of the pairs we examine, the product developed by the loosely-coupled organization is significantly more modular than the product from the tightly-coupled organization. […] Our results have significant managerial implications, in highlighting the impact of organizational design decisions on the technical structure of the artifacts that these organizations subsequently develop.
+- ↑ Nagappan, Nachiappan; Murphy, Brendan; Basili, Victor (2008). "The influence of organizational structure on software quality: An empirical case study". Proceedings of the 13th international conference on Software engineering - ICSE '08. New York, New York, USA: ACM Press. p. 521. doi:10.1145/1368088.1368160. ISBN 9781605580791. S2CID 5048618.
+- ↑ Syeed, M. M. Mahbubul; Hammouda, Imed (2013). "Socio-technical Congruence in OSS Projects: Exploring Conway's Law in FreeBSD". Open Source Software: Quality Verification. IFIP Advances in Information and Communication Technology. Vol. 404. pp. 109–126. doi:10.1007/978-3-642-38928-3_8. ISBN 978-3-642-38927-6. S2CID 39852208.
+- ↑ Coplien and Harrison (July 2004). Organizational Patterns of Agile Software Development. Pearson Prentice Hall. ISBN 978-0-13-146740-8.
+
+- Alan MacCormack, John Rusnak & Carliss Baldwin, 2012, "Exploring the Duality between Product and Organizational Architectures: A Test of the 'Mirroring' Hypothesis," Research Policy 41:1309–1324 [earlier Harvard Business School Working Paper 08-039], see Archived 2021-01-24 at the Wayback Machine, accessed 9 March 2015.
+- Lise Hvatum & Allan Kelly, Eds., "What do I think about Conway's Law now? Conclusions of a EuroPLoP 2005 Focus Group," European Conference on Pattern Languages of Programs, Kloster Irsee, Germany, January 16, 2006, see , addressed 9 March 2015.
+- Lyra Colfer & Carliss Baldwin. "The Mirroring Hypothesis: Theory, Evidence and Exceptions." Harvard Business School Working Paper, No. 16-124, April 2016. (Revised May 2016.) See , accessed 2 August 2016.
+
+Conway's law at the nLab

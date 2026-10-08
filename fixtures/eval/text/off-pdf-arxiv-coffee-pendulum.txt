@@ -1,0 +1,428 @@
+Sloshing in coffee as a pumped pendulum
+Nicol´as Guar´ın Zapata
+nguarinz@eafit.edu.co
+June 23, 2021
+Abstract
+We present a study of the dynamics of a cup of coffee while walking with it in
+terms of a lumped model. The model considered is a planar (nonlinear) pendulum
+with parametric and direct excitation. The position of the pivot is changed with time,
+which leads to parametric excitation in the vertical direction; and parametric/direct
+excitation in the horizontal one. For the former case, the Method of Averaging is
+used to determine the regions of stability for two steady-state solutions. In the vertical/horizontal excitation, we determined the resonances of the system using the
+Method of Multiple Scales and show the results computed with exact numerical integration.
+Introduction
+Spilling coffee while walking is a common problem. The sloshing dynamics
+of the coffee, while walking, can be understood in terms of an oscillator with
+parametric excitation caused by the motion of the cup along the path. The
+main objective of this project was to study the slosh dynamics of a cup of
+coffee (while walking) in terms of a lumped mechanical model [8].
+According to [3], the motion of a free-liquid-surface has three regimes (linear, weakly nonlinear, and strongly nonlinear). Depending on the regime that
+we want to study the system, we can use a different —lumped— mechanical
+model to understand its dynamics. A common way to model the sloshing of
+liquids in a cylindrical container is to consider it as a pendulum, and obtain
+the parameters (length, mass, dissipation coefficient) from the original system
+[3, 5, 8]. The model considered is a pendulum with a (parametric) excitation
+that comes from the human walking, this excitation is composed of two degrees
+of freedom: one in the plane (back-and-forth and lateral) and one vertical. Due
+arXiv:2106.11435v1 [physics.class-ph] 21 Jun 2021
+
+to the main frequencies in the human walking, the model will consist of a single
+pendulum1.
+We present a study of the dynamics of a cup of coffee while walking with
+it in terms of a lumped model. The model considered is a planar (nonlinear)
+pendulum with parametric and direct excitation. The position of the pivot
+is changed with time, which leads to parametric excitation in the vertical
+direction; and parametric/direct excitation in the horizontal one. For the
+former case, the Method of Averaging is used to determine the regions of
+stability for two steady-state solutions. In the vertical/horizontal excitation,
+we determined the resonances of the system using the Method of Multiple
+Scales and show the results computed with exact numerical integration. An
+interesting outcome of an analytical solution is the capability of relating the
+parameters of the system to obtain some insight into the design process.2.
+1 Modeling
+A cup of coffee is, essentially, a cylindrical-like container filled with liquid —
+that can be assumed to behave like water. And this liquid will present some
+motion when a person walks with a cup of coffee at hand. The behavior of this
+system (for linear and weakly nonlinear regimes) can be interpreted in terms of
+the natural frequencies of the fluid. The natural frequencies of oscillation of a
+frictionless, vorticity-free, and incompressible liquid in a cylindrical container
+(a cup of coffee in this case) with a free liquid surface are given by [3]
+ω2
+nm = gmn
+R tanh
+(
+mn
+H
+R
+) [
+1 + σ
+ρg
+( mn
+R
+)2]
+,
+where m = 0, 1, 2, · · · and n = 1, 2, · · · .3 In this equation H is the height of the
+cup, R its radius, g the gravity, ρ fluid density, and σ is the surface tension.
+mn are the roots of the first derivative of the m-th order Bessel function —
+J′
+m() = 0.
+One can match each of the modes of vibration of the liquid with a single degree of freedom oscillator, e.g, a mass-spring system or a pendulum. According
+to Ibrahim in [3]:
+1In [3], the author use several coupled pendulums to take into account different modes of vibration in the model.
+2Something that can be useful in the development of devices like the one described in this patent
+[11].
+3In our case the surface tension is negligible and the only relevant parameters are the geometrical
+ones.
+
+A realistic representation of the liquid dynamics inside closed
+containers can be approximated by an equivalent mechanical system... For linear planar liquid otion, one can develop equivalent mechanical models in the form of a series of mass-spring dashpot systems or a set of simple pendulums. For nonlinear sloshing phenomena, other equivalent models such as spherical or compound pendulum may be developed to emulate rotational and chaotic sloshing.
+Since the sloshing dynamics of the coffee (while walking) can be understood
+in terms of an oscillator with parametric excitation caused by the motion of the
+cup along the path [8]. A first approach is to consider the system as a planar
+pendulum with parametric pumping. Taking into account the parameters that
+we use parametric excitation for this model can come from: the change of
+length, the motion of the point of gyration, the motion of the center of mass4,
+and the change of mass5.
+The system can be considered as a pendulum with varying length, which is a
+system that has been studied before [1, 12], and with moving —both, vertically
+and horizontally— pivot. The parameters of the system are: r0 original length
+of the rod, r length of the rod, m mass of the bob, g gravitational acceleration,
+x0 is a function of time that describes the horizontal position of the pivot, and
+z0 is a function of time that describes the vertical position of the pivot. The
+present work restricts the excitation of the system to the motion of the pivot,
+which leads to direct and parametric excitations. 6
+The Lagrangian of the system is given by [4]
+L = T − V = m
+2 [( ˙x − ˙x0)2 + ( ˙z + ˙z0)2] + mg[z + z0] (1)
+taking
+x = r(t) sin θ, z = −r(t) cos θ
+and using the Euler-Lagrange equation we get the differential equation, we get
+r2 ¨θ + r[g + ¨z0] sin θ + r¨x0 cos θ + 2r ˙r ˙θ = 0 . (2)
+In the general case x0, z0 and r are functions of time, and we can talk about
+having modulated stiffness, damping, and inertia. Where the r accompanies
+the second derivative of the angle θ and the last term that appears due to the
+4This is the case of a playground swing, where the center of mass oscillates around a given
+position. When the oscillation is symmetric it can be proved to be equivalent to the varying length
+pendulum [1].
+5Although this is less common.
+6Appendix A shows the parameters of the lumped model in terms of the original cup of coffee.
+
+θ(t)
+m
+r
+z0(t)
+x0(t)Figure 1: Considered system: A pendulum with the point of gyration moving in the
+plane. This motion cause direct and parametric excitation in the system.
+time dependence of the length 7 [7]. If we expand Eq. (2) in a two terms
+Taylor series in θ around 0, we get
+r2 ¨θ + r[g + ¨z0]
+{
+θ − θ3
+6
+}
++ r¨x0
+θ2
+2 + 2r ˙r ˙θ = −r¨x0 , (3)
+that is a Mathieu equation with quadratic an cubic nonlinearities and a direct
+excitation term.
+2 Results
+In [8] the authors already presented an analysis based on numerical and experimental results for the sloshing dynamics of the coffee. Here, we emphasize
+our effort in approximated solutions via perturbation methods, namely: the
+Method of Averaging and the Method of Multiple Scales [2].
+7This term can be compared with a damping term due to its dependence on the first derivative
+of θ.
+
+2.1 Vertical motion of the pivot: Method of Averaging
+If we consider just the vertical motion of the pivot, the (nondimensional) differential equations turn to be
+u′′ + [1 + ελΩ2 cos Ωτ ]
+(
+u − ε2u3
+6
+)
+= 0 , (4)
+where
+τ =ωt
+ω2
+0 = g
+r0
+ελ = − ∆z
+r0
+Ω = ω
+ω0
+,
+being λ the ratio between the effective length and amplitude of oscillation, and
+ε a bookkeeping parameter.
+We can study this nonlinear differential equation using the Method of Averaging. In Cartesian coordinates, we propose a solution of the form
+u(τ ) =X(τ ) cos
+( Ω
+2 τ
+)
++ Y (τ ) sin
+( Ω
+2 τ
+)
+(5)
+u′(τ ) = − Ω
+2 X(τ ) sin
+( Ω
+2 τ
+)
++ Ω
+2 Y (τ ) cos
+( Ω
+2 τ
+)
+(6)
+that is a constrained coordinate transformation. From the restriction in the
+first derivative, the substitution in the differential equation and averaging over
+one period we obtain two (autonomous) differential equations for X′ and Y ′
+and introducing a detuning parameter (εσ = Ω − 2), namely
+X′ = πεY
+12(εσ + 2)2 [2λε2Y 2 − 3εY 2 − 3εX2 − 6εσ2 − 24σ − 12λ] (7)
+Y ′ = πεX
+12(εσ + 2)2 [3εY 2 + 2λε2X2 + 3εX2 + 6εσ2 + 24σ − 12λ] , (8)
+we can solve this differential equation for the transient response, or equate
+(X′, Y ′) = (0, 0) and solve for X and Y to get the steady-state solution. The
+solutions for the steady-state case are
+X = Y = 0
+
+or
+X2 = − 3
+λε3 (ε2σ2 + 4εσ − 2λε + 6)
+Y 2 = 3
+λε3 (ε2σ2 + 4εσ + 2λε + 6) .
+We can compute the Jacobian to obtain
+J(X, Y ) =
+
+ − π ε2 X Y
+2 (ε σ+2)2
+π ε (2 λ ε2 Y 2−3 ε Y 2−ε X2−2 ε σ2−8 σ−4 λ)
+4 (ε σ+2)2
+π ε (ε Y 2+2 λ ε2 X2+3 ε X2+2 ε σ2+8 σ−4 λ)
+4 (ε σ+2)2
+π ε2 X Y
+2 (ε σ+2)2
+
+
+around (0, 0) gives
+J(0, 0) = πε
+2(εσ + 2)2
+[ 0 −(εσ2 + 4σ + 2λ)
+εσ2 + 4σ + 2λ 0
+]
+,
+the stability of this fixed point is given by the determinant (since the trace is
+equal to zero)
+∆ = π2ε2
+4(ε + 2)4 (εσ2 + 4σ − 2λ)(εσ2 + 4σ + 2λ) ,
+this gives the critical values
+λ = − 1
+2 (εσ2
+1 + 4σ1), λ = 1
+2 (εσ2
+2 + 4σ2) .
+The stability of the system is depicted in figure 2.
+For the other fixed point the determinant is
+∆ = π2 (ε2 σ2 + 4 ε σ − 2 λ ε + 6) (ε2 σ2 + 4 ε σ + 2 λ ε + 6)
+(ε σ + 2)4
+this gives the critical values
+λ = − 1
+2ε (ε2σ2
+1 + 4εσ1 + 6), λ = 1
+2ε (ε2σ2
+2 + 4εσ2 + 6) .
+This curves present an extremum at σ = −2. The stability of the system is
+depicted in figure 3.
+For parametric pumping, the optimum effect is achieved by pumping at
+twice the natural frequency of the pendulum. This is constant for the linear
+
+10 8 6 4 2 0 2
+σ
+4
+2
+0
+2
+4
+λFigure 2: Stability of the system around the point (0,0). Regions in blue refer to stable
+behavior, while regions in red to unstable behavior.10 8 6 4 2 0 2
+σ
+4
+2
+0
+2
+4
+λ
+Figure 3: Stability of the system around the second fixed point. Regions in blue refer to
+stable behavior, while regions in red to unstable behavior.
+
+pendulum, due to isochrony condition. When the pendulum increases the
+amplitude the period increase as
+T = 4
+√ r0
+2g
+θ0∫
+0
+1
+√cos θ − cos θ0
+dθ ,
+being θ0 the initial amplitude, and the angular frequency diminishes.8 This
+gives us an explanation about the wider stability for the second (non-trivial)
+solution. Around (0,0) the linear analysis of stability resembles the linear case,
+while in the second fixed point we are not around this point and the amplitude
+of the oscillation would affect the (parametric) resonances of the system.
+2.2 Vertical and horizontal motion of the pivot: Method
+of Multiple Scales
+If we keep both, the vertical and horizontal motion of the pivot we get parametric and direct excitation in the differential equation. After normalization
+reads
+u′′ + [1 + ελ1Ω2 cos Ωτ ]
+{
+u − ε2u3
+6
+}
+− ε2λ2Ω2 cos Ωτ u2
+2 = −λ2Ω2 cos Ωτ
+with
+τ = ωtω0 ελ1 = − ∆z
+r0
+ω2
+0 = g
+r0
+Ω = ω
+ω0
+ελ1 = − ∆z
+r0
+,
+when, one more time λ1 and λ2 refers to the ratios between the amplitude of
+the parametric excitations and the length of the pendulum.
+In this case, it is interesting to find the resonances that the system can
+achieve, that will differ from the single resonance from the linear case. Using
+the method of multiple scales we propose a solution
+u = u0 + εu1 + ε2u2 + · · · ,
+and
+t = T0 + εT1 + ε2T2 + · · · .
+8Hence, as the amplitude increases the optimal frequency of parametric excitation decreases.
+
+Replacing, and grouping by powers of ε we get
+ε0 : D2
+0u0 + u0 = = −λ2Ω2 cos ΩT0
+ε1 : D2
+0u1 + u1 = − 2D0D1u0 − u0λ1 cos ΩT0 + 1
+2 λ2Ω2u2
+0 cos ΩT0
+ε2 : D2
+0u2 + u2 = − λ1u1 cos ΩT0 − 2D0D1u1
+− D2
+1u0 + u3
+0
+6 + λ2u0u1Ω2 cos ΩT0
+Solving sequentially the set of equations, and enforcing secular terms to be
+zero we get as resonances
+Ω ∈
+{ 1
+2 , 1, 2, 3
+}
+The appearence of three of the resonances was obtained via numerical integration and are presented in Figure 4. Figure 5 show solutions for a range
+of frequencies around the direct and primary parametric resonances, due to
+nonlinearities the higher values are not present exactly at Ω = 1, 2.
+(a) ε = 0.5, λ1 = 0.2 and λ2 = 0.2. (b) ε = 0.2, λ1 = 0.1 and λ2 = 0.3.
+Figure 4: Time response for two sets of different parameters of the equation; in both
+cases θ(0) = π/4 and ˙θ(0) = 0.
+2.3 Numerical Results
+We computed the numerical solution using odeint from Scipy9.
+9odeint solve a system of ordinary differential equations using lsoda from the Fortran library odepack. http://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.
+odeint.html
+
+(a) Solution around Ω = 1. (b) Solution around Ω = 2.
+Figure 5: Time response around the primary and direct resonances. The parameters used
+were: λ1 = 0.2, λ2 = 0.1, 0.2, θ(0) = π/30, and ˙θ(0) = 0.
+3 Conclusions
+A model consisting of a planar pendulum was used to model the sloshing
+dynamics of coffee. Rotating sloshing was neglected since this will need two
+degrees of freedom (a spherical pendulum model).
+The vertically excited pendulum presents a parametric pumping with an
+effective stiffness that varies with time. This is similar to the Mathieu equation
+with Duffing-like nonlinearity. When excited both, vertically and horizontally
+the system presents parametric and direct excitation. Once again, the equation
+reads similar to Mathieu equation with quadratic and cubic nonlinearities,
+which leads to multiple resonances.
+If we consider the aspect ratio of cups constant we can have as design
+parameter the radius of the cup 10. Currently, the frequency ranges for the
+cups and regular walking are overlapped, but we can change this fact by tuning
+the size of the cup. An increase in the size will lead to a decrease in the natural
+frequency and will cease the overlapping. From a practical point of view, this
+is not feasible, since one doesn’t want to have a huge cup of coffee.
+Small values of λ will translate in longer walking with coffee without
+spilling, ehich can be achieved with higher sizes of cup or smaller amplitudes
+of oscillation—smoother walking. The latter can be obtained focusing in not
+spilling while walking, but this can be considered as a controlled system. This
+is one of the facts discussed in [8].
+A single harmonic excitation was considered due to its main importance [8],
+but the real walking is a complex signal with a broadband frequency content
+10See Appendix A.
+
+(a) Ω = 0.00. (b) Ω = 1.01.
+(c) Ω = 1.96. (d) Ω = 2.60.
+and several resonances will appear in that case.
+Appendix A: Physical Parameters
+Figure 6 shows a schematic of the cup of coffee. According to [8], the parameters for common cups are
+R ∈ [2.5, 6.7] cm
+H ∈ [5.7, 8.9] cm
+h ∈ [5.10, 10] cm
+α ∈ [8◦, 16◦]
+
+(e) Ω = 2.82. (f ) Ω = 2.99.
+(g) Ω = 3.54. (h) Ω = 4.00.
+Figure 5: Phase portrait for different excitation frequencies. In all the cases λ1 = 0.2,
+λ2 = 0.1, ε = 0.2, θ(0) = 0.1 and ˙θ(0) = 0. The red square is the initial point in the phase
+space, while the blue one is the finishing one after τ = 500
+This combination of parameters gives a range of frequencies for the cup
+fcup ∈ [2.6, 4.3] Hz ,
+and the frequency of walking is [8]
+fstep ∈ [1, 2.5] Hz .
+According to [3] the lumped parameters for a single degree of freedom
+
+Figure 6: Geometrical description of the cup of coffee.
+system are
+m = c1m0
+1 − c1
+m0 =ρπ(H − h)R2
+c1 = R
+2.2 tanh
+(
+1.84 H
+R
+)
+r0 = R
+1.84 tanh
+(
+1.84 H
+R
+)
+,
+for simple calculation we can take H/R ≈ 1.5, what yields
+r0 ≈ 0.54R .
+References
+[1] Baker, G. L., and Blackburn, J. A. (2005). The pendulum: a case study in
+physics (Vol. 8). Oxford: Oxford University Press.
+[2] Holmes, Mark H. Introduction to perturbation methods (2012). Vol. 20.
+Springer Science & Business Media.
+[3] Ibrahim, R. A. (2005). Liquid sloshing dynamics: theory and applications.
+Cambridge University Press.
+[4] Poole, C. P., Safko, J. L., and Goldstein, H. (2001). Classical Mechanics.
+
+[5] Kana, D. D. (1989). Validated spherical pendulum model for rotary liquid
+slosh. Journal of Spacecraft and Rockets, 26(3), 188-195
+[6] Kana, D. D., and Fox, D. J. (1995). Distinguishing the transition to chaos
+in a spherical pendulum. Chaos: An Interdisciplinary Journal of Nonlinear
+Science, 5(1), 298-310.
+[7] Lanczos, Cornelius. The variational principles of mechanics. Vol. 4. Courier
+Dover Publications, 1970.
+[8] Mayer, H. C., and Krechetnikov, R. (2012). Walking with coffee: Why does
+it spill?. Physical Review E, 85(4), 046117.
+[9] NASA (1969), Slosh suppression, May 1969, 36p.
+[10] Miles, J. (1984). Resonant motion of a spherical pendulum. Physica D:
+Nonlinear Phenomena, 11(3), 309-323.
+[11] Rucci, C. D. (1979). U.S. Patent No. 4,141,462. Washington, DC: U.S.
+Patent and Trademark Office.
+[12] Sanmartin, J. R. (1984). O Botafumeiro: Parametric pumping in the
+middle ages. American Journal of Physics, 52(10), 937-945.
