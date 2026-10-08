@@ -5,7 +5,9 @@ import {
   CaretDown,
   PlayPause,
   SlidersHorizontal,
-  UploadSimple,
+  FilePdf,
+  LinkSimple,
+  YoutubeLogo,
 } from "@phosphor-icons/react";
 import { useUser } from "@clerk/react";
 import { motion, useReducedMotion } from "motion/react";
@@ -13,12 +15,11 @@ import { Button } from "../components/Button";
 import { ErrorNotice, Loading } from "../components/Bits";
 import { QuizSetupFields } from "../components/QuizSetupFields";
 import { panelEnter } from "../lib/motion";
-import { navigate } from "../lib/router";
+import { linkTo, navigate } from "../lib/router";
 import { CATEGORIES, difficultyLabel, getActiveQuiz, getPrefs, quizTitle, type Prefs, type Quiz } from "../lib/quiz";
 import { INLINE_DEFAULT_LENGTH, closeCard, openCard, setupFromPrefs, type OpenCard } from "../lib/setup";
 import { useAsync, type AsyncState } from "../lib/useAsync";
 import { useStartQuiz } from "../lib/useStartQuiz";
-import { useUpload } from "../lib/uploads";
 import { useReview } from "../lib/useReview";
 
 function greeting(now = new Date()) {
@@ -39,7 +40,7 @@ export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boo
           {greeting()}
           {name ? `, ${name}` : ""}. What are we learning?
         </h1>
-        <p className="mt-1.5 text-muted">Take a built-in quiz and see what you actually know.</p>
+        <p className="mt-1.5 text-muted">Take a built-in quiz or turn your own reading into one.</p>
       </div>
 
       {active.status === "ok" && active.data && <ResumeCard quiz={active.data} />}
@@ -53,7 +54,7 @@ export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boo
 
       <BuiltIn onStarted={onStarted} />
 
-      <UploadSection />
+      <OwnMaterial />
     </div>
   );
 }
@@ -235,47 +236,30 @@ function InlineSetupForm({
 }
 
 /**
- * STM-13: upload a PDF straight to storage and show the source's status. Only
- * the signed-URL path; generation progress and the library come later.
+ * "Your own material" (design v2, Home): the dashed tile that opens the
+ * add-source screen for a PDF, an article link or a YouTube link. The list of
+ * the user's sources under it is not built yet (no list route; TASKS.md).
  */
-function UploadSection() {
-  const input = useRef<HTMLInputElement>(null);
-  const { state, upload } = useUpload();
-  const busy = state.status === "uploading";
-
+function OwnMaterial() {
   return (
     <section aria-labelledby="your-own" className="flex max-w-[486px] flex-col gap-3">
       <h2 id="your-own" className="section-label">
-        Your own
+        Your own material
       </h2>
-      <div className="flex flex-col gap-2 rounded-md bg-surface p-4.5">
-        <div className="kicker">PDF, up to 20 MB</div>
-        <h3 className="text-title leading-tight">Upload a PDF</h3>
-        <input
-          ref={input}
-          type="file"
-          accept="application/pdf,.pdf"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (file) void upload(file);
-          }}
-        />
-        <div className="mt-1.5">
-          <Button disabled={busy} onClick={() => input.current?.click()}>
-            <UploadSimple aria-hidden="true" className="size-4" />
-            Choose a PDF
-          </Button>
-        </div>
-        <div role="status" className="text-small text-muted">
-          {state.status === "uploading" && `Uploading ${state.filename}…`}
-          {state.status === "done" && `Uploaded ${state.source.title ?? "your PDF"}. Status: ${state.source.status}.`}
-        </div>
-        {state.status === "error" && <ErrorNotice>{state.message}</ErrorNotice>}
-      </div>
+      <a
+        {...linkTo({ name: "add" })}
+        className="flex flex-col items-start gap-2.5 rounded-md border border-dashed border-accent/55 bg-accent/5 p-4.5 text-text no-underline transition-colors hover:bg-accent/11"
+      >
+        <span aria-hidden="true" className="flex gap-2 text-accent">
+          <FilePdf className="size-5.5" />
+          <LinkSimple className="size-5.5" />
+          <YoutubeLogo className="size-5.5" />
+        </span>
+        <span className="text-title font-medium">Make a quiz from something you’re reading</span>
+        <span className="text-small text-muted">
+          A PDF, an article link or a YouTube video with captions. Takes about two minutes.
+        </span>
+      </a>
     </section>
   );
 }
