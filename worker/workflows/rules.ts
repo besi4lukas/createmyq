@@ -6,8 +6,8 @@ import type { sourceStatus } from "../db/schema";
 
 export type SourceStatus = (typeof sourceStatus.enumValues)[number];
 
-/** The statuses the Workflow writes. refused arrives with STM-22. */
-export type RunStatus = "processing" | "failed" | "duplicate" | "ready";
+/** The statuses the Workflow writes. */
+export type RunStatus = "processing" | "failed" | "duplicate" | "ready" | "refused";
 
 /**
  * Where each status may be entered from. The UPDATE in generation.ts only
@@ -18,6 +18,7 @@ export type RunStatus = "processing" | "failed" | "duplicate" | "ready";
  * failed:     only from processing, so a run never fails someone else's result.
  * duplicate:  from processing (the fingerprint step) or duplicate (it re-ran).
  * ready:      only from processing (the store step; a re-run after it committed writes nothing).
+ * refused:    only from processing (the record gate step, STM-22; likewise).
  *
  * The one other move, failed → processing when a later upload retries a bank,
  * is made only by the lock holder (lock-rules.ts: mayReopen).
@@ -27,6 +28,7 @@ const ALLOWED_FROM: Record<RunStatus, SourceStatus[]> = {
   failed: ["processing"],
   duplicate: ["processing", "duplicate"],
   ready: ["processing"],
+  refused: ["processing"],
 };
 
 export function allowedFrom(to: RunStatus): SourceStatus[] {

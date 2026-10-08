@@ -24,6 +24,10 @@ describe("allowedFrom", () => {
   it("marks a bank ready only from processing, so a re-run store writes nothing", () => {
     expect(sourceStatus.enumValues.filter((from) => canMove(from, "ready"))).toEqual(["processing"]);
   });
+
+  it("refuses a bank only from processing, so a re-run record gate writes nothing", () => {
+    expect(sourceStatus.enumValues.filter((from) => canMove(from, "refused"))).toEqual(["processing"]);
+  });
 });
 
 describe("instanceIdFor", () => {

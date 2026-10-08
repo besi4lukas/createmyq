@@ -21,6 +21,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chunkSource, type Chunk } from "../../worker/chunk";
+import { sampleChunks, type Sample } from "../../worker/chunk/sample";
 import { extractSource, type ExtractResult, type Span } from "../../worker/extract";
 import { fingerprint } from "../../worker/extract/fingerprint";
 import { evalManifestSchema, setProblems, type EvalManifest, type EvalManifestEntry } from "./manifest";
@@ -31,8 +32,8 @@ export const EVAL_DIR = fileURLToPath(new URL("../../fixtures/eval/", import.met
 export const textPath = (dir: string, id: string) => join(dir, "text", `${id}.txt`);
 export const cachePath = (dir: string, id: string) => join(dir, ".cache", `${id}.json`);
 
-export type SamplePosition = "start" | "middle" | "end";
-export type Sample = { position: SamplePosition; chunk: Chunk; text: string };
+// The sampler lives with the chunker so the Workflow (STM-22) uses the same one.
+export { sampleChunks, type Sample, type SamplePosition } from "../../worker/chunk/sample";
 
 export type EvalEntry = EvalManifestEntry & {
   text: string;
@@ -70,25 +71,6 @@ export async function readManifest(dir = EVAL_DIR): Promise<EvalManifest> {
   const problems = setProblems(parsed.data.entries);
   if (problems.length > 0) throw new Error(`fixtures/eval/manifest.json is invalid:\n${problems.map((p) => `✖ ${p}`).join("\n")}`);
   return parsed.data;
-}
-
-/** The first, middle and last chunk (fewer when the source has fewer chunks). */
-export function sampleChunks(text: string, chunks: readonly Chunk[]): Sample[] {
-  if (chunks.length === 0) return [];
-  const picks: [SamplePosition, number][] = [
-    ["start", 0],
-    ["middle", Math.floor((chunks.length - 1) / 2)],
-    ["end", chunks.length - 1],
-  ];
-  const used = new Set<number>();
-  const samples: Sample[] = [];
-  for (const [position, i] of picks) {
-    if (used.has(i)) continue;
-    used.add(i);
-    const chunk = chunks[i]!;
-    samples.push({ position, chunk, text: text.slice(chunk.start, chunk.end) });
-  }
-  return samples;
 }
 
 /**

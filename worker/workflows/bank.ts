@@ -107,3 +107,32 @@ export async function reopenBank(db: Db, bankSourceId: string, runSourceId: stri
     .returning({ id: sources.id });
   return Boolean(moved);
 }
+
+/**
+ * STM-22: write the topic gate's decision onto the bank (lock holder only,
+ * renewed first). A refusal also ends the bank: `refused` with the message in
+ * `error`, so every later upload of the same text shares it (afterFingerprint).
+ * Only a `processing` bank is written, so a re-run after the commit writes
+ * nothing and returns false.
+ */
+export async function recordGate(
+  db: Db,
+  bankSourceId: string,
+  d: {
+    gateVerdict: "accepted" | "refused";
+    detectedNiche: string | null;
+    confidence: number;
+    classifiedBy: string;
+    reason: string;
+    classificationInputs: unknown;
+    refusal: string | null;
+  },
+): Promise<boolean> {
+  const { refusal, ...decision } = d;
+  const [row] = await db
+    .update(sources)
+    .set({ ...decision, ...(refusal === null ? {} : { status: "refused" as const, error: refusal }), updatedAt: sql`now()` })
+    .where(and(eq(sources.id, bankSourceId), inArray(sources.status, allowedFrom("refused"))))
+    .returning({ id: sources.id });
+  return Boolean(row);
+}
