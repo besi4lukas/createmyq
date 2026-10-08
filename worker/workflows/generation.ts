@@ -6,7 +6,7 @@
  * safe to run twice (it may fail half way and be retried).
  *
  *   start → extract → fingerprint → claim lock → generation enabled → reserve spend → chunk → classify → record gate
- *     → generate chunk n (one per picked chunk, side by side) → grade → filter → record spend → store → release lock
+ *     → generate chunk n (one per picked chunk, side by side) → grade → filter → tag → record spend → store → release lock
  *   refused by the gate: … → record gate (bank refused) → record spend → release lock
  *
  * STM-24: "reserve spend" is the spend ceiling's gate (worker/limits/spend.ts):
@@ -32,7 +32,8 @@
  *
  * Real: start, extract, fingerprint, claim lock, chunk, generate (one step per
  * picked chunk, STM-18), grade and filter (STM-19: rubric score, near-duplicate
- * collapse, cap), store, release lock, and the topic gate (STM-22). Any failure ends with the source (or the
+ * collapse, cap), tag (STM-23: the classifier assigns each kept question's
+ * format and difficulty), store, release lock, and the topic gate (STM-22). Any failure ends with the source (or the
  * bank, for the lock holder) marked failed and a message the user can read
  * (sources.error).
  *
@@ -59,8 +60,9 @@ import { EMBEDDING_MODEL } from "./embed";
 import { SPEND_CEILING_MESSAGE, parseSpendCeiling, stableUuid } from "../limits/spend";
 import { recordRunSpend, reserveRunSpend, type SpendRow } from "../limits/spend-db";
 import { GENERATION_FAILED, GENERATION_OFF, TOO_MUCH_TEXT, TOO_THIN, allowedFrom, fitsInStepResult, type RunStatus } from "./rules";
-import { storeBank } from "./store";
-import type { KeptQuestion } from "./filter";
+import { storeBank, type TaggedQuestion } from "./store";
+import { TAGGER_MODEL, applyTags, difficultyCounts, tagQuestions, taggerCostUsd } from "../classifier/tag";
+import { anthropicTagger } from "./anthropic";
 
 export type GenerationParams = { sourceId: string };
 
@@ -115,6 +117,16 @@ const EMBED_STEP = {
 const CLASSIFY_STEP = {
   retries: { limit: 2, delay: "10 seconds", backoff: "exponential" },
   timeout: "3 minutes",
+} satisfies WorkflowStepConfig;
+
+/**
+ * STM-23: one Haiku call rating the kept questions' difficulty (~$0.007). The
+ * SDK retries a failed request twice; then two step retries. If it still
+ * fails the run fails: no question is stored without the classifier's tags.
+ */
+const TAG_STEP = {
+  retries: { limit: 2, delay: "30 seconds", backoff: "exponential" },
+  timeout: "2 minutes",
 } satisfies WorkflowStepConfig;
 
 /** The stubs do no I/O. One retry covers the runtime restarting mid-step. */
@@ -376,13 +388,40 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
           }),
         );
 
+        // STM-23: the classifier, not the generator, assigns each kept question's format (from its
+        // payload) and difficulty (one Haiku call). Too few to store → nothing to tag.
+        const tagged = await step.do(
+          "tag",
+          TAG_STEP,
+          logged(async (ctx) => {
+            const toTag = filtered.kept.length < MIN_QUESTIONS ? [] : filtered.kept;
+            const out = await tagQuestions(anthropicTagger(this.env), toTag);
+            const tagCostUsd = taggerCostUsd(out.usage);
+            console.log(log({ event: "generation_tag_summary", questions: toTag.length, ...difficultyCounts(out.tags), ...out.usage, tagCostUsd: Number(tagCostUsd.toFixed(4)) }));
+            return { ...out, attempt: ctx.attempt };
+          }),
+        );
+
         // STM-24: the run's real spend replaces its reservation. If some cost is unknown
         // (a failed attempt that may have been billed), the reservation is kept too.
-        const usageKnown = gate.attempt === 1 && results.every((r) => r.attempt === 1) && graded.ok && graded.attempt === 1;
+        const usageKnown =
+          gate.attempt === 1 && results.every((r) => r.attempt === 1) && graded.ok && graded.attempt === 1 && tagged.attempt === 1;
         const spendRows = [
           ...(await this.gateSpendRows(event.instanceId, sourceId, source.ownerId ?? null, gate)),
           ...(await this.spendRows(event.instanceId, sourceId, source.ownerId ?? null, results, graded, filtered.embedCostUsd ?? 0)),
         ];
+        if (tagged.tags.length > 0) {
+          spendRows.push({
+            id: await stableUuid(event.instanceId, "tag"),
+            userId: source.ownerId ?? null,
+            sourceId,
+            purpose: "tag",
+            provider: "anthropic",
+            model: TAGGER_MODEL,
+            ...tagged.usage,
+            costUsd: taggerCostUsd(tagged.usage),
+          });
+        }
         const recorded = await step.do(
           "record spend",
           DB_STEP,
@@ -390,8 +429,8 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         );
         console.log(log({ event: "spend_recorded", rows: spendRows.length, recordedUsd: recorded.recordedUsd, reservationReleased: usageKnown }));
 
-        const kept = filtered.kept;
-        if (kept.length < MIN_QUESTIONS) throw new RunFailure("too_thin", TOO_THIN);
+        if (filtered.kept.length < MIN_QUESTIONS) throw new RunFailure("too_thin", TOO_THIN);
+        const kept = applyTags(filtered.kept, tagged.tags);
 
         const stored = await step.do(
           "store",
@@ -532,7 +571,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
   }
 
   /** Write the questions and mark the bank ready, if this run still holds the lock (see writeBank). */
-  private async storeBank(bank: Bank, holder: string, text: string, chunks: Chunk[], kept: KeptQuestion[]): Promise<{ stored: boolean }> {
+  private async storeBank(bank: Bank, holder: string, text: string, chunks: Chunk[], kept: TaggedQuestion[]): Promise<{ stored: boolean }> {
     const { renewed } = await this.lock(bank.fingerprint).renew(holder);
     if (!renewed) {
       console.warn(JSON.stringify({ event: "generation_write_skipped_lock_lost", sourceId: holder, bankSourceId: bank.sourceId }));

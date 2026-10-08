@@ -3,13 +3,14 @@
  * Cloudflare AI Gateway (AI_GATEWAY_URL, wrangler.jsonc), which logs every
  * call with its tokens and cost. The key is the ANTHROPIC_API_KEY secret.
  *
- * Three calls: generation (Sonnet, STM-18), grading (Haiku, STM-19) and the
- * topic gate's model classifier (Haiku, STM-21). Only the generation Workflow
- * uses them. Taking a quiz never calls a model.
+ * Four calls: generation (Sonnet, STM-18), grading (Haiku, STM-19), the
+ * topic gate's model classifier (Haiku, STM-21) and the difficulty tagger
+ * (Haiku, STM-23). Only the generation Workflow uses them. Taking a quiz never calls a model.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { NonRetryableError } from "cloudflare:workflows";
 import { CLASSIFIER_MAX_TOKENS, CLASSIFIER_MODEL, CLASSIFIER_RESPONSE_SCHEMA } from "../classifier/model";
+import { TAGGER_MAX_TOKENS, TAGGER_MODEL, TAGGER_RESPONSE_SCHEMA } from "../classifier/tag";
 import { GRADER_MAX_TOKENS, GRADER_MODEL, GRADER_RESPONSE_SCHEMA } from "./filter";
 import { MAX_OUTPUT_TOKENS, MODEL, RESPONSE_SCHEMA, type ModelCall } from "./generate";
 
@@ -72,5 +73,14 @@ export function anthropicClassifier(env: AnthropicEnv): ModelCall {
     model: CLASSIFIER_MODEL,
     max_tokens: CLASSIFIER_MAX_TOKENS,
     output_config: { format: { type: "json_schema", schema: CLASSIFIER_RESPONSE_SCHEMA } },
+  });
+}
+
+/** Rates each kept question's difficulty (worker/classifier/tag.ts). No thinking: one short structured reply. */
+export function anthropicTagger(env: AnthropicEnv): ModelCall {
+  return caller(env, {
+    model: TAGGER_MODEL,
+    max_tokens: TAGGER_MAX_TOKENS,
+    output_config: { format: { type: "json_schema", schema: TAGGER_RESPONSE_SCHEMA } },
   });
 }

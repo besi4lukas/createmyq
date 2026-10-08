@@ -12,24 +12,22 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Chunk } from "../chunk";
 import type { Db } from "../db/client";
 import { questions, sourceChunks, sources } from "../db/schema";
+import type { Tag } from "../classifier/tag";
 import type { KeptQuestion } from "./filter";
 import { allowedFrom } from "./rules";
 
-/** We asked for multiple choice; the model doesn't choose. */
-const FORMAT = "multiple_choice" as const;
 /**
- * TODO(STM-23): the classifier assigns difficulty at write time. Until then
- * every generated question is stored as intermediate, never a value the
- * generator chose.
+ * A kept question with the classifier's tags (STM-23, worker/classifier/tag.ts).
+ * Format and difficulty come only from here, never from the generator.
  */
-const DIFFICULTY_UNTIL_STM_23 = "intermediate" as const;
+export type TaggedQuestion = KeptQuestion & Tag;
 
 export async function storeBank(
   db: Db,
   bankSourceId: string,
   text: string,
   chunks: Chunk[],
-  generated: KeptQuestion[],
+  generated: TaggedQuestion[],
 ): Promise<{ stored: boolean }> {
   return db.transaction(async (tx) => {
     const [ready] = await tx
@@ -61,8 +59,8 @@ export async function storeBank(
           sourceId: bankSourceId,
           chunkId: chunkRows.find((r) => r.ordinal === q.chunkOrdinal)!.id,
           origin: "generated" as const,
-          format: FORMAT,
-          difficulty: DIFFICULTY_UNTIL_STM_23,
+          format: q.format,
+          difficulty: q.difficulty,
           topic: q.topic,
           prompt: q.prompt,
           explanation: q.explanation,
