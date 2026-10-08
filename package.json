@@ -19,7 +19,8 @@
     "extract": "tsx scripts/extract.ts",
     "eval:check": "tsx scripts/eval/check.ts",
     "eval:snapshot": "tsx scripts/eval/snapshot.ts",
-    "eval:bench": "tsx scripts/eval/bench.ts"
+    "eval:bench": "tsx scripts/eval/bench.ts",
+    "eval:tags": "tsx scripts/eval/tag-bench.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

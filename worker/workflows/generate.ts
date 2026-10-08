@@ -10,8 +10,8 @@
  * so nothing that fails a check can reach the store step.
  *
  * The model writes prompt, options, answer, explanation, topic and quote. It
- * does not choose the format (we ask for multiple choice) or the difficulty
- * (store.ts, until the classifier tags it in STM-23).
+ * does not choose the format or the difficulty: the classifier tags both at
+ * write time (STM-23, worker/classifier/tag.ts).
  */
 import { z } from "zod";
 import type { Chunk } from "../chunk";

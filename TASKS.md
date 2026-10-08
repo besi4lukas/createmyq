@@ -142,6 +142,7 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 - [ ] **STM-23 Difficulty and format tagging** · 1.5h · depends: STM-21
   Per question, by the classifier, at write time.
   **Done when:** every stored question carries a difficulty and a format assigned by the classifier, not by the generator.
+  _Status:_ in review (branch `stm-23-tagging`). New `tag` step after `filter`: format from the payload's shape (`formatOfPayload`), difficulty from one `claude-haiku-4-5` call over the kept questions (`worker/classifier/tag.ts`); `store.ts` writes both from the tags (the `intermediate` placeholder and hard-coded format are gone); a failed tag fails the run (no default). Verified 2026-10-07: seed eval (`npm run eval:tags`, 4 runs) held-out sd-021…040 74/80 exact, dev half 70/80, no two-level misses; embedding alternative 28/40. Real runs on a local dev server (port 5233) against throwaway Neon branch `stm-23-tag-test` with PDFs in `createmyq-uploads-dev` (all deleted): Raft and NIST SP 800-218 both `ready`, 40/40 stored questions tagged, every stored difficulty/format equal to the tag step's output; Raft 6/13/3 (beginner/intermediate/advanced), SSDF 9/9/0; `model_calls` `tag` rows $0.0068 and $0.0049; run totals $0.145 and $0.126; STM-8 assembly rules by source found questions at every level except SSDF advanced (0). Not exercised end to end: a tag step that fails after retries (unit-tested).
 
 ## Day 7: Limits, polish, ship (8h)
 
