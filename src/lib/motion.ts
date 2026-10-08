@@ -11,6 +11,7 @@ import type { Transition, Variants } from "motion/react";
 
 type Bezier = [number, number, number, number];
 
+const EASE_SOFT: Bezier = [0.2, 0.8, 0.2, 1];
 const EASE_NEXT: Bezier = [0.2, 0.9, 0.2, 1];
 /** Spring-like overshoot: the reveal panel and the correct-option pop. */
 const EASE_SPRING: Bezier = [0.34, 1.56, 0.64, 1];
@@ -37,6 +38,13 @@ export const revealEnter = {
 export const optionVariants: Variants = {
   right: { scale: [1, 1.04, 1], transition: { duration: 0.46, ease: EASE_SPRING } },
   wrong: { x: [0, -9, 8, -5, 2, 0], transition: { duration: 0.42, ease: "linear" } },
+};
+
+/** Inline setup panel on Home's category cards: fades down into place. Height never animates; closing is instant. */
+export const panelEnter = {
+  initial: { opacity: 0, y: -8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.32, ease: EASE_SOFT } satisfies Transition,
 };
 
 /** Results count-up: 0 → pct. */

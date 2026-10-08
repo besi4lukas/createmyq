@@ -196,6 +196,12 @@
     no-repeat bottom / 100% 1px;
 }
 
+/* The same fading rule on the top edge (the open setup panel on a Home card). */
+@utility rule-fade-top {
+  background: linear-gradient(to right, transparent, var(--divider) 48px, var(--divider) calc(100% - 48px), transparent)
+    no-repeat top / 100% 1px;
+}
+
 /* Table row rule: the same fade, fainter (text at 8%), as in the design's table. */
 @utility rule-fade-faint {
   background: linear-gradient(

@@ -72,10 +72,15 @@ export type QuizResult = {
   review: ReviewItem[];
 };
 
+/** Question formats (questions.format). Only multiple choice can be served today. */
+export type Format = "multiple_choice" | "short_answer";
+
 export type Prefs = {
   defaultDifficulty: Difficulty;
   defaultMode: Mode;
   defaultLength: QuizLength;
+  /** Preferred formats, at least one. */
+  formats: Format[];
 };
 
 export type AnswerOutcome = {
