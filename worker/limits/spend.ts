@@ -28,6 +28,9 @@ export const DEFAULT_SPEND_CEILING_USD = 15;
  */
 export const RESERVE_PER_RUN_USD = 0.2;
 
+/** How a reservation row looks in model_calls (spend-db.ts writes it; the STM-27 report tells it apart from real calls). */
+export const RESERVATION = { purpose: "reservation", provider: "createmyq", model: "estimate" } as const;
+
 /** Shown when the ceiling stops an upload or a queued run (sources.error, API error). */
 export const SPEND_CEILING_MESSAGE =
   "New quizzes from your own files are paused until next month: CreateMyQ has reached its monthly spending limit. Built-in categories still work.";

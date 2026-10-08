@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, type ErrorInfo } from "react";
 import { createRoot } from "react-dom/client";
 import { ClerkProvider } from "@clerk/react";
 import App from "./App.tsx";
@@ -15,7 +15,21 @@ if (!publishableKey) {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
+// STM-27: Sentry only when VITE_SENTRY_DSN is set at build time (a GitHub variable in CI);
+// otherwise the SDK is not even downloaded. Errors only, scrubbed (src/lib/sentry.ts).
+const sentryDsn = (import.meta.env.VITE_SENTRY_DSN as string | undefined)?.trim();
+const sentry = sentryDsn
+  ? import("./lib/sentry").then((m) => {
+      m.initSentry(sentryDsn);
+      return m;
+    })
+  : null;
+const reportReactError = (error: unknown, info: ErrorInfo) => {
+  console.error(error);
+  void sentry?.then((m) => m.captureReactError(error, info));
+};
+
+createRoot(document.getElementById("root")!, { onUncaughtError: reportReactError }).render(
   <StrictMode>
     {/* cssLayerName puts Clerk's styles in a layer below Tailwind's utilities (see index.css). */}
     <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/" appearance={{ cssLayerName: "clerk" }}>

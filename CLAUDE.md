@@ -45,9 +45,13 @@ npm run extract -- <file.pdf | url> [--out t.txt] [--chunks]  # STM-14: run extr
 npm run eval:check [-- --offline] [-- --show <id>]  # STM-20: load the gate eval set (50 sources, 25/25), print the breakdown; exit 1 on any invalid/unloadable entry
 npm run eval:snapshot -- <id> [--pdf file]  # STM-20: (re)write a committed eval text from its real source
 npm run eval:tags [-- --runs 3]  # STM-23: rate the 40 seed questions' difficulty with the real tagger (Haiku, ~$0.016 a run) and compare with the human labels
+npm run report -- --week   # STM-27: what did this week cost? Quizzes, uploads + cache hit rate, spend (recorded vs held), month vs ceiling, health. Read-only
+                           #   windows: (none) = last 7 days rolling | --week (Mon 00:00→now) | --last-week | --days N | --since D [--until D]; --tz Zone (default UTC), --json, --top N, --ceiling USD
 ```
 
 Migrations use the direct (unpooled) Neon URL, never Hyperdrive. Test them on a throwaway Neon branch first: `DATABASE_URL_UNPOOLED="$(neon connection-string <branch>)" npm run db:migrate`. pgvector is created by `drizzle/0000_enable_pgvector.sql` (drizzle-kit does not create extensions).
+
+`report` reads `REPORT_DATABASE_URL` if set, else `DATABASE_URL_UNPOOLED` (shell, then `.env.local`), prints the Neon endpoint id, and runs every query in one `READ ONLY` transaction that it rolls back. The ceiling comes from `wrangler.jsonc` (`SPEND_CEILING_USD`) unless `--ceiling`.
 
 `db:seed` targets `SEED_DATABASE_URL` if set, else `DATABASE_URL_UNPOOLED` (shell, then `.env.local`), and prints the Neon endpoint id it is about to write to. It never changes `status` on an existing question (a flagged or retired question stays hidden), and never touches questions missing from the file. `--dry-run` runs the transaction and rolls it back.
 
@@ -72,6 +76,7 @@ src/quiz/             question-screen parts: OptionList, RevealPanel, useQuizKey
 worker/index.ts       Hono app, basePath /api: middleware and route wiring only
 worker/http.ts        apiError(c, status, message, extra?) (every error body is { error, code?, … }), readJson(c)
 worker/lib/           assertNever (exhaustive switches), withTimeout (race + always clear the timer)
+worker/observability/sentry.ts  STM-27: sentryOptions(env) (off without SENTRY_DSN), scrubEvent/scrubText (the PII rules); src/lib/sentry.ts + sentry-scrub.ts are the SPA's
 worker/quiz/assemble.ts  quiz assembly (STM-8): the one SQL query, pickQuestions() (category lookup + assembly + the 404s)
 worker/quiz/quiz-routes.ts  GET /api/quiz?category=&difficulty=&length=
 worker/quiz/session-routes.ts  STM-9 routes: POST/GET /api/session (category or review), GET /api/review (STM-25), POST /api/session/answer, POST /api/session/finish, GET/PUT /api/prefs
@@ -89,6 +94,7 @@ worker/limits/         STM-24: daily-cap.ts (the per-user day window, reset time
 worker/questions/payload.ts  Zod schemas for questions.payload per format; payloadByFormat + withFormatPayload(shape) is the one place a format joins the union
 worker/testing/       test-only: cloudflare:workers stub (aliased in vitest.config.ts) and a fake DO state; *.test.ts sit next to the code
 scripts/              operator scripts, run with tsx, type-checked by tsconfig.node.json (seed.ts, seed-file.ts, pg-fault-proxy.ts: dev-only flush fault injection, extract.ts; extract-harness/: dev-only Worker that runs extraction in workerd, never deployed)
+scripts/report.ts     STM-27: `npm run report` (target DB, read-only transaction); scripts/report/: window.ts (pure: --week/--days/--since, local midnights), queries.ts (every SELECT), report.ts (pure: buildReport + formatReport, the metric definitions)
 scripts/eval/         STM-20: manifest.ts (Zod schema + 25/25 rule), load.ts (loadEvalSet: text, chunks, start/middle/end samples), check.ts, snapshot.ts; STM-21: bench.ts (`npm run eval:bench`, needs scripts/classifier-harness/ running: a dev-only Worker with the remote AI binding, never deployed), metrics.ts (pure: accuracy, confusion, detected match, threshold sweep, leave-one-out); STM-23: tag-bench.ts (`npm run eval:tags`), tag-metrics.ts (pure: 3×3 confusion, agreement, kappa)
 worker/classifier/    STM-21: the topic gate. types.ts (`Classifier.classify(samples) → Classification {verdict, confidence 0.5–1, detected, by: embedding|model, usage, costUsd, embedding scores, primary}`), labels.ts (accept/refuse label descriptions, from the scope rules only), embedding.ts (EmbeddingClassifier + pure margin math), model.ts (ModelClassifier: one Haiku call, structured output), fallback.ts (FallbackClassifier), index.ts (**ACTIVE_CLASSIFIER and FALLBACK_THRESHOLD: the one-line swap**, makeClassifier), backends.ts (classifierFor(env): real backends); STM-23: tag.ts (per-question format from the payload, difficulty from one Haiku call)
 fixtures/eval/        the gate eval set: manifest.json, text/<id>.txt (committed, redistributable only), .cache/ (gitignored, fetched on demand). Label guidelines, licence policy and the ambiguous list: fixtures/eval/README.md. results/STM-21.md: the classifier benchmark; .runs/ (gitignored): every bench run as JSON + markdown
@@ -101,7 +107,7 @@ drizzle.config.ts     drizzle-kit config
 tsconfig.*.json       app / worker / node projects, referenced from tsconfig.json
 ```
 
-Expected additions as tickets land: more DOs in `worker/durable/`, `seed/` (question JSON), `scripts/` (operator scripts: seed, invite, cost report, benchmark).
+Expected additions as tickets land: more DOs in `worker/durable/`, `seed/` (question JSON), `scripts/` (operator scripts: seed, invite, benchmark).
 
 ## Frontend (STM-11)
 
@@ -142,6 +148,18 @@ How STM-10 does it (`worker/durable/user-session.ts`, `worker/quiz/flush.ts`):
 
 ### UserSession DO (STM-9)
 Sync KV storage (`ctx.storage.kv`), every method synchronous, so nothing interleaves. Keys: `quiz:active` (at most one quiz in progress: full snapshot incl. answers, `answers[]` in order, public `quizId` and private `idempotencyKey` made at start), `quiz:done:<quizId>` (finished, awaiting flush), `prefs`, `gen:window` (STM-24 daily cap: `{ resetAt, timeZone, sourceIds }`). Answer and finish must name the `quizId`, so a stale retry can't land on a newer quiz (answer → 409 `not_current_quiz`; finish of an already-finished quiz → its stored result, `alreadyFinished: true`). The route assembles (it already holds the DB connection) and hands the snapshot to `start()`. Starting while a quiz is in progress → 409 `quiz_in_progress` with that quiz (resume, FR-18); the way out is finish, which may be early. Answers are strictly in order and idempotent by index (a repeat returns the stored answer, `duplicate: true`). Practice returns verdict + explanation per answer; Exam returns only the choice until finish; finish returns score + full review in both. `finish()` moves the quiz to `quiz:done:<quizId>`; the STM-10 flush (above) drains those and deletes each only after Postgres commits.
+
+## Observability (STM-27)
+
+- **Workers Logs** (`observability.enabled` in `wrangler.jsonc`, 100% of invocations): every `console.*` line, JSON with an `event` field and ids only. Dashboard → Workers & Pages → createmyq → Logs (or `npx wrangler tail --format json`). Useful queries (filter `event` equals …):
+  - one upload's run: `sourceId` = `<id>` (or `instanceId` = `source-<id>`): every `generation_step_ok/_failed` with `step` and `attempt`, then `generation_gate_decision`, `generation_filter_summary`, `generation_run_summary` (tokens, `costUsd`), `spend_reserved` / `spend_recorded`;
+  - failures: `generation_run_failed`, `generation_failed_without_lock`, `generation_filter_degraded`, `daily_cap_refund_failed`, `spend_ceiling_reached`;
+  - quiz results not yet in Postgres: `session_flush_failed`, `session_flush_retry_scheduled`, and **`session_flush_STUCK`** (console.error after 10 failed passes: stop and fix, see "Risks being watched"). An unflushed quiz lives only in its user's DO, so neither Postgres nor the report can see it.
+- **Sentry** (errors only; the free Developer plan should cover a few dozen friends, check its current error quota): `@sentry/cloudflare` wraps the Worker's `fetch` + `queue` (`withSentry`) and the `GenerationWorkflow` (`instrumentWorkflowWithSentry`: a step that fails its last retry); `app.onError` and the Workflow's unexpected-failure branch call `captureException` (both are handled, so the SDK wouldn't see them otherwise). The Durable Objects are **not** wrapped: Sentry's DO wrapper writes its own keys into DO storage on every alarm, and `UserSession` storage is the flush path; DO errors that reach a route are captured by `app.onError`, the flush alarm's are in Workers Logs. `@sentry/react` is loaded by `src/main.tsx` with a dynamic import only when `VITE_SENTRY_DSN` is set at build time (React's `onUncaughtError` + the SDK's global handlers).
+- **Off unless configured**: no `SENTRY_DSN` secret → `enabled: false`, nothing is sent; no `VITE_SENTRY_DSN` at build → the SDK isn't in the bundle.
+- **PII rules** (`scrubEvent`, both sides, unit-tested): no tracing, no breadcrumbs, no `user`, no `extra`; `dataCollection` all off (SDK v11 collects headers, cookies, query strings, bodies, DB/queue/AI payloads and user info by default); `request` keeps only method + URL without query/fragment; emails, `Bearer` tokens, JWTs, URL query strings and `postgres://` URLs in messages are masked. `sampleRate` 1 (every error). Never add question text, source text, answers or emails to an error message or a Sentry tag; ids only, as in the logs.
+- **Setup** (human, once): sentry.io → create org (free) → two projects: `createmyq-worker` (platform Cloudflare) and `createmyq-web` (React). Worker: `npx wrangler secret put SENTRY_DSN` (the worker project's DSN). SPA: `gh variable set VITE_SENTRY_DSN` (the web project's DSN; a DSN is public by design, so a variable like the Clerk key), used by both build steps in `ci.yml`. Optional: `SENTRY_ENVIRONMENT` (default `production`; set `development` in `.dev.vars`). In Sentry, set an alert "a new issue is created" → email. No source maps uploaded (stacks are minified in the SPA; the Worker's are readable).
+- **Spend cross-check**: the report reads `model_calls` (our own estimate). AI Gateway's dashboard (AI → AI Gateway → createmyq → Analytics) shows Anthropic requests, tokens and its own cost estimate; Workers AI usage is under AI → Workers AI. Compare by hand if the numbers look off; the report doesn't call them.
 
 ## Data model invariants
 
