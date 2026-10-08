@@ -42,6 +42,7 @@
  */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
+import { captureException } from "@sentry/cloudflare";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { chunkSource, type Chunk, type ChunkInput } from "../chunk";
 import { sampleChunks } from "../chunk/sample";
@@ -451,6 +452,8 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         // A step ran out of retries or threw NonRetryableError. The user gets a
         // general message; the log has the reason.
         console.error(log({ event: "generation_run_failed", error: err instanceof Error ? err.message : String(err) }));
+        // STM-27: the unexpected end goes to Sentry (scrubbed; a no-op without SENTRY_DSN).
+        captureException(err, { tags: { instanceId: event.instanceId, sourceId } });
         failure = { code: "step_failed", message: GENERATION_FAILED };
       }
     }

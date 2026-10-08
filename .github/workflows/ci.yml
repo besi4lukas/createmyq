@@ -28,10 +28,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       # The Clerk publishable key is baked into the SPA at build time. It is public
-      # (pk_…), so it lives in a repo variable, not a secret.
+      # (pk_…), so it lives in a repo variable, not a secret. So is the Sentry DSN
+      # (STM-27; unset = no Sentry in the SPA).
       - run: npm run build
         env:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
 
   deploy:
     name: Deploy to Cloudflare
@@ -60,3 +62,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}

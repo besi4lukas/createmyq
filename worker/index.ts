@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
@@ -8,12 +9,16 @@ import { quizRoutes } from "./quiz/quiz-routes";
 import { sessionRoutes } from "./quiz/session-routes";
 import { uploadRoutes } from "./uploads/upload-routes";
 import { startGenerationRuns } from "./workflows/queue";
+import { GenerationWorkflow as GenerationWorkflowBase } from "./workflows/generation";
+import { sentryOptions } from "./observability/sentry";
 
 // Durable Object classes must be exported from the Worker entry.
 export { UserSession } from "./durable/user-session";
 export { GenerationLock } from "./durable/generation-lock";
-// Workflow classes too (STM-15).
-export { GenerationWorkflow } from "./workflows/generation";
+// Workflow classes too (STM-15). STM-27: wrapped so a step that fails its last
+// attempt reaches Sentry (a no-op without SENTRY_DSN). The DOs are not wrapped
+// (see worker/observability/sentry.ts).
+export const GenerationWorkflow = Sentry.instrumentWorkflowWithSentry(sentryOptions, GenerationWorkflowBase);
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -53,11 +58,14 @@ app.onError((err, c) => {
     return apiError(c, err.status, err.status === 403 ? "Request blocked." : "Bad request.");
   }
   console.error(err);
+  // STM-27: the 500 is handled here, so the SDK would not see it otherwise. Scrubbed in beforeSend.
+  Sentry.captureException(err);
   return apiError(c, 500, "Something went wrong");
 });
 
-export default {
+// STM-27: Sentry wraps fetch and queue (errors only, scrubbed; off without SENTRY_DSN).
+export default Sentry.withSentry(sentryOptions, {
   fetch: app.fetch,
   // STM-15: the generation queue's consumer starts one Workflow run per source.
   queue: startGenerationRuns,
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Env>);

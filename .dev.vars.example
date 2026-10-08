@@ -27,3 +27,8 @@
 # STM-24: override the daily cap and monthly spend ceiling (wrangler.jsonc vars) to test them.
 # DAILY_GENERATION_CAP=2
 # SPEND_CEILING_USD=0.19
+
+# STM-27: Sentry for the Worker (errors only, scrubbed). Unset = Sentry off, nothing sent.
+# Production: npx wrangler secret put SENTRY_DSN   (the createmyq-worker project's DSN)
+# SENTRY_DSN=
+# SENTRY_ENVIRONMENT=development

@@ -6,12 +6,12 @@
 import { eq, gte, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { modelCalls } from "../db/schema";
-import { RESERVE_PER_RUN_USD, ceilingAllows, monthStart } from "./spend";
+import { RESERVATION, RESERVE_PER_RUN_USD, ceilingAllows, monthStart } from "./spend";
 
 /** Serialises reservations across all runs (pg_advisory_xact_lock key). */
 const SPEND_LOCK = sql`hashtext('createmyq:spend-ceiling')`;
 
-export const RESERVATION = { purpose: "reservation", provider: "createmyq", model: "estimate" } as const;
+export { RESERVATION };
 
 export type SpendRow = {
   id: string;
