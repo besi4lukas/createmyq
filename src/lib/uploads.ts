@@ -10,12 +10,25 @@ export type UploadedSource = { id: string; title: string | null; status: SourceS
 
 type Ticket = { sourceId: string; uploadUrl: string; headers: Record<string, string>; expiresAt: string };
 
+/**
+ * STM-24: the daily generation cap counts the user's own calendar day, so the
+ * server is told the browser's time zone. Cap and spend-ceiling refusals come
+ * back as ApiErrors whose message (with the reset time) is shown as is.
+ */
+function timeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
+}
+
 const PUT_FAILED = "The upload did not go through. Check your connection and try again.";
 
 /** Ask for a URL (the server checks size and type), PUT the file to R2, then confirm. */
 export async function uploadPdf(file: File): Promise<UploadedSource> {
   const ticket = await api<Ticket>("/uploads", {
-    body: { filename: file.name, size: file.size, contentType: file.type || "application/octet-stream" },
+    body: { filename: file.name, size: file.size, contentType: file.type || "application/octet-stream", timeZone: timeZone() },
   });
 
   let res: Response;
@@ -28,7 +41,7 @@ export async function uploadPdf(file: File): Promise<UploadedSource> {
   if (!res.ok) throw new ApiError(res.status, PUT_FAILED);
 
   const done = await api<{ source: UploadedSource }>("/uploads/complete", {
-    body: { sourceId: ticket.sourceId, filename: file.name },
+    body: { sourceId: ticket.sourceId, filename: file.name, timeZone: timeZone() },
   });
   return done.source;
 }

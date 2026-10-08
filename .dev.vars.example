@@ -23,3 +23,7 @@
 # ANTHROPIC_API_KEY=
 # The kill switch is off in wrangler.jsonc; turn it on locally to generate.
 # GENERATION_ENABLED=true
+
+# STM-24: override the daily cap and monthly spend ceiling (wrangler.jsonc vars) to test them.
+# DAILY_GENERATION_CAP=2
+# SPEND_CEILING_USD=0.19

@@ -5,8 +5,15 @@
  * that has not returned. Earlier steps are not run again. So every step must be
  * safe to run twice (it may fail half way and be retried).
  *
- *   start → extract → fingerprint → claim lock → generation enabled → classify → chunk
- *     → generate chunk n (one per picked chunk, side by side) → grade → filter → store → release lock
+ *   start → extract → fingerprint → claim lock → generation enabled → reserve spend → classify → chunk
+ *     → generate chunk n (one per picked chunk, side by side) → grade → filter → record spend → store → release lock
+ *
+ * STM-24: "reserve spend" is the spend ceiling's gate (worker/limits/spend.ts):
+ * no model is called unless this month's spend plus one run's reservation fits
+ * under SPEND_CEILING_USD, also for runs that were queued before the ceiling
+ * was reached. A run that has reserved finishes. "record spend" writes the real
+ * cost to model_calls. A run that ends without reserving gives the uploader's
+ * daily-cap count back ("refund daily cap").
  *
  * The lock comes after the fingerprint because it is keyed by it (STM-16, see
  * lock-rules.ts). Fingerprint writes content_hash; the UNIQUE constraint makes
@@ -33,8 +40,11 @@ import { extractSource, type ExtractInput } from "../extract";
 import { anthropicGrader, anthropicModel } from "./anthropic";
 import { claimContentHash, reopenBank } from "./bank";
 import { embedTexts } from "./embed";
-import { countOutcomes, embeddingText, filterQuestions, gradeQuestions, graderCostUsd, passingIndexes } from "./filter";
-import { MIN_QUESTIONS, costUsd, generateForChunk, planChunks, spreadAnswers, totalUsage } from "./generate";
+import { GRADER_MODEL, countOutcomes, embeddingText, filterQuestions, gradeQuestions, graderCostUsd, passingIndexes } from "./filter";
+import { MIN_QUESTIONS, MODEL, costUsd, generateForChunk, planChunks, spreadAnswers, totalUsage } from "./generate";
+import { EMBEDDING_MODEL } from "./embed";
+import { SPEND_CEILING_MESSAGE, parseSpendCeiling, stableUuid } from "../limits/spend";
+import { recordRunSpend, reserveRunSpend, type SpendRow } from "../limits/spend-db";
 import { GENERATION_FAILED, GENERATION_OFF, TOO_MUCH_TEXT, TOO_THIN, allowedFrom, fitsInStepResult, type RunStatus } from "./rules";
 import { storeBank } from "./store";
 import type { KeptQuestion } from "./filter";
@@ -94,7 +104,7 @@ const STUB_STEP = {
 type Bank = { sourceId: string; fingerprint: string };
 type Claimed = { generate: true } | { generate: false; reason: "busy" | "finished"; heldBy?: string };
 
-type SourceToRead = { kind: "pdf" | "article" | "youtube"; r2Key: string | null; url: string | null };
+type SourceToRead = { kind: "pdf" | "article" | "youtube"; r2Key: string | null; url: string | null; ownerId?: string | null };
 type Extract =
   | { ok: true; text: string; fingerprint: string; title: ChunkInput["title"]; spans: ChunkInput["spans"] }
   | { ok: false; code: string; message: string };
@@ -139,6 +149,21 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
     // Set once content_hash is written: from then on this run's own row is either
     // the bank (written only under the lock) or a duplicate, and is left alone.
     let fingerprinted = false;
+    // STM-24: set once the spend ceiling let this run reserve. A run that ends
+    // without it never called a model, so its upload doesn't count against the cap.
+    let reserved = false;
+    let owner: string | null = null;
+    const reservationId = await stableUuid(event.instanceId, "reservation");
+    const refundIfUnspent = async () => {
+      const userId = owner;
+      if (reserved || !userId) return;
+      try {
+        await step.do("refund daily cap", DB_STEP, logged(() => this.refundCap(userId, sourceId)));
+      } catch {
+        // Never fails the run: the worst case is one count too many until the user's midnight.
+        console.error(log({ event: "daily_cap_refund_failed" }));
+      }
+    };
     try {
       const source = await step.do("start", DB_STEP, logged(() => this.moveSource(sourceId, "processing")));
       if (!source) {
@@ -146,6 +171,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         console.log(log({ event: "generation_skipped" }));
         return { sourceId, outcome: "skipped" };
       }
+      owner = source.ownerId ?? null;
 
       const extracted = await step.do("extract", EXTRACT_STEP, logged((ctx) => this.extract(source, ctx.attempt)));
 
@@ -160,6 +186,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         if (fp.next === "done") {
           // The bank is finished (ready or refused) and this upload now shares it.
           console.log(log({ event: "generation_bank_exists", bankSourceId: fp.bankSourceId, bankStatus: fp.bankStatus }));
+          await refundIfUnspent();
           return { sourceId, outcome: "duplicate", bankSourceId: fp.bankSourceId };
         }
         const claimed = await step.do("claim lock", DB_STEP, logged(() => this.claimBank(fp.bankSourceId, fingerprint, sourceId)));
@@ -167,6 +194,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
           // Another run holds the lock and will finish the bank for everyone,
           // or the bank finished while this run was on its way.
           console.log(log({ event: "generation_lock_not_ours", bankSourceId: fp.bankSourceId, reason: claimed.reason, heldBy: claimed.heldBy }));
+          await refundIfUnspent();
           return { sourceId, outcome: claimed.reason === "busy" ? "waiting_on_other_run" : "duplicate", bankSourceId: fp.bankSourceId };
         }
         bank = { sourceId: fp.bankSourceId, fingerprint };
@@ -175,6 +203,16 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         // The kill switch (wrangler.jsonc), read in a step so a resumed run sees the value it started with.
         const enabled = await step.do("generation enabled", STUB_STEP, logged(async () => this.env.GENERATION_ENABLED === "true"));
         if (!enabled) throw new RunFailure("generation_off", GENERATION_OFF);
+
+        // STM-24: the spend ceiling. Nothing below calls a model unless this reserved.
+        const spend = await step.do(
+          "reserve spend",
+          DB_STEP,
+          logged(() => this.reserveSpend(reservationId, sourceId, source.ownerId ?? null)),
+        );
+        console.log(log({ event: spend.allowed ? "spend_reserved" : "spend_ceiling_reached", spentUsd: spend.spentUsd, ceilingUsd: spend.ceilingUsd }));
+        if (!spend.allowed) throw new RunFailure("spend_ceiling", SPEND_CEILING_MESSAGE);
+        reserved = true;
 
         // TODO(STM-21/22): sample chunks from start, middle and end; refuse off-topic sources.
         await step.do("classify", STUB_STEP, logged(async () => ({ verdict: "accepted" as const })));
@@ -186,11 +224,12 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
             step.do(
               `generate chunk ${chunk.ordinal}`,
               GENERATE_STEP,
-              logged(async () => {
+              logged(async (ctx) => {
                 const result = await generateForChunk(anthropicModel(this.env), chunk, extracted.text, plan.perChunk);
                 const { questions, ...counts } = result;
                 console.log(log({ event: "generation_chunk_done", ...counts, kept: questions.length }));
-                return result;
+                // An attempt above 1 means an earlier one failed, possibly after being billed (record spend).
+                return { ...result, attempt: ctx.attempt };
               }),
             ),
           ),
@@ -203,12 +242,13 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
           GRADE_STEP,
           logged(async (ctx) => {
             try {
-              return { ok: true as const, ...(await gradeQuestions(anthropicGrader(this.env), generated, plan.chunks, extracted.text)) };
+              const out = await gradeQuestions(anthropicGrader(this.env), generated, plan.chunks, extracted.text);
+              return { ok: true as const, attempt: ctx.attempt, ...out };
             } catch (err) {
               if (!(err instanceof NonRetryableError) && ctx.attempt <= GRADE_STEP.retries.limit) throw err;
               const error = err instanceof Error ? err.message : String(err);
               console.warn(log({ event: "generation_filter_degraded", stage: "grade", attempt: ctx.attempt, error }));
-              return { ok: false as const, grades: generated.map(() => null), usage: { inputTokens: 0, outputTokens: 0 } };
+              return { ok: false as const, attempt: ctx.attempt, grades: generated.map(() => null), usage: { inputTokens: 0, outputTokens: 0 } };
             }
           }),
         );
@@ -268,9 +308,21 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
                 costUsd: Number((generationCostUsd + gradeCostUsd + embedCostUsd).toFixed(4)),
               }),
             );
-            return { kept: spreadAnswers(kept), decisions };
+            return { kept: spreadAnswers(kept), decisions, embedCostUsd };
           }),
         );
+
+        // STM-24: the run's real spend replaces its reservation. If some cost is unknown
+        // (a failed attempt that may have been billed), the reservation is kept too.
+        const usageKnown = results.every((r) => r.attempt === 1) && graded.ok && graded.attempt === 1;
+        const spendRows = await this.spendRows(event.instanceId, sourceId, source.ownerId ?? null, results, graded, filtered.embedCostUsd ?? 0);
+        const recorded = await step.do(
+          "record spend",
+          DB_STEP,
+          logged(() => withDb(this.env, this.ctx, (db) => recordRunSpend(db, reservationId, spendRows, usageKnown))),
+        );
+        console.log(log({ event: "spend_recorded", rows: spendRows.length, recordedUsd: recorded.recordedUsd, reservationReleased: usageKnown }));
+
         const kept = filtered.kept;
         if (kept.length < MIN_QUESTIONS) throw new RunFailure("too_thin", TOO_THIN);
 
@@ -297,6 +349,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
       }
     }
 
+    await refundIfUnspent();
     const held = bank;
     if (held) {
       await step.do("mark failed", DB_STEP, logged(() => this.writeBank(held, sourceId, "failed", failure.message)));
@@ -311,6 +364,48 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
     }
     // Ends the run as errored, so failures stand out in `wrangler workflows instances list`.
     throw new Error(`source failed: ${failure.code}`);
+  }
+
+  /** STM-24: reserve one run's spend if the month's ceiling allows it. */
+  private async reserveSpend(id: string, sourceId: string, userId: string | null) {
+    const ceilingUsd = parseSpendCeiling(this.env.SPEND_CEILING_USD);
+    const out = await withDb(this.env, this.ctx, (db) => reserveRunSpend(db, { id, userId, sourceId, ceilingUsd, now: new Date() }));
+    return { ...out, ceilingUsd };
+  }
+
+  /** STM-24: give the upload's daily-cap count back (the run never reached a model). */
+  private async refundCap(userId: string, sourceId: string): Promise<{ refunded: boolean }> {
+    const { refunded } = await this.env.USER_SESSION.get(this.env.USER_SESSION.idFromName(userId)).refundGeneration(sourceId);
+    return { refunded };
+  }
+
+  /** One model_calls row per generate step (one or two calls), one for grading, one for embeddings. Ids are stable per run. */
+  private async spendRows(
+    instanceId: string,
+    sourceId: string,
+    userId: string | null,
+    results: { chunkOrdinal: number; usage: { inputTokens: number; outputTokens: number } }[],
+    graded: { ok: boolean; usage: { inputTokens: number; outputTokens: number } },
+    embedCostUsd: number,
+  ): Promise<SpendRow[]> {
+    const row = async (label: string, r: Omit<SpendRow, "id" | "sourceId" | "userId">): Promise<SpendRow> => ({
+      id: await stableUuid(instanceId, label),
+      userId,
+      sourceId,
+      ...r,
+    });
+    const rows = await Promise.all(
+      results.map((r) =>
+        row(`generate:${r.chunkOrdinal}`, { purpose: "generate", provider: "anthropic", model: MODEL, ...r.usage, costUsd: costUsd(r.usage) }),
+      ),
+    );
+    if (graded.ok) {
+      rows.push(await row("grade", { purpose: "grade", provider: "anthropic", model: GRADER_MODEL, ...graded.usage, costUsd: graderCostUsd(graded.usage) }));
+    }
+    if (embedCostUsd > 0) {
+      rows.push(await row("embed", { purpose: "embed", provider: "workers-ai", model: EMBEDDING_MODEL, inputTokens: 0, outputTokens: 0, costUsd: embedCostUsd }));
+    }
+    return rows;
   }
 
   private lock(fingerprint: string) {
@@ -373,7 +468,7 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         .update(sources)
         .set({ status: to, error, updatedAt: sql`now()` })
         .where(and(eq(sources.id, sourceId), inArray(sources.status, allowedFrom(to))))
-        .returning({ kind: sources.kind, r2Key: sources.r2Key, url: sources.url });
+        .returning({ kind: sources.kind, r2Key: sources.r2Key, url: sources.url, ownerId: sources.ownerId });
       return row ?? null;
     });
   }

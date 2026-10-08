@@ -59,5 +59,5 @@ export const TOO_MUCH_TEXT = "This source has too much text for one quiz. Try a 
 export const GENERATION_FAILED = "Something went wrong while making your quiz. Please upload the file again.";
 /** Fewer than MIN_QUESTIONS (generate.ts) passed every check. */
 export const TOO_THIN = "This source was too thin to make a quiz from. Try a longer or more detailed one.";
-/** GENERATION_ENABLED is not "true" (wrangler.jsonc): the kill switch until STM-24's spend ceiling. */
+/** GENERATION_ENABLED is not "true" (wrangler.jsonc): the manual kill switch. The spend ceiling (STM-24) is a second, automatic gate. */
 export const GENERATION_OFF = "Making quizzes from your own files is switched off for now.";

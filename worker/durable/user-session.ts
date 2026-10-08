@@ -15,6 +15,7 @@
  *   quiz:last            the most recently flushed quiz, so a retried finish still gets its result (STM-10)
  *   flush:retries        consecutive failed alarm passes, for the backoff (STM-10)
  *   prefs                preferences
+ *   gen:window           today's generation count: reset time, time zone, counted sourceIds (STM-24)
  *
  * Every quiz has a public `quizId` (random, opaque) that the client sends back
  * with each answer and with finish, so a late retry meant for an earlier quiz
@@ -30,6 +31,7 @@ import { DurableObject } from "cloudflare:workers";
 import { withDb } from "../db/client";
 import { withTimeout } from "../lib/timeout";
 import { writeFinishedSession } from "../quiz/flush";
+import { currentWindow, parseDailyCap, refundIn, reserveIn, type CapWindow } from "../limits/daily-cap";
 import { mergePrefs, readPrefs, type Prefs, type PrefsPatch } from "../quiz/schemas";
 import {
   answerQuiz,
@@ -51,6 +53,7 @@ const doneKey = (quizId: string) => `${DONE_PREFIX}${quizId}`;
 const LAST = "quiz:last";
 const RETRIES = "flush:retries";
 const PREFS = "prefs";
+const GEN_WINDOW = "gen:window";
 
 // Alarm backoff for flushes that failed: 5 s, 10 s, 20 s … capped at 10 min,
 // forever. Never give up: the entry stays until Postgres takes it.
@@ -285,5 +288,43 @@ export class UserSession extends DurableObject<Env> {
     const next = mergePrefs(this.getPrefs(), patch);
     this.kv.put(PREFS, next);
     return next;
+  }
+
+  // -------------------------------------------------------------------------
+  // Daily generation cap (STM-24). Rules in worker/limits/daily-cap.ts.
+  // -------------------------------------------------------------------------
+
+  private cap(): number {
+    return parseDailyCap(this.env.DAILY_GENERATION_CAP);
+  }
+
+  private window(timeZone: string): CapWindow {
+    return currentWindow(this.kv.get(GEN_WINDOW), Date.now(), timeZone);
+  }
+
+  /** How many runs are left today. Read-only: POST /api/uploads asks before signing. */
+  generationAllowance(timeZone: string): { limit: number; used: number; remaining: number; window: CapWindow } {
+    const window = this.window(timeZone);
+    const limit = this.cap();
+    return { limit, used: window.sourceIds.length, remaining: Math.max(0, limit - window.sourceIds.length), window };
+  }
+
+  /**
+   * Count upload `sourceId` against today's cap, if there is room. Check and
+   * count happen in one synchronous turn, so two completes can't both take the
+   * last slot. Counting the same source again is a no-op (a retried complete).
+   */
+  reserveGeneration(sourceId: string, timeZone: string): { ok: boolean; counted: boolean; limit: number; window: CapWindow } {
+    const limit = this.cap();
+    const out = reserveIn(this.window(timeZone), sourceId, limit);
+    if (out.ok && out.counted) this.kv.put(GEN_WINDOW, out.window);
+    return { ok: out.ok, counted: out.ok && out.counted, limit, window: out.window };
+  }
+
+  /** The Workflow gives a count back when the run ended without spending (a duplicate, the kill switch …). */
+  refundGeneration(sourceId: string): { refunded: boolean } {
+    const out = refundIn(this.window("UTC"), sourceId);
+    if (out.refunded) this.kv.put(GEN_WINDOW, out.window);
+    return { refunded: out.refunded };
   }
 }

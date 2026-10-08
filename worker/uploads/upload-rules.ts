@@ -25,16 +25,19 @@ export const TOO_BIG = "This file is over 20 MB. Try a smaller PDF.";
 export const NOT_PDF = "Only PDF files can be uploaded for now.";
 
 const filename = z.string().trim().min(1).max(255);
+/** STM-24: the browser's IANA time zone, for "today" in the daily cap. Invalid or missing → UTC. */
+const timeZone = z.string().max(64).optional();
 
 /** Shape only; size and type get their own friendly messages from checkUploadRequest. */
 export const createUploadBody = z.strictObject({
   filename,
   size: z.number().int(),
   contentType: z.string().max(255),
+  timeZone,
 });
 export type CreateUploadBody = z.infer<typeof createUploadBody>;
 
-export const completeUploadBody = z.strictObject({ sourceId: z.uuid(), filename });
+export const completeUploadBody = z.strictObject({ sourceId: z.uuid(), filename, timeZone });
 
 export type Check = { ok: true } | { ok: false; error: string; code: "too_large" | "not_pdf" | "empty" };
 

@@ -35,8 +35,8 @@ const input = (mode: "practice" | "exam" = "practice") => ({
 
 const NOW = Date.parse("2026-09-30T12:00:00.000Z");
 
-async function make(state = fakeState()) {
-  const obj = new UserSession(state.ctx, {} as Env);
+async function make(state = fakeState(), env: Partial<Env> = {}) {
+  const obj = new UserSession(state.ctx, env as Env);
   await vi.advanceTimersByTimeAsync(0); // let the constructor's blockConcurrencyWhile settle
   return { obj, state };
 }
@@ -337,5 +337,50 @@ describe("prefs", () => {
     const { obj } = await make();
     expect(() => obj.setPrefs({ formats: ["multiple_choice", "multiple_choice"] })).toThrow();
     expect(() => obj.setPrefs({ defaultLength: 7 } as never)).toThrow();
+  });
+});
+
+describe("daily generation cap (STM-24)", () => {
+  // NOW is 2026-09-30T12:00Z: 13:00 in London (BST), so the London day ends at 23:00Z.
+  const LONDON_RESET = Date.parse("2026-09-30T23:00:00.000Z");
+  const env = { DAILY_GENERATION_CAP: "2" } as unknown as Partial<Env>;
+
+  it("counts uploads atomically, refuses the third with the reset time, and resets at local midnight", async () => {
+    const { obj, state } = await make(fakeState(), env);
+    expect(obj.generationAllowance("Europe/London")).toMatchObject({ limit: 2, used: 0, remaining: 2 });
+    expect(obj.reserveGeneration("s1", "Europe/London")).toMatchObject({ ok: true, counted: true });
+    expect(obj.reserveGeneration("s1", "Europe/London")).toMatchObject({ ok: true, counted: false }); // retried complete
+    expect(obj.reserveGeneration("s2", "Europe/London")).toMatchObject({ ok: true, counted: true });
+    const third = obj.reserveGeneration("s3", "Europe/London");
+    expect(third).toMatchObject({ ok: false, counted: false, limit: 2 });
+    expect(third.window).toEqual({ resetAt: LONDON_RESET, timeZone: "Europe/London", sourceIds: ["s1", "s2"] });
+    expect(obj.generationAllowance("Asia/Tokyo")).toMatchObject({ remaining: 0 }); // a new zone doesn't reopen the day
+    expect(state.data.get("gen:window")).toEqual(third.window);
+
+    vi.setSystemTime(LONDON_RESET - 1);
+    expect(obj.reserveGeneration("s3", "Europe/London").ok).toBe(false);
+    vi.setSystemTime(LONDON_RESET);
+    expect(obj.generationAllowance("Europe/London")).toMatchObject({ used: 0, remaining: 2 });
+    const next = obj.reserveGeneration("s3", "Europe/London");
+    expect(next).toMatchObject({ ok: true, counted: true });
+    expect(next.window.resetAt).toBe(Date.parse("2026-10-01T23:00:00.000Z"));
+  });
+
+  it("gives a count back when the run never spent, once", async () => {
+    const { obj } = await make(fakeState(), env);
+    obj.reserveGeneration("s1", "UTC");
+    obj.reserveGeneration("s2", "UTC");
+    expect(obj.reserveGeneration("s3", "UTC").ok).toBe(false);
+    expect(obj.refundGeneration("s1")).toEqual({ refunded: true });
+    expect(obj.refundGeneration("s1")).toEqual({ refunded: false });
+    expect(obj.reserveGeneration("s3", "UTC").ok).toBe(true);
+  });
+
+  it("defaults to 3 a day, and leaves the prefs alone", async () => {
+    const { obj } = await make();
+    obj.setPrefs({ defaultMode: "exam" });
+    for (const id of ["a", "b", "c"]) expect(obj.reserveGeneration(id, "UTC").ok).toBe(true);
+    expect(obj.reserveGeneration("d", "UTC").ok).toBe(false);
+    expect(obj.getPrefs().defaultMode).toBe("exam");
   });
 });

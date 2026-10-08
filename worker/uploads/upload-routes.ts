@@ -7,6 +7,11 @@
  *                               and queue it for generation (STM-15)
  *   GET  /api/uploads/:id       the caller's own upload, with its status
  *
+ * STM-24: both POSTs check the user's daily generation cap (429 daily_cap,
+ * with the reset time) and the global spend ceiling (503 spend_ceiling).
+ * Signing only checks; complete counts the upload against the cap (the
+ * Workflow gives it back if the run never reaches a model).
+ *
  * A duplicate upload (STM-16: the same text was uploaded before) reports the
  * status of the bank it shares, and `bankSourceId` names that bank.
  *
@@ -22,6 +27,9 @@ import type { AppEnv } from "../auth/session";
 import type { Db } from "../db/client";
 import { sourceUploads, sources } from "../db/schema";
 import { apiError, readJson } from "../http";
+import { capMessage, safeTimeZone, type CapWindow } from "../limits/daily-cap";
+import { SPEND_CEILING_MESSAGE, ceilingAllows, parseSpendCeiling } from "../limits/spend";
+import { monthSpendUsd } from "../limits/spend-db";
 import type { GenerationMessage } from "../workflows/queue";
 import type { SourceStatus } from "../workflows/rules";
 import { presignPut, type R2Credentials } from "./presign";
@@ -44,6 +52,27 @@ const notFound = (c: Context) =>
     code: "upload_not_found",
   });
 
+const userSession = (c: Context<AppEnv>) => c.env.USER_SESSION.get(c.env.USER_SESSION.idFromName(c.var.user.id));
+
+const dailyCapHit = (c: Context, limit: number, window: CapWindow) =>
+  apiError(c, 429, capMessage(window, Date.now()), {
+    code: "daily_cap",
+    limit,
+    resetAt: new Date(window.resetAt).toISOString(),
+    timeZone: window.timeZone,
+  });
+
+const ceilingHit = (c: Context) => apiError(c, 503, SPEND_CEILING_MESSAGE, { code: "spend_ceiling" });
+
+/**
+ * Is there room under this month's spend ceiling for one more run? A fast,
+ * read-only answer for the user; the Workflow's reservation is the real gate.
+ */
+async function underCeiling(c: Context<AppEnv>): Promise<boolean> {
+  const ceiling = parseSpendCeiling(c.env.SPEND_CEILING_USD);
+  return ceilingAllows(await monthSpendUsd(c.var.db, new Date()), ceiling);
+}
+
 /** The R2 API token is two secrets; missing either fails closed. */
 function r2Credentials(env: Env): R2Credentials | null {
   const { R2_ACCESS_KEY_ID: accessKeyId, R2_SECRET_ACCESS_KEY: secretAccessKey } = env as {
@@ -59,6 +88,10 @@ uploadRoutes.post("/uploads", async (c) => {
   if (!input.success) return apiError(c, 400, "Pick a PDF to upload.");
   const check = checkUploadRequest(input.data);
   if (!check.ok) return apiError(c, check.code === "too_large" ? 413 : 400, check.error, { code: check.code });
+
+  const allowance = await userSession(c).generationAllowance(safeTimeZone(input.data.timeZone));
+  if (allowance.remaining <= 0) return dailyCapHit(c, allowance.limit, allowance.window);
+  if (!(await underCeiling(c))) return ceilingHit(c);
 
   const creds = r2Credentials(c.env);
   if (!creds) {
@@ -86,7 +119,7 @@ uploadRoutes.post("/uploads", async (c) => {
 uploadRoutes.post("/uploads/complete", async (c) => {
   const input = completeUploadBody.safeParse(await readJson(c));
   if (!input.success) return apiError(c, 400, "That upload could not be confirmed.");
-  const { sourceId, filename } = input.data;
+  const { sourceId, filename, timeZone } = input.data;
   const userId = c.var.user.id;
   const key = uploadKey(userId, sourceId);
 
@@ -96,6 +129,20 @@ uploadRoutes.post("/uploads/complete", async (c) => {
   if (!check.ok) {
     await c.env.UPLOADS.delete(key);
     return apiError(c, check.code === "too_large" ? 413 : 400, check.error, { code: check.code });
+  }
+
+  // A retried complete finds the row already there and is not counted or checked again.
+  if (!(await findOwnSource(c.var.db, userId, sourceId))) {
+    if (!(await underCeiling(c))) {
+      await c.env.UPLOADS.delete(key);
+      return ceilingHit(c);
+    }
+    const reserved = await userSession(c).reserveGeneration(sourceId, safeTimeZone(timeZone));
+    if (!reserved.ok) {
+      await c.env.UPLOADS.delete(key);
+      return dailyCapHit(c, reserved.limit, reserved.window);
+    }
+    console.log(JSON.stringify({ event: "daily_cap_counted", sourceId, used: reserved.window.sourceIds.length, limit: reserved.limit }));
   }
 
   // Idempotent: a retried complete finds the row already there.
