@@ -111,6 +111,17 @@ export function quizTitle(q: Pick<Quiz, "kind" | "category">): string {
   return q.kind === "review" || q.category === null ? "Review what I missed" : categoryName(q.category);
 }
 
+/**
+ * The source line under a Practice explanation: "System Design / Caching". A
+ * review quiz mixes categories and its questions don't carry theirs, so it
+ * shows the topic alone, and no line when there is no topic.
+ */
+export function citationFor(q: Pick<Quiz, "kind" | "category">, topic: string | null): string | null {
+  if (q.kind === "review" || q.category === null) return topic;
+  const name = categoryName(q.category);
+  return topic ? `${name} / ${topic}` : name;
+}
+
 /** "Beginner", or "Mixed levels" for a review quiz. */
 export function difficultyLabel(d: Difficulty | null): string {
   return d === null ? "Mixed levels" : DIFFICULTY_LABEL[d];

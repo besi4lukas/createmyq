@@ -140,8 +140,9 @@ function ReviewCard({ onStarted }: { onStarted: (quiz: Quiz, resumed: boolean) =
   const { count, start, starting, error } = useReview(onStarted);
   if (count.status !== "ok" || count.data === 0) return null;
   const n = count.data;
+  // As wide as the category cards below it.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex max-w-[486px] flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3.5 rounded-md bg-surface px-4 py-3.5 shadow-sm">
         <span
           aria-hidden="true"

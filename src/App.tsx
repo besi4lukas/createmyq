@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MotionConfig } from "motion/react";
 import { Loading } from "./components/Bits";
 import { Toast, useToast } from "./components/Toast";
 import { TopBar } from "./components/TopBar";
@@ -101,13 +102,17 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
       screen = route satisfies never; // every route has a screen
   }
 
+  // reducedMotion="user": Motion drops transform animations when the device asks
+  // for reduced motion; each animated component also skips its animation then.
   return (
-    <div className="min-h-dvh">
-      <TopBar onHome={route.name === "home"} onSignOut={onSignOut} />
-      <main ref={mainRef} tabIndex={-1} className={`${page} pt-2 outline-none`}>
-        {screen}
-      </main>
-      <Toast message={message} />
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-dvh">
+        <TopBar onHome={route.name === "home"} onSignOut={onSignOut} />
+        <main ref={mainRef} tabIndex={-1} className={`${page} overflow-x-clip pt-2 outline-none`}>
+          {screen}
+        </main>
+        <Toast message={message} />
+      </div>
+    </MotionConfig>
   );
 }
