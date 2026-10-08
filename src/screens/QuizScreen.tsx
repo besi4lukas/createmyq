@@ -2,7 +2,7 @@ import { Info, X } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { ErrorNotice, Loading, Tag } from "../components/Bits";
 import { navigate } from "../lib/router";
-import { DIFFICULTY_LABEL, MODE_LABEL, categoryName, type Quiz, type QuizResult } from "../lib/quiz";
+import { MODE_LABEL, difficultyLabel, quizTitle, type Quiz, type QuizResult } from "../lib/quiz";
 import { OptionList } from "../quiz/OptionList";
 import { RevealPanel } from "../quiz/RevealPanel";
 import { useActiveQuiz } from "../quiz/useActiveQuiz";
@@ -90,8 +90,9 @@ function QuizRunner({
 
   const optionsPhase = optionsPhaseOf(phase);
   const pad = (n: number) => String(n).padStart(2, "0");
-  const category = categoryName(quiz.category);
-  const short = quiz.questionCount < quiz.length;
+  const category = quizTitle(quiz);
+  // A review quiz is as long as the misses waiting; being shorter is not news.
+  const short = quiz.kind === "category" && quiz.difficulty !== null && quiz.questionCount < quiz.length;
 
   return (
     <div className="flex max-w-[720px] flex-col gap-4.5 pt-1 md:max-w-[1080px]">
@@ -102,7 +103,7 @@ function QuizRunner({
         <div className="min-w-0 flex-1">
           <p className="truncate text-ui">{category}</p>
           <p className="text-meta text-muted">
-            {DIFFICULTY_LABEL[quiz.difficulty]}, {MODE_LABEL[quiz.mode]} mode
+            {difficultyLabel(quiz.difficulty)}, {MODE_LABEL[quiz.mode]} mode
           </p>
         </div>
       </div>
@@ -113,7 +114,7 @@ function QuizRunner({
           <p className="text-small text-pretty">
             <span className="block text-ui">A shorter quiz this time.</span>
             <span className="text-muted">
-              There are only {quiz.questionCount} {DIFFICULTY_LABEL[quiz.difficulty].toLowerCase()} questions so far,
+              There are only {quiz.questionCount} {difficultyLabel(quiz.difficulty).toLowerCase()} questions so far,
               so this quiz has {quiz.questionCount} instead of {quiz.length}.
             </span>
           </p>

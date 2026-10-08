@@ -4,6 +4,7 @@ import { optionsPhaseOf, startingPoint } from "./useQuizRunner";
 
 const quiz = (mode: Quiz["mode"], currentIndex: number): Quiz => ({
   quizId: "q",
+  kind: "category",
   category: "system-design",
   difficulty: "beginner",
   mode,

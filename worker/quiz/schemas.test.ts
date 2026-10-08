@@ -44,8 +44,7 @@ describe("prefs", () => {
 });
 
 describe("startBody (STM-25 review)", () => {
-  it("takes a category quiz or a review quiz with optional length and mode", async () => {
-    const { startBody } = await import("./schemas");
+  it("takes a category quiz or a review quiz with optional length and mode", () => {
     expect(startBody.parse({ kind: "review" })).toEqual({ kind: "review" });
     expect(startBody.parse({ kind: "review", length: 5, mode: "exam" })).toEqual({ kind: "review", length: 5, mode: "exam" });
     expect(startBody.safeParse({ kind: "review", length: 7 }).success).toBe(false);

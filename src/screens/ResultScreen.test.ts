@@ -22,6 +22,7 @@ const q = (index: number, topic: string, option: number | null, correct: boolean
 // Finished early: two answered (one right), one never reached.
 const result: QuizResult = {
   quizId: "quiz",
+  kind: "category",
   category: "system-design",
   difficulty: "beginner",
   mode: "exam",
@@ -31,7 +32,7 @@ const result: QuizResult = {
   review: [q(0, "caching", 0, true), q(1, "caching", 2, false), q(2, "cdn", null, false)],
 };
 
-const html = renderToStaticMarkup(createElement(ResultScreen, { result }));
+const html = renderToStaticMarkup(createElement(ResultScreen, { result, onStarted: () => {} }));
 const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
 describe("ResultScreen", () => {
@@ -55,9 +56,18 @@ describe("ResultScreen", () => {
     expect(text).toContain("Prompt 2 Not answered Answer: A Why 2");
   });
 
-  it("offers the designed actions, but not the review (STM-25)", () => {
+  it("offers Another round and Home; the review action waits for the miss count (loaded after mount)", () => {
     expect(text).toContain("Another round");
     expect(text).toContain("Home");
     expect(text).not.toContain("Review what I missed");
+  });
+
+  it("names a review quiz (STM-25) and has no Another round for it", () => {
+    const review: QuizResult = { ...result, kind: "review", category: null, difficulty: null };
+    const out = renderToStaticMarkup(createElement(ResultScreen, { result: review, onStarted: () => {} }))
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ");
+    expect(out).toContain("1 of 3 right, 1 not answered, Review what I missed, Mixed levels");
+    expect(out).not.toContain("Another round");
   });
 });

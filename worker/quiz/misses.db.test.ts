@@ -9,7 +9,6 @@ import { vector } from "@electric-sql/pglite-pgvector";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Db } from "../db/client";
 import * as schema from "../db/schema";
@@ -74,7 +73,7 @@ const reviewIds = async (userId: string) => (await assembleReview(db, userId, 20
 beforeAll(async () => {
   pg = new PGlite({ extensions: { vector } });
   const d = drizzle({ client: pg, schema });
-  await migrate(d, { migrationsFolder: fileURLToPath(new URL("../../drizzle", import.meta.url)) });
+  await migrate(d, { migrationsFolder: "drizzle" /* vitest runs from the repo root */ });
   db = d as unknown as Db; // same query-builder surface as node-postgres for what is used here
 }, 60_000);
 afterAll(() => pg.close());
