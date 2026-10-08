@@ -24,6 +24,7 @@ const q = (n: number, answer = 1): AssembledQuestion => ({
 });
 const QUESTIONS = [q(1, 0), q(2, 1), q(3, 2)];
 const input = (mode: "practice" | "exam" = "practice") => ({
+  kind: "category" as const,
   userId: "user-1",
   categoryId: "cat-1",
   category: "system-design",

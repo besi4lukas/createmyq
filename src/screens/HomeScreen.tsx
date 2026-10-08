@@ -1,19 +1,20 @@
 import { useRef } from "react";
-import { ArrowRight, PlayPause, UploadSimple } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, ArrowRight, PlayPause, UploadSimple } from "@phosphor-icons/react";
 import { useUser } from "@clerk/react";
 import { Button } from "../components/Button";
 import { ErrorNotice } from "../components/Bits";
 import { navigate } from "../lib/router";
-import { CATEGORIES, DIFFICULTY_LABEL, categoryName, getActiveQuiz, type Quiz } from "../lib/quiz";
+import { CATEGORIES, difficultyLabel, getActiveQuiz, quizTitle, type Quiz } from "../lib/quiz";
 import { useAsync } from "../lib/useAsync";
 import { useUpload } from "../lib/uploads";
+import { useReview } from "../lib/useReview";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
   return h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening";
 }
 
-export function HomeScreen() {
+export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boolean) => void }) {
   const { user } = useUser();
   const active = useAsync(getActiveQuiz);
 
@@ -35,6 +36,8 @@ export function HomeScreen() {
           We could not check for a quiz in progress. {active.message}
         </ErrorNotice>
       )}
+
+      {active.status === "ok" && !active.data && <ReviewCard onStarted={onStarted} />}
 
       <section aria-labelledby="builtin" className="flex max-w-[486px] flex-col gap-3">
         <h2 id="builtin" className="section-label">
@@ -119,11 +122,46 @@ function ResumeCard({ quiz }: { quiz: Quiz }) {
       <div className="min-w-40 flex-1">
         <div className="text-ui">Pick up where you left off</div>
         <div className="text-meta text-muted">
-          {categoryName(quiz.category)}, {DIFFICULTY_LABEL[quiz.difficulty]}, {answered} of {quiz.questionCount}{" "}
+          {quizTitle(quiz)}, {difficultyLabel(quiz.difficulty)}, {answered} of {quiz.questionCount}{" "}
           answered
         </div>
       </div>
       <Button onClick={() => navigate({ name: "quiz" })}>Resume</Button>
+    </div>
+  );
+}
+
+/**
+ * STM-25: "N to review" when the user has unresolved misses. Not shown when
+ * there are none (or the count failed to load: Home works without it), nor
+ * while a quiz is in progress (the resume card is the way forward then).
+ */
+function ReviewCard({ onStarted }: { onStarted: (quiz: Quiz, resumed: boolean) => void }) {
+  const { count, start, starting, error } = useReview(onStarted);
+  if (count.status !== "ok" || count.data === 0) return null;
+  const n = count.data;
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3.5 rounded-md bg-surface px-4 py-3.5 shadow-sm">
+        <span
+          aria-hidden="true"
+          className="grid size-10 shrink-0 place-items-center rounded-panel bg-accent-900 text-accent-300"
+        >
+          <ArrowCounterClockwise className="size-5" />
+        </span>
+        <div className="min-w-40 flex-1">
+          <div className="text-ui">
+            {n} to review
+          </div>
+          <div className="text-meta text-muted">
+            {n === 1 ? "A question you missed" : "Questions you missed"}. Get each right twice in a row to clear it.
+          </div>
+        </div>
+        <Button disabled={starting} aria-busy={starting} onClick={() => void start()}>
+          Review
+        </Button>
+      </div>
+      {error && <ErrorNotice>{error}</ErrorNotice>}
     </div>
   );
 }

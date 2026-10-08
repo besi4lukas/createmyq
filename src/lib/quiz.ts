@@ -33,10 +33,14 @@ export type Answer = {
   explanation?: string;
 };
 
+/** "review" = built from the user's misses (STM-25): mixed categories and difficulties, so both are null. */
+export type QuizKind = "category" | "review";
+
 export type Quiz = {
   quizId: string;
-  category: string;
-  difficulty: Difficulty;
+  kind: QuizKind;
+  category: string | null;
+  difficulty: Difficulty | null;
   mode: Mode;
   /** What the user asked for. `questionCount` is smaller when the pool ran short. */
   length: number;
@@ -58,8 +62,9 @@ export type ReviewItem = Question & {
 
 export type QuizResult = {
   quizId: string;
-  category: string;
-  difficulty: Difficulty;
+  kind: QuizKind;
+  category: string | null;
+  difficulty: Difficulty | null;
   mode: Mode;
   score: number;
   questionCount: number;
@@ -101,6 +106,19 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 
 export const MODE_LABEL: Record<Mode, string> = { practice: "Practice", exam: "Exam" };
 
+/** What a quiz is called on screen: its category, or "Review" for a review quiz. */
+export function quizTitle(q: Pick<Quiz, "kind" | "category">): string {
+  return q.kind === "review" || q.category === null ? "Review what I missed" : categoryName(q.category);
+}
+
+/** "Beginner", or "Mixed levels" for a review quiz. */
+export function difficultyLabel(d: Difficulty | null): string {
+  return d === null ? "Mixed levels" : DIFFICULTY_LABEL[d];
+}
+
+/** How many questions are waiting for review (STM-25). */
+export const getReviewCount = () => api<{ count: number }>("/review").then((r) => r.count);
+
 export const getActiveQuiz = () => api<{ quiz: Quiz | null }>("/session").then((r) => r.quiz);
 
 export const getPrefs = () => api<{ prefs: Prefs }>("/prefs").then((r) => r.prefs);
@@ -109,12 +127,12 @@ export const getPrefs = () => api<{ prefs: Prefs }>("/prefs").then((r) => r.pref
  * Start a quiz. If one is already in progress the server keeps it and sends it
  * back with 409 `quiz_in_progress`; that quiz is returned with `resumed: true`.
  */
-export async function startQuiz(input: {
-  category: string;
-  difficulty: Difficulty;
-  length: QuizLength;
-  mode: Mode;
-}): Promise<{ quiz: Quiz; resumed: boolean }> {
+export type StartInput =
+  | { category: string; difficulty: Difficulty; length: QuizLength; mode: Mode }
+  /** A review quiz from the user's misses; length and mode come from their preferences. 404 `no_misses` if none. */
+  | { kind: "review" };
+
+export async function startQuiz(input: StartInput): Promise<{ quiz: Quiz; resumed: boolean }> {
   try {
     const { quiz } = await api<{ quiz: Quiz }>("/session", { body: input });
     return { quiz, resumed: false };

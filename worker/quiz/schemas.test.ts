@@ -42,3 +42,16 @@ describe("prefs", () => {
     expect(() => mergePrefs(DEFAULT_PREFS, { theme: "dark" } as never)).toThrow();
   });
 });
+
+describe("startBody (STM-25 review)", () => {
+  it("takes a category quiz or a review quiz with optional length and mode", () => {
+    expect(startBody.parse({ kind: "review" })).toEqual({ kind: "review" });
+    expect(startBody.parse({ kind: "review", length: 5, mode: "exam" })).toEqual({ kind: "review", length: 5, mode: "exam" });
+    expect(startBody.safeParse({ kind: "review", length: 7 }).success).toBe(false);
+    expect(startBody.safeParse({ kind: "review", category: "system-design" }).success).toBe(false);
+    expect(startBody.safeParse({ kind: "source" }).success).toBe(false);
+    expect(
+      startBody.parse({ category: "system-design", difficulty: "beginner", length: 5, mode: "practice" }),
+    ).not.toHaveProperty("kind");
+  });
+});

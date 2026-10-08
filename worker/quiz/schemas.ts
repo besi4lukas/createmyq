@@ -21,12 +21,22 @@ export const quizLengthSchema = z.union([z.literal(5), z.literal(10), z.literal(
 // Session routes (STM-9)
 // ---------------------------------------------------------------------------
 
-export const startBody = z.strictObject({
+/** Start a category quiz (STM-9). */
+export const categoryStartBody = z.strictObject({
   category: categorySlugSchema,
   difficulty: questionDifficultySchema,
   length: quizLengthSchema,
   mode: quizModeSchema,
 });
+
+/** Start a review quiz from the user's misses (STM-25). Length and mode default to the user's prefs. */
+export const reviewStartBody = z.strictObject({
+  kind: z.literal("review"),
+  length: quizLengthSchema.optional(),
+  mode: quizModeSchema.optional(),
+});
+
+export const startBody = z.union([categoryStartBody, reviewStartBody]);
 
 const quizId = z.uuid();
 

@@ -1,8 +1,9 @@
-import { CheckCircle, MinusCircle, XCircle, type Icon } from "@phosphor-icons/react";
-import { Tag } from "../components/Bits";
+import { ArrowCounterClockwise, CheckCircle, MinusCircle, XCircle, type Icon } from "@phosphor-icons/react";
+import { ErrorNotice, Tag } from "../components/Bits";
 import { Button } from "../components/Button";
 import { navigate } from "../lib/router";
-import { DIFFICULTY_LABEL, categoryName, type QuizResult } from "../lib/quiz";
+import { difficultyLabel, quizTitle, type Quiz, type QuizResult } from "../lib/quiz";
+import { useReview } from "../lib/useReview";
 import { summarize, topicBreakdown, verdictOf, type TopicStatus, type Verdict } from "../lib/results";
 
 /** Right and wrong are never colour alone: every verdict has its own icon and word. */
@@ -24,16 +25,25 @@ const STATUS_TONE: Record<TopicStatus, "accent" | "neutral"> = {
  * the explanation. Everything is derived from the finish response during
  * render. App moves focus to the heading (data-autofocus) on arrival.
  *
- * Deferred: "Review what I missed" (STM-25), the score count-up (STM-26).
+ * STM-25: "Review what I missed" starts a review quiz from every unresolved
+ * miss (this quiz's are already in Postgres: finish waits for the flush). It
+ * is replaced by a plain sentence when there is nothing to review.
+ * Deferred: the score count-up (STM-26).
  */
-export function ResultScreen({ result }: { result: QuizResult }) {
+export function ResultScreen({
+  result,
+  onStarted,
+}: {
+  result: QuizResult;
+  onStarted: (quiz: Quiz, resumed: boolean) => void;
+}) {
   const { pct, headline, unanswered } = summarize(result);
   const topics = topicBreakdown(result.review);
   const summary = [
     `${result.score} of ${result.questionCount} right`,
     unanswered > 0 && `${unanswered} not answered`,
-    categoryName(result.category),
-    DIFFICULTY_LABEL[result.difficulty],
+    quizTitle(result),
+    difficultyLabel(result.difficulty),
   ]
     .filter(Boolean)
     .join(", ");
@@ -119,14 +129,46 @@ export function ResultScreen({ result }: { result: QuizResult }) {
         </ol>
       </section>
 
+      <ResultActions result={result} onStarted={onStarted} />
+    </div>
+  );
+}
+
+function ResultActions({
+  result,
+  onStarted,
+}: {
+  result: QuizResult;
+  onStarted: (quiz: Quiz, resumed: boolean) => void;
+}) {
+  const { count, start, starting, error } = useReview(onStarted);
+  const toReview = count.status === "ok" ? count.data : 0;
+  const category = result.category;
+
+  return (
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2.5">
-        <Button size="lg" variant="secondary" onClick={() => navigate({ name: "setup", category: result.category })}>
-          Another round
-        </Button>
+        {toReview > 0 && (
+          <Button size="lg" disabled={starting} aria-busy={starting} onClick={() => void start()}>
+            <ArrowCounterClockwise aria-hidden="true" className="size-4.5" />
+            Review what I missed ({toReview})
+          </Button>
+        )}
+        {category !== null && (
+          <Button size="lg" variant="secondary" onClick={() => navigate({ name: "setup", category })}>
+            Another round
+          </Button>
+        )}
         <Button size="lg" variant="ghost" onClick={() => navigate({ name: "home" })}>
           Home
         </Button>
       </div>
+      {count.status === "ok" && toReview === 0 && (
+        <p role="status" className="text-small text-muted">
+          Nothing to review. Questions you miss come back here until you get them right twice in a row.
+        </p>
+      )}
+      {error && <ErrorNotice>{error}</ErrorNotice>}
     </div>
   );
 }

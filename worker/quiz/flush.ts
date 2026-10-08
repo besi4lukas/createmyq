@@ -14,12 +14,20 @@
  * returns without writing anything. That is what makes every crash and retry
  * converge to exactly one row, including "committed, but the DO died before it
  * could delete its copy".
+ *
+ * STM-25: in the same transaction, after the answers, the user's `misses` rows
+ * for this session's questions are recomputed from history (worker/quiz/misses.ts).
+ * Only when the session was inserted (a conflict returns before it), and
+ * behind a savepoint: if that step fails, it is rolled back and logged, and the
+ * session still commits. Results come first; a miss row heals itself the next
+ * time the question is answered.
  */
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { answers, sessionQuestions, sessions } from "../db/schema";
 import type { FinishedQuiz } from "./session-state";
 import { questionDifficultySchema } from "../questions/payload";
+import { refreshMisses } from "./misses";
 
 /** `true` if this call inserted the session, `false` if it was already there. */
 export async function writeFinishedSession(db: Db, userId: string, quiz: FinishedQuiz): Promise<boolean> {
@@ -31,11 +39,13 @@ export async function writeFinishedSession(db: Db, userId: string, quiz: Finishe
         idempotencyKey: quiz.idempotencyKey,
         kind: quiz.kind,
         // A subselect, not the raw id: if the category were ever deleted the
-        // FK would reject the insert on every retry forever. It is nullable.
-        categoryId: sql`(select id from categories where id = ${quiz.categoryId})`,
+        // FK would reject the insert on every retry forever. It is nullable
+        // (and null for a review quiz, which mixes categories).
+        categoryId: quiz.categoryId === null ? null : sql`(select id from categories where id = ${quiz.categoryId})`,
         mode: quiz.mode,
         // Validated by the route at start; typed as a plain string on the quiz.
-        difficulty: questionDifficultySchema.parse(quiz.difficulty),
+        // Null for a review quiz (mixed difficulties).
+        difficulty: quiz.difficulty === null ? null : questionDifficultySchema.parse(quiz.difficulty),
         questionCount: quiz.questions.length,
         score: quiz.score,
         startedAt: new Date(quiz.startedAt),
@@ -74,6 +84,21 @@ export async function writeFinishedSession(db: Db, userId: string, quiz: Finishe
           gradedBy: "code" as const, // multiple choice is graded in code (FR-15)
           answeredAt: new Date(a.answeredAt),
         })),
+      );
+    }
+
+    // STM-25: misses, from the history that now includes this session.
+    const questionIds = [...new Set(quiz.questions.map((q) => q.id))];
+    try {
+      await tx.transaction((sp) => refreshMisses(sp, userId, questionIds));
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          event: "misses_refresh_failed",
+          quizId: quiz.quizId,
+          error: err instanceof Error ? err.message : String(err),
+          cause: err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined,
+        }),
       );
     }
     return true;

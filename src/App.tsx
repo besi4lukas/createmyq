@@ -86,7 +86,7 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
   let screen;
   switch (route.name) {
     case "home":
-      screen = <HomeScreen />;
+      screen = <HomeScreen onStarted={onStarted} />;
       break;
     case "setup":
       screen = <SetupScreen key={route.category} category={route.category} onStarted={onStarted} />;
@@ -95,7 +95,7 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
       screen = <QuizScreen started={started} onFinished={onFinished} onLeave={onLeave} />;
       break;
     case "results":
-      screen = result ? <ResultScreen result={result} /> : null;
+      screen = result ? <ResultScreen result={result} onStarted={onStarted} /> : null;
       break;
     default:
       screen = route satisfies never; // every route has a screen
