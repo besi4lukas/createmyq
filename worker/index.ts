@@ -8,6 +8,7 @@ import { apiError } from "./http";
 import { quizRoutes } from "./quiz/quiz-routes";
 import { sessionRoutes } from "./quiz/session-routes";
 import { uploadRoutes } from "./uploads/upload-routes";
+import { sourceRoutes } from "./sources/source-routes";
 import { startGenerationRuns } from "./workflows/queue";
 import { GenerationWorkflow as GenerationWorkflowBase } from "./workflows/generation";
 import { sentryOptions } from "./observability/sentry";
@@ -49,6 +50,7 @@ app.route("/", sessionRoutes);
 
 // STM-13: presigned R2 uploads; the file itself never passes through /api.
 app.route("/", uploadRoutes);
+app.route("/", sourceRoutes);
 
 app.notFound((c) => apiError(c, 404, "Not found"));
 
