@@ -11,10 +11,10 @@
  * functions passed in (backends.ts in the Worker, fakes in the tests).
  */
 
-/** Same values as `classification_decisions.gate_verdict`. */
+/** Same values as `sources.gate_verdict`. */
 export type Verdict = "accepted" | "refused";
 
-/** Who made the final call. Also what STM-22 writes to `classification_decisions.classified_by`. */
+/** Who made the final call. Also what STM-22 writes to `sources.classified_by`. */
 export type ClassifiedBy = "embedding" | "model";
 
 export type ClassifierUsage = {

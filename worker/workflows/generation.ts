@@ -5,8 +5,9 @@
  * that has not returned. Earlier steps are not run again. So every step must be
  * safe to run twice (it may fail half way and be retried).
  *
- *   start → extract → fingerprint → claim lock → generation enabled → reserve spend → classify → chunk
+ *   start → extract → fingerprint → claim lock → generation enabled → reserve spend → chunk → classify → record gate
  *     → generate chunk n (one per picked chunk, side by side) → grade → filter → record spend → store → release lock
+ *   refused by the gate: … → record gate (bank refused) → record spend → release lock
  *
  * STM-24: "reserve spend" is the spend ceiling's gate (worker/limits/spend.ts):
  * no model is called unless this month's spend plus one run's reservation fits
@@ -14,6 +15,14 @@
  * was reached. A run that has reserved finishes. "record spend" writes the real
  * cost to model_calls. A run that ends without reserving gives the uploader's
  * daily-cap count back ("refund daily cap").
+ *
+ * STM-22: the topic gate. Classify reads the first, middle and last chunk, so
+ * it comes after chunk; it calls models (embeddings, sometimes Haiku), so it
+ * comes after reserve spend, like every model call. "record gate" writes the
+ * decision onto the bank; a refusal ends the bank `refused` with the off-topic
+ * message, and every later upload of the same text shares it (STM-16). The
+ * classifier failing on its last attempt fails the run: an unchecked source is
+ * never generated.
  *
  * The lock comes after the fingerprint because it is keyed by it (STM-16, see
  * lock-rules.ts). Fingerprint writes content_hash; the UNIQUE constraint makes
@@ -23,7 +32,7 @@
  *
  * Real: start, extract, fingerprint, claim lock, chunk, generate (one step per
  * picked chunk, STM-18), grade and filter (STM-19: rubric score, near-duplicate
- * collapse, cap), store, release lock. Classify is a stub until STM-21/22. Any failure ends with the source (or the
+ * collapse, cap), store, release lock, and the topic gate (STM-22). Any failure ends with the source (or the
  * bank, for the lock holder) marked failed and a message the user can read
  * (sources.error).
  *
@@ -34,11 +43,15 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type Workflo
 import { NonRetryableError } from "cloudflare:workflows";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { chunkSource, type Chunk, type ChunkInput } from "../chunk";
+import { sampleChunks } from "../chunk/sample";
+import { classifierFor } from "../classifier/backends";
+import type { Classification } from "../classifier";
 import { withDb } from "../db/client";
 import { sources } from "../db/schema";
 import { extractSource, type ExtractInput } from "../extract";
 import { anthropicGrader, anthropicModel } from "./anthropic";
-import { claimContentHash, reopenBank } from "./bank";
+import { claimContentHash, recordGate, reopenBank } from "./bank";
+import { classifySpend, gateDecision } from "./gate";
 import { embedTexts } from "./embed";
 import { GRADER_MODEL, countOutcomes, embeddingText, filterQuestions, gradeQuestions, graderCostUsd, passingIndexes } from "./filter";
 import { MIN_QUESTIONS, MODEL, costUsd, generateForChunk, planChunks, spreadAnswers, totalUsage } from "./generate";
@@ -92,6 +105,16 @@ const GRADE_STEP = {
 const EMBED_STEP = {
   retries: { limit: 2, delay: "10 seconds", backoff: "exponential" },
   timeout: "2 minutes",
+} satisfies WorkflowStepConfig;
+
+/**
+ * STM-22: the topic gate. Two Workers AI embedding calls, and one Haiku call
+ * when the embeddings are unsure (the SDK retries that request twice first).
+ * Out of retries, the run fails: a source is never generated unchecked.
+ */
+const CLASSIFY_STEP = {
+  retries: { limit: 2, delay: "10 seconds", backoff: "exponential" },
+  timeout: "3 minutes",
 } satisfies WorkflowStepConfig;
 
 /** The stubs do no I/O. One retry covers the runtime restarting mid-step. */
@@ -214,9 +237,50 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
         if (!spend.allowed) throw new RunFailure("spend_ceiling", SPEND_CEILING_MESSAGE);
         reserved = true;
 
-        // TODO(STM-21/22): sample chunks from start, middle and end; refuse off-topic sources.
-        await step.do("classify", STUB_STEP, logged(async () => ({ verdict: "accepted" as const })));
         const chunks = await step.do("chunk", STUB_STEP, logged(async () => chunkSource({ kind: source.kind, ...extracted })));
+
+        // STM-22: the topic gate, on the first, middle and last chunk (the samples the STM-21 benchmark measured).
+        const samples = sampleChunks(extracted.text, chunks);
+        const gate = await step.do(
+          "classify",
+          CLASSIFY_STEP,
+          logged(async (ctx) => ({ ...(await classifierFor(this.env).classify(samples.map((s) => s.text))), attempt: ctx.attempt })),
+        );
+        const decision = gateDecision(samples, gate);
+        await step.do(
+          "record gate",
+          DB_STEP,
+          logged(async () => {
+            const written = await this.recordGate(held, sourceId, decision);
+            console.log(
+              log({
+                event: "generation_gate_decision",
+                bankSourceId: held.sourceId,
+                verdict: gate.verdict,
+                confidence: Number(gate.confidence.toFixed(3)),
+                classifiedBy: gate.by,
+                detected: gate.detected,
+                fellThrough: Boolean(gate.primary),
+                costUsd: Number(gate.costUsd.toFixed(6)),
+                written,
+              }),
+            );
+            return { written };
+          }),
+        );
+        if (gate.verdict === "refused") {
+          // The bank is refused (record gate). Record the classifier's spend, release the reservation and the lock.
+          const gateRows = await this.gateSpendRows(event.instanceId, sourceId, source.ownerId ?? null, gate);
+          const recorded = await step.do(
+            "record spend",
+            DB_STEP,
+            logged(() => withDb(this.env, this.ctx, (db) => recordRunSpend(db, reservationId, gateRows, gate.attempt === 1))),
+          );
+          console.log(log({ event: "spend_recorded", rows: gateRows.length, recordedUsd: recorded.recordedUsd, reservationReleased: gate.attempt === 1 }));
+          await step.do("release lock", DB_STEP, logged(() => this.release(held, sourceId)));
+          return { sourceId, outcome: "refused", bankSourceId: held.sourceId, detected: gate.detected };
+        }
+
         const plan = planChunks(chunks);
         // One step per chunk, run side by side: a retry or a resume repeats only the chunks that hadn't finished.
         const results = await Promise.all(
@@ -314,8 +378,11 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
 
         // STM-24: the run's real spend replaces its reservation. If some cost is unknown
         // (a failed attempt that may have been billed), the reservation is kept too.
-        const usageKnown = results.every((r) => r.attempt === 1) && graded.ok && graded.attempt === 1;
-        const spendRows = await this.spendRows(event.instanceId, sourceId, source.ownerId ?? null, results, graded, filtered.embedCostUsd ?? 0);
+        const usageKnown = gate.attempt === 1 && results.every((r) => r.attempt === 1) && graded.ok && graded.attempt === 1;
+        const spendRows = [
+          ...(await this.gateSpendRows(event.instanceId, sourceId, source.ownerId ?? null, gate)),
+          ...(await this.spendRows(event.instanceId, sourceId, source.ownerId ?? null, results, graded, filtered.embedCostUsd ?? 0)),
+        ];
         const recorded = await step.do(
           "record spend",
           DB_STEP,
@@ -408,6 +475,13 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
     return rows;
   }
 
+  /** STM-22: one model_calls row per classifier backend called (gate.ts: classifySpend). */
+  private gateSpendRows(instanceId: string, sourceId: string, userId: string | null, gate: Classification): Promise<SpendRow[]> {
+    return Promise.all(
+      classifySpend(gate).map(async ({ label, ...r }) => ({ id: await stableUuid(instanceId, label), userId, sourceId, ...r })),
+    );
+  }
+
   private lock(fingerprint: string) {
     return this.env.GENERATION_LOCK.get(this.env.GENERATION_LOCK.idFromName(fingerprint));
   }
@@ -445,6 +519,16 @@ export class GenerationWorkflow extends WorkflowEntrypoint<Env, GenerationParams
       return { written: false };
     }
     return { written: (await this.moveSource(bank.sourceId, to, error)) !== null };
+  }
+
+  /** STM-22: the gate's decision onto the bank (a refusal ends it), if this run still holds the lock (see writeBank). */
+  private async recordGate(bank: Bank, holder: string, decision: ReturnType<typeof gateDecision>): Promise<boolean> {
+    const { renewed } = await this.lock(bank.fingerprint).renew(holder);
+    if (!renewed) {
+      console.warn(JSON.stringify({ event: "generation_write_skipped_lock_lost", sourceId: holder, bankSourceId: bank.sourceId }));
+      return false;
+    }
+    return withDb(this.env, this.ctx, (db) => recordGate(db, bank.sourceId, decision));
   }
 
   /** Write the questions and mark the bank ready, if this run still holds the lock (see writeBank). */
