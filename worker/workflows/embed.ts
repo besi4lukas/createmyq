@@ -13,20 +13,34 @@ export const EMBEDDING_MODEL = "@cf/qwen/qwen3-embedding-0.6b";
 export const EMBEDDING_DIMENSIONS = 1024;
 export const EMBEDDING_INSTRUCTION = "Given a quiz question and its answer, retrieve quiz questions that test the same fact";
 /** Estimate for the cost log only: Workers AI returns no token count. */
-const USD_PER_CHAR = 0.0118 / 1_000_000 / 4;
+export const EMBEDDING_USD_PER_CHAR = 0.0118 / 1_000_000 / 4;
+
+/**
+ * Qwen3 is asymmetric: `queries` are embedded with a task instruction,
+ * `documents` (what the queries should find) without one. STM-19 embeds
+ * questions as instructed queries; STM-21's classifier embeds sampled chunks
+ * as queries and its label descriptions as documents.
+ */
+export type EmbeddingInput = { queries: string[]; instruction: string } | { documents: string[] };
 
 /**
  * One vector per text, in order. Throws if the reply is not that (the step
  * retries). Values are rounded to 6 decimals: the step result stays small
  * (25 × 1024 numbers ≈ 250 KB) and cosine similarity moves by < 1e-5.
  */
-export async function embedTexts(ai: Ai, texts: string[]): Promise<{ vectors: number[][]; costUsd: number }> {
+export async function embed(ai: Ai, input: EmbeddingInput): Promise<{ vectors: number[][]; costUsd: number }> {
+  const texts = "queries" in input ? input.queries : input.documents;
   if (texts.length === 0) return { vectors: [], costUsd: 0 };
-  const out = await ai.run(EMBEDDING_MODEL, { queries: texts, instruction: EMBEDDING_INSTRUCTION });
+  const out = await ai.run(EMBEDDING_MODEL, input);
   const data = out.data;
   if (!data || data.length !== texts.length || data.some((v) => v.length !== EMBEDDING_DIMENSIONS)) {
     throw new Error(`embedding reply has the wrong shape: ${JSON.stringify(out.shape ?? null)}`);
   }
   const chars = texts.reduce((n, t) => n + t.length, 0);
-  return { vectors: data.map((v) => v.map((x) => Math.round(x * 1e6) / 1e6)), costUsd: chars * USD_PER_CHAR };
+  return { vectors: data.map((v) => v.map((x) => Math.round(x * 1e6) / 1e6)), costUsd: chars * EMBEDDING_USD_PER_CHAR };
+}
+
+/** STM-19: quiz questions, with the near-duplicate instruction. */
+export function embedTexts(ai: Ai, texts: string[]): Promise<{ vectors: number[][]; costUsd: number }> {
+  return embed(ai, { queries: texts, instruction: EMBEDDING_INSTRUCTION });
 }

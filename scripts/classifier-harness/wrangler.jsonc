@@ -1,0 +1,18 @@
+// Dev-only Worker for the STM-21 classifier benchmark (npm run eval:bench). NEVER deploy it.
+// It runs worker/classifier with the real backends: Workers AI embeddings through the
+// remote AI binding (billed, ~$0.00006 per source) and Haiku through AI Gateway `createmyq`
+// (billed, ~$0.005 per source). The Anthropic key comes from the repo's .dev.vars:
+//   npx wrangler dev -c scripts/classifier-harness/wrangler.jsonc --port 8798 --env-file .dev.vars
+// No database, no R2, no secrets of its own.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "createmyq-classifier-harness",
+  "main": "./index.ts",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "vars": {
+    "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/037430f3820d50ee00c0ee8ed692bc00/createmyq/anthropic"
+  },
+  "ai": { "binding": "AI", "remote": true }
+}

@@ -3,11 +3,13 @@
  * Cloudflare AI Gateway (AI_GATEWAY_URL, wrangler.jsonc), which logs every
  * call with its tokens and cost. The key is the ANTHROPIC_API_KEY secret.
  *
- * Two calls: generation (Sonnet, STM-18) and grading (Haiku, STM-19). Only the
- * generation Workflow uses them. Taking a quiz never calls a model.
+ * Three calls: generation (Sonnet, STM-18), grading (Haiku, STM-19) and the
+ * topic gate's model classifier (Haiku, STM-21). Only the generation Workflow
+ * uses them. Taking a quiz never calls a model.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { NonRetryableError } from "cloudflare:workflows";
+import { CLASSIFIER_MAX_TOKENS, CLASSIFIER_MODEL, CLASSIFIER_RESPONSE_SCHEMA } from "../classifier/model";
 import { GRADER_MAX_TOKENS, GRADER_MODEL, GRADER_RESPONSE_SCHEMA } from "./filter";
 import { MAX_OUTPUT_TOKENS, MODEL, RESPONSE_SCHEMA, type ModelCall } from "./generate";
 
@@ -16,7 +18,9 @@ const REQUEST_TIMEOUT_MS = 90_000;
 
 type Params = Omit<Anthropic.MessageCreateParamsNonStreaming, "system" | "messages">;
 
-function caller(env: Env, params: Params): ModelCall {
+type AnthropicEnv = Pick<Env, "ANTHROPIC_API_KEY" | "AI_GATEWAY_URL">;
+
+function caller(env: AnthropicEnv, params: Params): ModelCall {
   if (!env.ANTHROPIC_API_KEY || !env.AI_GATEWAY_URL) {
     throw new NonRetryableError("ANTHROPIC_API_KEY or AI_GATEWAY_URL is not set");
   }
@@ -59,5 +63,14 @@ export function anthropicGrader(env: Env): ModelCall {
     model: GRADER_MODEL,
     max_tokens: GRADER_MAX_TOKENS,
     output_config: { format: { type: "json_schema", schema: GRADER_RESPONSE_SCHEMA } },
+  });
+}
+
+/** Decides whether a source is software engineering (worker/classifier/model.ts). No thinking: a short, direct call. */
+export function anthropicClassifier(env: AnthropicEnv): ModelCall {
+  return caller(env, {
+    model: CLASSIFIER_MODEL,
+    max_tokens: CLASSIFIER_MAX_TOKENS,
+    output_config: { format: { type: "json_schema", schema: CLASSIFIER_RESPONSE_SCHEMA } },
   });
 }
