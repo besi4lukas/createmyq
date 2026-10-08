@@ -1,6 +1,8 @@
 import type { Ref } from "react";
 import { ArrowRight, BookOpenText, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "../components/Button";
+import { revealEnter } from "../lib/motion";
 
 const LINES = {
   correct: ["Nailed it.", "Clean. That’s the one.", "Yep, exactly right.", "Textbook."],
@@ -23,7 +25,8 @@ export function RevealPanel({
 }: {
   correct: boolean;
   explanation: string;
-  citation: string;
+  /** Where the question comes from ("System Design / Caching"); null shows no line. */
+  citation: string | null;
   index: number;
   isLast: boolean;
   onNext: () => void;
@@ -32,9 +35,13 @@ export function RevealPanel({
 }) {
   const lines = correct ? LINES.correct : LINES.wrong;
   const Icon = correct ? CheckCircle : XCircle;
+  const reduce = useReducedMotion();
   return (
-    <div
+    <motion.div
       ref={panelRef}
+      initial={reduce ? false : revealEnter.initial}
+      animate={revealEnter.animate}
+      transition={revealEnter.transition}
       className={`flex flex-col gap-3.5 rounded-panel border p-4.5 ${
         correct ? "border-accent-600 bg-accent-900" : "border-wrong-bd bg-wrong-bg"
       }`}
@@ -53,16 +60,18 @@ export function RevealPanel({
         </div>
       </div>
       <p className="text-ui text-pretty">{explanation}</p>
-      <p className="flex items-center gap-1.5 text-meta text-neutral-400">
-        <BookOpenText aria-hidden="true" className="shrink-0" />
-        {citation}
-      </p>
+      {citation && (
+        <p className="flex items-center gap-1.5 text-meta text-neutral-400">
+          <BookOpenText aria-hidden="true" className="shrink-0" />
+          {citation}
+        </p>
+      )}
       <div>
         <Button ref={nextRef} size="lg" onClick={onNext}>
           {isLast ? "See results" : "Next question"}
           <ArrowRight aria-hidden="true" className="size-4" />
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

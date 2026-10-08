@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 import { Check, X } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "motion/react";
+import { optionVariants } from "../lib/motion";
 
 export type OptionsPhase = "answering" | "checking" | "revealed" | "locked";
 
@@ -11,6 +13,8 @@ type OptionState = "idle" | "selected" | "faded" | "right" | "wrong" | "dimmed";
  *
  * Right and wrong are never colour alone: the badge swaps its letter for a
  * check or a cross, and a text label says "Correct answer" / "Your answer".
+ * Motion (STM-26): on reveal the right option pops and a wrong pick shakes
+ * (transform only, once each, skipped under reduced motion).
  */
 export function OptionList({
   name,
@@ -32,6 +36,7 @@ export function OptionList({
   inputRefs: RefObject<(HTMLInputElement | null)[]>;
 }) {
   const revealed = phase === "revealed" && correctIndex !== null;
+  const reduce = useReducedMotion();
 
   function stateOf(i: number): OptionState {
     const chosen = selected === i;
@@ -52,8 +57,10 @@ export function OptionList({
         const state = stateOf(i);
         const chosen = selected === i;
         return (
-          <label
+          <motion.label
             key={i}
+            variants={optionVariants}
+            animate={!reduce && (state === "right" || state === "wrong") ? state : undefined}
             className={`flex min-h-[54px] w-full items-center gap-3 rounded-md border px-3.5 py-3 text-left text-body leading-[1.35] transition-opacity duration-350 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent ${ROW[state]}`}
           >
             <input
@@ -89,7 +96,7 @@ export function OptionList({
                 {state === "right" ? (chosen ? "Your answer, correct" : "Correct answer") : "Your answer"}
               </span>
             )}
-          </label>
+          </motion.label>
         );
       })}
     </fieldset>

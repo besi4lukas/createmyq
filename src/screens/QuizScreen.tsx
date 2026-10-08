@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Info, X } from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "../components/Button";
 import { ErrorNotice, Loading, Tag } from "../components/Bits";
+import { questionEnter } from "../lib/motion";
 import { navigate } from "../lib/router";
-import { MODE_LABEL, difficultyLabel, quizTitle, type Quiz, type QuizResult } from "../lib/quiz";
+import { MODE_LABEL, citationFor, difficultyLabel, quizTitle, type Quiz, type QuizResult } from "../lib/quiz";
 import { OptionList } from "../quiz/OptionList";
 import { RevealPanel } from "../quiz/RevealPanel";
 import { useActiveQuiz } from "../quiz/useActiveQuiz";
@@ -88,6 +91,9 @@ function QuizRunner({
     finish,
   } = useQuizRunner(quiz, { onFinished, onResync, onGone });
 
+  const reduce = useReducedMotion();
+  // The question the screen opened on appears in place; each next one slides in.
+  const [firstIndex] = useState(index);
   const optionsPhase = optionsPhaseOf(phase);
   const pad = (n: number) => String(n).padStart(2, "0");
   const category = quizTitle(quiz);
@@ -121,7 +127,13 @@ function QuizRunner({
         </div>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:gap-9">
+      <motion.div
+        key={index}
+        initial={reduce || index === firstIndex ? false : questionEnter.initial}
+        animate={questionEnter.animate}
+        transition={questionEnter.transition}
+        className="grid grid-cols-1 items-start gap-4.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] md:gap-9"
+      >
         <div className="flex flex-col gap-3.5 md:pt-2">
           <p className="text-counter leading-none font-medium tracking-[-0.03em] text-neutral-600">
             <span className="sr-only">
@@ -186,7 +198,7 @@ function QuizRunner({
             <RevealPanel
               correct={answer.correct === true}
               explanation={answer.explanation ?? ""}
-              citation={question.topic ? `${category} / ${question.topic}` : category}
+              citation={citationFor(quiz, question.topic)}
               index={index}
               isLast={isLast}
               onNext={advance}
@@ -195,7 +207,7 @@ function QuizRunner({
             />
           )}
         </div>
-      </div>
+      </motion.div>
 
       <p role="status" aria-live="polite" className="sr-only">
         {announcement}

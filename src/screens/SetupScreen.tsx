@@ -1,33 +1,19 @@
 import { useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, ChatCircleText, SlidersHorizontal, Timer } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, SlidersHorizontal } from "@phosphor-icons/react";
 import { Button } from "../components/Button";
 import { ErrorNotice, Loading } from "../components/Bits";
-import { Segmented } from "../components/Segmented";
+import { QuizSetupFields } from "../components/QuizSetupFields";
 import { navigate } from "../lib/router";
-import { friendlyError } from "../lib/api";
-import {
-  CATEGORIES,
-  DIFFICULTIES,
-  DIFFICULTY_LABEL,
-  MODE_LABEL,
-  QUIZ_LENGTHS,
-  getPrefs,
-  startQuiz,
-  type Difficulty,
-  type Mode,
-  type Prefs,
-  type Quiz,
-  type QuizLength,
-} from "../lib/quiz";
+import { CATEGORIES, getPrefs, type Prefs, type Quiz } from "../lib/quiz";
+import { setupFromPrefs } from "../lib/setup";
 import { useAsync } from "../lib/useAsync";
+import { useStartQuiz } from "../lib/useStartQuiz";
 
-const MODE_HELP: Record<Mode, string> = {
-  practice: "See the answer and why after every question.",
-  exam: "No hints along the way. Everything is revealed at the end.",
-};
-
-const iconClass = "size-4";
-
+/**
+ * The full setup page, /setup/<category>. Home's category cards set up a quiz
+ * inline now; this page stays for "Another round" on Results and for the
+ * saved-source flow to come. The fields are QuizSetupFields, shared with Home.
+ */
 export function SetupScreen({
   category,
   onStarted,
@@ -84,57 +70,18 @@ function SetupForm({
   prefs: Prefs;
   onStarted: (quiz: Quiz, resumed: boolean) => void;
 }) {
-  const [difficulty, setDifficulty] = useState<Difficulty>(prefs.defaultDifficulty);
-  const [length, setLength] = useState<QuizLength>(prefs.defaultLength);
-  const [mode, setMode] = useState<Mode>(prefs.defaultMode);
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function start() {
-    setStarting(true);
-    setError(null);
-    try {
-      const { quiz, resumed } = await startQuiz({ category, difficulty, length, mode });
-      onStarted(quiz, resumed);
-    } catch (err) {
-      setError(friendlyError(err));
-      setStarting(false);
-    }
-  }
+  const [values, setValues] = useState(() => setupFromPrefs(prefs));
+  const { start, starting, error } = useStartQuiz(category, onStarted);
 
   return (
     <form
       className="flex flex-col gap-6"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!starting) void start();
+        void start(values);
       }}
     >
-      <Segmented
-        label="Difficulty"
-        value={difficulty}
-        onChange={setDifficulty}
-        options={DIFFICULTIES.map((d) => ({
-          value: d,
-          label: DIFFICULTY_LABEL[d],
-        }))}
-      />
-      <Segmented
-        label="Length"
-        value={length}
-        onChange={setLength}
-        options={QUIZ_LENGTHS.map((n) => ({ value: n, label: String(n) }))}
-      />
-      <Segmented
-        label="Feedback"
-        value={mode}
-        onChange={setMode}
-        help={MODE_HELP[mode]}
-        options={[
-          { value: "practice", label: MODE_LABEL.practice, icon: <ChatCircleText aria-hidden="true" className={iconClass} /> },
-          { value: "exam", label: MODE_LABEL.exam, icon: <Timer aria-hidden="true" className={iconClass} /> },
-        ]}
-      />
+      <QuizSetupFields values={values} onChange={setValues} />
       {error && <ErrorNotice>{error}</ErrorNotice>}
       <div>
         <Button type="submit" size="lg" disabled={starting} aria-busy={starting}>

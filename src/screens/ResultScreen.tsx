@@ -3,6 +3,7 @@ import { ErrorNotice, Tag } from "../components/Bits";
 import { Button } from "../components/Button";
 import { navigate } from "../lib/router";
 import { difficultyLabel, quizTitle, type Quiz, type QuizResult } from "../lib/quiz";
+import { useCountUp } from "../lib/useCountUp";
 import { useReview } from "../lib/useReview";
 import { summarize, topicBreakdown, verdictOf, type TopicStatus, type Verdict } from "../lib/results";
 
@@ -28,7 +29,8 @@ const STATUS_TONE: Record<TopicStatus, "accent" | "neutral"> = {
  * STM-25: "Review what I missed" starts a review quiz from every unresolved
  * miss (this quiz's are already in Postgres: finish waits for the flush). It
  * is replaced by a plain sentence when there is nothing to review.
- * Deferred: the score count-up (STM-26).
+ * STM-26: the big number counts up from 0 (the final number at once under
+ * reduced motion). It is aria-hidden: the heading says the score.
  */
 export function ResultScreen({
   result,
@@ -38,6 +40,7 @@ export function ResultScreen({
   onStarted: (quiz: Quiz, resumed: boolean) => void;
 }) {
   const { pct, headline, unanswered } = summarize(result);
+  const shownPct = useCountUp(pct);
   const topics = topicBreakdown(result.review);
   const summary = [
     `${result.score} of ${result.questionCount} right`,
@@ -54,9 +57,9 @@ export function ResultScreen({
         {/* The heading below says the score for screen readers. */}
         <p
           aria-hidden="true"
-          className="text-score leading-[0.9] font-medium tracking-[-0.05em] text-accent-300 sm:text-score-lg"
+          className="text-score leading-[0.9] font-medium tracking-[-0.05em] text-accent-300 tabular-nums sm:text-score-lg"
         >
-          {pct}
+          {shownPct}
           <span className="text-[0.4em] tracking-normal text-neutral-500">%</span>
         </p>
         <h1 data-autofocus tabIndex={-1} className="mt-3.5 text-h2-phone text-balance outline-none sm:text-h2">
