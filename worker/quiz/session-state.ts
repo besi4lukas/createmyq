@@ -29,10 +29,15 @@ export type Quiz = {
   userId?: string;
   /** Generated at start; sessions.idempotency_key. Server side only. */
   idempotencyKey: string;
-  kind: "category";
-  categoryId: string;
-  category: string;
-  difficulty: AssembledQuestion["difficulty"];
+  /**
+   * "category": built from one category at one difficulty (STM-8).
+   * "review": built from the user's unresolved misses (STM-25); it mixes
+   * categories and difficulties, so those three fields are null.
+   */
+  kind: QuizKind;
+  categoryId: string | null;
+  category: string | null;
+  difficulty: AssembledQuestion["difficulty"] | null;
   mode: QuizMode;
   /** What the user asked for; `questions.length` can be smaller (short pool). */
   length: number;
@@ -45,7 +50,12 @@ export type Quiz = {
   answers: StoredAnswer[];
 };
 
-export type StartInput = Pick<Quiz, "userId" | "categoryId" | "category" | "difficulty" | "mode" | "length"> & {
+export type QuizKind = "category" | "review";
+
+export type StartInput = Pick<
+  Quiz,
+  "kind" | "userId" | "categoryId" | "category" | "difficulty" | "mode" | "length"
+> & {
   questions: AssembledQuestion[];
 };
 
@@ -56,7 +66,6 @@ export function newQuiz(input: StartInput, ids: { quizId: string; idempotencyKey
   return {
     ...input,
     ...ids,
-    kind: "category",
     startedAt: now,
     finishedAt: null,
     score: null,
@@ -99,6 +108,7 @@ function publicAnswer(quiz: Quiz, index: number) {
 export function toPublicQuiz(quiz: Quiz) {
   return {
     quizId: quiz.quizId,
+    kind: quiz.kind,
     category: quiz.category,
     difficulty: quiz.difficulty,
     mode: quiz.mode,
@@ -116,6 +126,7 @@ export type PublicQuiz = ReturnType<typeof toPublicQuiz>;
 export function toResult(quiz: Quiz) {
   return {
     quizId: quiz.quizId,
+    kind: quiz.kind,
     category: quiz.category,
     difficulty: quiz.difficulty,
     mode: quiz.mode,

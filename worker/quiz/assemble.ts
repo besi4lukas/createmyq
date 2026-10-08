@@ -41,6 +41,27 @@ export type AssembledQuestion = {
 };
 
 /**
+ * The private-source rule (FR-10a) for question alias `q`: a question from a
+ * source is served only if that source is shared to the group or this user
+ * uploaded the same file. Seeded questions have no source and are always
+ * served. Shared with the review quiz (worker/quiz/review.ts).
+ */
+export const visibleTo = (userId: string) => sql`(
+  q.source_id is null
+  or exists (
+    select 1 from sources src
+    where src.id = q.source_id
+      and (
+        src.visibility = 'group'
+        or exists (
+          select 1 from source_uploads up
+          where up.source_id = src.id and up.user_id = ${userId}
+        )
+      )
+  )
+)`;
+
+/**
  * Sampling and the fallback when the pool runs dry (FR-6), all in the ORDER BY:
  *
  * 1. Questions the user hasn't seen in the last 30 days come first, in random
@@ -81,20 +102,7 @@ export async function assembleQuiz(
       and q.category_id = ${categoryId}
       and q.difficulty = ${difficulty}
       and q.format = 'multiple_choice'
-      and (
-        q.source_id is null
-        or exists (
-          select 1 from sources src
-          where src.id = q.source_id
-            and (
-              src.visibility = 'group'
-              or exists (
-                select 1 from source_uploads up
-                where up.source_id = src.id and up.user_id = ${userId}
-              )
-            )
-        )
-      )
+      and ${visibleTo(userId)}
     order by seen.seen_at asc nulls first, random()
     limit ${length}
   `);

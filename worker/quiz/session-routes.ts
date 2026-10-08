@@ -4,7 +4,9 @@
  * users.id from the verified session, never by anything the client sends, so a
  * user can only ever reach their own object.
  *
- *   POST /api/session          start a quiz (409 + the quiz if one is in progress)
+ *   POST /api/session          start a quiz (409 + the quiz if one is in progress):
+ *                              { category, difficulty, length, mode } or { kind: "review", length?, mode? }
+ *   GET  /api/review           { count } of questions waiting for review (STM-25)
  *   GET  /api/session          the quiz in progress, for resume ({ quiz: null } if none)
  *   POST /api/session/answer   { quizId, index, option } → graded in the object
  *   POST /api/session/finish   { quizId } → score + full review, then flush to Postgres (STM-10)
@@ -16,8 +18,9 @@ import { apiError, readJson } from "../http";
 import { assertNever } from "../lib/assert";
 import { withTimeout } from "../lib/timeout";
 import { pickQuestions } from "./assemble";
+import { assembleReview, countReview } from "./review";
 import { answerBody, finishBody, prefsPatchSchema, startBody } from "./schemas";
-import type { PublicQuiz } from "./session-state";
+import type { PublicQuiz, StartInput } from "./session-state";
 
 export const sessionRoutes = new Hono<AppEnv>();
 
@@ -36,32 +39,43 @@ sessionRoutes.post("/session", async (c) => {
     return apiError(
       c,
       400,
-      "Pick a category, a difficulty (beginner, intermediate or advanced), a length of 5, 10 or 20 and a mode (practice or exam).",
+      "Pick a category, a difficulty (beginner, intermediate or advanced), a length of 5, 10 or 20 and a mode (practice or exam), or send { kind: \"review\" }.",
     );
   }
   const stub = userSession(c);
+  const userId = c.var.user.id;
 
   // Cheap check first so an in-progress quiz doesn't cost an assembly query.
   // start() checks again atomically, so a race still can't replace it.
   const inProgress = await stub.getActive();
   if (inProgress) return quizInProgress(c, inProgress);
 
-  const { category, difficulty, length, mode } = input.data;
-  const picked = await pickQuestions(c.var.db, c.var.user.id, { category, difficulty, length });
-  if (!picked.ok) return apiError(c, 404, picked.error);
+  let start: StartInput;
+  if ("kind" in input.data) {
+    // STM-25: a review quiz from the user's unresolved misses.
+    const prefs = await stub.getPrefs();
+    const length = input.data.length ?? prefs.defaultLength;
+    const mode = input.data.mode ?? prefs.defaultMode;
+    const questions = await assembleReview(c.var.db, userId, length);
+    if (questions.length === 0) {
+      return apiError(c, 404, "Nothing to review. Questions you miss come back here until you get them right twice in a row.", {
+        code: "no_misses",
+      });
+    }
+    start = { kind: "review", userId, categoryId: null, category: null, difficulty: null, length, mode, questions };
+  } else {
+    const { category, difficulty, length, mode } = input.data;
+    const picked = await pickQuestions(c.var.db, userId, { category, difficulty, length });
+    if (!picked.ok) return apiError(c, 404, picked.error);
+    start = { kind: "category", userId, categoryId: picked.categoryId, category, difficulty, length, mode, questions: picked.questions };
+  }
 
-  const { started, quiz } = await stub.start({
-    userId: c.var.user.id,
-    categoryId: picked.categoryId,
-    category,
-    difficulty,
-    length,
-    mode,
-    questions: picked.questions,
-  });
+  const { started, quiz } = await stub.start(start);
   if (!started) return quizInProgress(c, quiz);
   return c.json({ quiz }, 201);
 });
+
+sessionRoutes.get("/review", async (c) => c.json({ count: await countReview(c.var.db, c.var.user.id) }));
 
 sessionRoutes.get("/session", async (c) => c.json({ quiz: await userSession(c).getActive() }));
 
