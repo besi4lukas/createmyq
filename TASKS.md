@@ -123,10 +123,10 @@ Rules: one ticket per session, one branch, one PR. See [CLAUDE.md](CLAUDE.md) fo
 
 ## Day 6: The gate (7.5h)
 
-- [ ] **STM-20 Labelled evaluation set** · 1.5h · depends: none
+- [x] **STM-20 Labelled evaluation set** · 1.5h · depends: none
   50 sources, half software and half not, with expected verdicts.
   **Done when:** the set is in the repo as fixtures and can be loaded by a script.
-  Status: in review. Verified 2026-10-07: `fixtures/eval/manifest.json` (Zod-validated) lists 50 real sources, 25 accepted / 25 refused (PDF 8/9, article 13/12, YouTube 4/4; 22 borderline incl. hard negatives such as pure maths, physics, EE, statistics, Excel help, crypto trading, product management and a hacker novel; the STM-22 cooking PDF). 38 entries have committed text (public domain, US gov, CC BY, CC BY-SA; 1.6 MB, extracted by `extractSource`), 12 are fetched on demand into gitignored `.cache/` (copyrighted pages, YouTube captions, CC BY-NC-SA novel, CISA PDF). `npm run eval:check` from a clean clone: cold 50/50 loaded, 0 failures (~6 s, network for the 12 fetch entries), warm and `--offline` 50/50 in < 0.1 s. Six entries are `ambiguous` with proposed labels awaiting a ruling (see `fixtures/eval/README.md`). No synthetic entries.
+  Status: done (PR #22, CI run 37706749646). Open: the 6 `ambiguous` entries (CISA Secure by Design, Rules of ML, ETL accepted; NIST CSF, ENIAC, Scrum refused) still carry proposed labels awaiting a ruling. Verified 2026-10-07: `fixtures/eval/manifest.json` (Zod-validated) lists 50 real sources, 25 accepted / 25 refused (PDF 8/9, article 13/12, YouTube 4/4; 22 borderline incl. hard negatives such as pure maths, physics, EE, statistics, Excel help, crypto trading, product management and a hacker novel; the STM-22 cooking PDF). 38 entries have committed text (public domain, US gov, CC BY, CC BY-SA; 1.6 MB, extracted by `extractSource`), 12 are fetched on demand into gitignored `.cache/` (copyrighted pages, YouTube captions, CC BY-NC-SA novel, CISA PDF). `npm run eval:check` from a clean clone: cold 50/50 loaded, 0 failures (~6 s, network for the 12 fetch entries), warm and `--offline` 50/50 in < 0.1 s. Six entries are `ambiguous` with proposed labels awaiting a ruling (see `fixtures/eval/README.md`). No synthetic entries.
 
 - [ ] **STM-21 `Classifier` interface + benchmark** · 3h · depends: STM-20
   Two implementations, Jev and a single model call, plus a benchmark script scoring both on accuracy, latency and cost. The gate must clear **90% accuracy** before going live.
