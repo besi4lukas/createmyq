@@ -79,7 +79,8 @@ function ownSources(db: Db, where: SQL, tail: SQL = sql``) {
 
 /** Drop the cache-busting column and normalise driver types. */
 function clean(row: OwnSource & { asOf: unknown }): OwnSource {
-  const { asOf: _asOf, ...rest } = row;
+  const rest: OwnSource & { asOf?: unknown } = { ...row };
+  delete rest.asOf;
   return {
     ...rest,
     confidence: rest.confidence === null ? null : Number(rest.confidence),
