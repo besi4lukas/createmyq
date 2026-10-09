@@ -50,11 +50,15 @@ export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boo
         </ErrorNotice>
       )}
 
+      {/* Two equal columns (design v2 Home: grid-cols-2, gap 28). Stacked below
+          lg, where a column would be too narrow for the open setup panel. */}
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
+        <BuiltIn onStarted={onStarted} />
+        <OwnMaterial />
+      </div>
+
+      {/* Full width under the columns, like the prototype's misses row. */}
       {active.status === "ok" && !active.data && <ReviewCard onStarted={onStarted} />}
-
-      <BuiltIn onStarted={onStarted} />
-
-      <OwnMaterial />
     </div>
   );
 }
@@ -72,7 +76,7 @@ function BuiltIn({ onStarted }: { onStarted: OnStarted }) {
   const prefs = useAsync(getPrefs);
   const [open, setOpen] = useState<OpenCard>(null);
   return (
-    <section aria-labelledby="builtin" className="flex max-w-[486px] flex-col gap-3">
+    <section aria-labelledby="builtin" className="flex min-w-0 flex-col gap-3">
       <h2 id="builtin" className="section-label">
         Built-in
       </h2>
@@ -242,7 +246,7 @@ function InlineSetupForm({
  */
 function OwnMaterial() {
   return (
-    <section aria-labelledby="your-own" className="flex max-w-[486px] flex-col gap-3">
+    <section aria-labelledby="your-own" className="flex min-w-0 flex-col gap-3">
       <h2 id="your-own" className="section-label">
         Your own material
       </h2>
@@ -295,9 +299,8 @@ function ReviewCard({ onStarted }: { onStarted: (quiz: Quiz, resumed: boolean) =
   const { count, start, starting, error } = useReview(onStarted);
   if (count.status !== "ok" || count.data === 0) return null;
   const n = count.data;
-  // As wide as the category cards below it.
   return (
-    <div className="flex max-w-[486px] flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3.5 rounded-md bg-surface px-4 py-3.5 shadow-sm">
         <span
           aria-hidden="true"
