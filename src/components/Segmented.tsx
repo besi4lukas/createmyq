@@ -13,8 +13,11 @@ export function Segmented<T extends string | number>({
   value,
   onChange,
   help,
+  hideLabel = false,
 }: {
   label: string;
+  /** The legend stays for screen readers only (the design shows no label above the kind picker). */
+  hideLabel?: boolean;
   options: SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -23,7 +26,7 @@ export function Segmented<T extends string | number>({
   const name = useId();
   return (
     <fieldset className="min-w-0">
-      <legend className="mb-[5px] text-meta text-label">{label}</legend>
+      <legend className={hideLabel ? "sr-only" : "mb-[5px] text-meta text-label"}>{label}</legend>
       <div className="flex overflow-hidden rounded-md border border-divider">
         {options.map((o) => (
           <label

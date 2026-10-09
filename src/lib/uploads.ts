@@ -2,10 +2,9 @@
  * The upload API as the browser sees it (STM-13, worker/uploads/upload-routes.ts).
  * The file goes straight to R2 on a presigned URL; /api only signs and records.
  */
-import { useCallback, useState } from "react";
-import { ApiError, api, friendlyError } from "./api";
+import { ApiError, api } from "./api";
+import type { SourceStatus } from "./sources";
 
-export type SourceStatus = "uploaded" | "processing" | "ready" | "refused" | "failed" | "duplicate";
 export type UploadedSource = { id: string; title: string | null; status: SourceStatus; bankSourceId: string; createdAt: string };
 
 type Ticket = { sourceId: string; uploadUrl: string; headers: Record<string, string>; expiresAt: string };
@@ -49,23 +48,4 @@ export async function uploadPdf(file: File): Promise<UploadedSource> {
     body: { sourceId: ticket.sourceId, filename: file.name, timeZone: timeZone() },
   });
   return done.source;
-}
-
-export type UploadState =
-  | { status: "idle" }
-  | { status: "uploading"; filename: string }
-  | { status: "done"; source: UploadedSource }
-  | { status: "error"; message: string };
-
-export function useUpload() {
-  const [state, setState] = useState<UploadState>({ status: "idle" });
-  const upload = useCallback(async (file: File) => {
-    setState({ status: "uploading", filename: file.name });
-    try {
-      setState({ status: "done", source: await uploadPdf(file) });
-    } catch (err) {
-      setState({ status: "error", message: friendlyError(err) });
-    }
-  }, []);
-  return { state, upload };
 }

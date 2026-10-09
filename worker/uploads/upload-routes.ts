@@ -20,19 +20,13 @@
  * prefix (404).
  */
 import { Hono, type Context } from "hono";
-import { and, eq, exists, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import type { AppEnv } from "../auth/session";
-import type { Db } from "../db/client";
-import { sourceUploads, sources } from "../db/schema";
-import { assertNever } from "../lib/assert";
 import { apiError, readJson } from "../http";
-import { capMessage, safeTimeZone, type CapWindow } from "../limits/daily-cap";
-import { SPEND_CEILING_MESSAGE, ceilingAllows, parseSpendCeiling } from "../limits/spend";
-import { monthSpendUsd } from "../limits/spend-db";
+import { safeTimeZone } from "../limits/daily-cap";
+import { admitGeneration, ceilingHit, dailyCapHit, refusalResponse, underCeiling, userSession } from "../limits/admission";
+import { findOwnSource } from "../sources/own-source";
 import type { GenerationMessage } from "../workflows/queue";
-import type { SourceStatus } from "../workflows/rules";
 import { presignPut, type R2Credentials } from "./presign";
 import { recordSource } from "./record-source";
 import {
@@ -53,59 +47,6 @@ const notFound = (c: Context) =>
   apiError(c, 404, "We could not find that upload. Please try uploading the file again.", {
     code: "upload_not_found",
   });
-
-const userSession = (c: Context<AppEnv>) => c.env.USER_SESSION.get(c.env.USER_SESSION.idFromName(c.var.user.id));
-
-const dailyCapHit = (c: Context, limit: number, window: CapWindow) =>
-  apiError(c, 429, capMessage(window, Date.now()), {
-    code: "daily_cap",
-    limit,
-    resetAt: new Date(window.resetAt).toISOString(),
-    timeZone: window.timeZone,
-  });
-
-const ceilingHit = (c: Context) => apiError(c, 503, SPEND_CEILING_MESSAGE, { code: "spend_ceiling" });
-
-/**
- * Is there room under this month's spend ceiling for one more run? A fast,
- * read-only answer for the user; the Workflow's reservation is the real gate.
- */
-async function underCeiling(c: Context<AppEnv>): Promise<boolean> {
-  const ceiling = parseSpendCeiling(c.env.SPEND_CEILING_USD);
-  return ceilingAllows(await monthSpendUsd(c.var.db, new Date()), ceiling);
-}
-
-type Refusal = { code: "spend_ceiling" } | { code: "daily_cap"; limit: number; window: CapWindow };
-
-/**
- * STM-24 for a new source: room under the spend ceiling, then a slot in the
- * user's daily cap (counted here). Null admits it.
- */
-async function admitGeneration(
-  c: Context<AppEnv>,
-  tx: Pick<Db, "select">,
-  sourceId: string,
-  timeZone: string,
-  now: Date,
-): Promise<Refusal | null> {
-  const ceiling = parseSpendCeiling(c.env.SPEND_CEILING_USD);
-  if (!ceilingAllows(await monthSpendUsd(tx, now), ceiling)) return { code: "spend_ceiling" };
-  const reserved = await userSession(c).reserveGeneration(sourceId, timeZone);
-  if (!reserved.ok) return { code: "daily_cap", limit: reserved.limit, window: reserved.window };
-  console.log(JSON.stringify({ event: "daily_cap_counted", sourceId, used: reserved.window.sourceIds.length, limit: reserved.limit }));
-  return null;
-}
-
-function refusalResponse(c: Context, refusal: Refusal) {
-  switch (refusal.code) {
-    case "spend_ceiling":
-      return ceilingHit(c);
-    case "daily_cap":
-      return dailyCapHit(c, refusal.limit, refusal.window);
-    default:
-      return assertNever(refusal);
-  }
-}
 
 /** The R2 API token is two secrets; missing either fails closed. */
 function r2Credentials(env: Env): R2Credentials | null {
@@ -195,33 +136,3 @@ uploadRoutes.get("/uploads/:id", async (c) => {
   const source = await findOwnSource(c.var.db, c.var.user.id, id.data);
   return source ? c.json({ source }) : notFound(c);
 });
-
-/**
- * A source the user uploaded (source_uploads), or null. Never anyone else's.
- * For a duplicate, `status` is the bank's: that is what the user will get.
- */
-async function findOwnSource(db: Db, userId: string, sourceId: string) {
-  const bank = alias(sources, "bank");
-  const [row] = await db
-    .select({
-      id: sources.id,
-      title: sources.title,
-      status: sql<SourceStatus>`coalesce(${bank.status}, ${sources.status})`,
-      bankSourceId: sql<string>`coalesce(${sources.duplicateOfId}, ${sources.id})`,
-      createdAt: sources.createdAt,
-    })
-    .from(sources)
-    .leftJoin(bank, eq(bank.id, sources.duplicateOfId))
-    .where(
-      and(
-        eq(sources.id, sourceId),
-        exists(
-          db
-            .select()
-            .from(sourceUploads)
-            .where(and(eq(sourceUploads.sourceId, sources.id), eq(sourceUploads.userId, userId))),
-        ),
-      ),
-    );
-  return row ?? null;
-}

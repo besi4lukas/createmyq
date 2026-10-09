@@ -22,34 +22,10 @@ import type { Db } from "../db/client";
 import * as schema from "../db/schema";
 import { uploadRoutes } from "./upload-routes";
 import { uploadKey } from "./upload-rules";
+import { withQueryCache } from "../testing/query-cache";
 
 const U1 = "11111111-1111-4111-8111-111111111111";
 const U2 = "22222222-2222-4222-8222-222222222222";
-
-type Queryable = { query: (...args: unknown[]) => Promise<unknown>; transaction: (fn: (tx: unknown) => Promise<unknown>) => Promise<unknown> };
-
-/** Every repeated SELECT is served from its first answer; writes never invalidate. */
-function withQueryCache(client: PGlite) {
-  const cache = new Map<string, unknown>();
-  const wrap = <T extends object>(target: T): T =>
-    new Proxy(target, {
-      get(t, prop) {
-        const q = t as unknown as Queryable;
-        if (prop === "query") {
-          return async (text: string, params?: unknown[], opts?: unknown) => {
-            if (!/^\s*select\b/i.test(text)) return q.query(text, params, opts);
-            const key = `${text}\u0000${JSON.stringify(params ?? [])}`;
-            if (!cache.has(key)) cache.set(key, await q.query(text, params, opts));
-            return cache.get(key);
-          };
-        }
-        if (prop === "transaction") return (fn: (tx: unknown) => Promise<unknown>) => q.transaction((tx) => fn(wrap(tx as object)));
-        const value = Reflect.get(t, prop) as unknown;
-        return typeof value === "function" ? (value as (...a: unknown[]) => unknown).bind(t) : value;
-      },
-    });
-  return { client: wrap(client), cache };
-}
 
 let pg: PGlite;
 let db: Db;

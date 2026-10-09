@@ -7,6 +7,8 @@
  *   /setup/<category>  quiz setup
  *   /quiz              the quiz in progress
  *   /results           the result of the quiz just finished (in memory only)
+ *   /add               bring your own material: a PDF, an article or a YouTube link
+ *   /sources/<id>      one of your sources and its status (safe to refresh or come back to)
  *
  * Clerk's sign-in uses the hash (#/...), which this router ignores.
  */
@@ -16,13 +18,18 @@ export type Route =
   | { name: "home" }
   | { name: "setup"; category: string }
   | { name: "quiz" }
-  | { name: "results" };
+  | { name: "results" }
+  | { name: "add" }
+  | { name: "source"; id: string };
 
 const CHANGE = "createmyq:navigate";
 
-function parse(pathname: string): Route {
+export function parse(pathname: string): Route {
   if (pathname === "/quiz") return { name: "quiz" };
   if (pathname === "/results") return { name: "results" };
+  if (pathname === "/add") return { name: "add" };
+  const source = /^\/sources\/([0-9a-f-]{36})$/i.exec(pathname);
+  if (source) return { name: "source", id: source[1]!.toLowerCase() };
   const setup = /^\/setup\/([a-z0-9-]{1,64})$/.exec(pathname);
   if (setup) return { name: "setup", category: setup[1]! };
   return { name: "home" };
@@ -38,6 +45,10 @@ export function pathOf(route: Route): string {
       return "/quiz";
     case "results":
       return "/results";
+    case "add":
+      return "/add";
+    case "source":
+      return `/sources/${route.id}`;
   }
 }
 
