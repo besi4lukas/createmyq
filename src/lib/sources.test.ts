@@ -15,6 +15,7 @@ import {
   elapsed,
   formatBytes,
   isWorking,
+  shouldPollList,
   sourceView,
 } from "./sources";
 
@@ -97,5 +98,17 @@ describe("small helpers", () => {
     expect(parse(`/sources/${id.toUpperCase()}`)).toEqual({ name: "source", id });
     expect(pathOf({ name: "source", id })).toBe(`/sources/${id}`);
     expect(parse("/sources/nope")).toEqual({ name: "home" });
+  });
+});
+
+describe("shouldPollList", () => {
+  const now = Date.parse("2026-10-09T12:00:00Z");
+  const at = (min: number) => new Date(now - min * 60_000).toISOString();
+  it("polls while a recent source is working, not for finished or stuck ones", () => {
+    expect(shouldPollList([{ status: "processing", createdAt: at(1) }], now)).toBe(true);
+    expect(shouldPollList([{ status: "uploaded", createdAt: at(1) }, { status: "ready", createdAt: at(1) }], now)).toBe(true);
+    expect(shouldPollList([{ status: "ready", createdAt: at(1) }, { status: "refused", createdAt: at(1) }], now)).toBe(false);
+    expect(shouldPollList([{ status: "uploaded", createdAt: at(60) }], now)).toBe(false);
+    expect(shouldPollList([], now)).toBe(false);
   });
 });

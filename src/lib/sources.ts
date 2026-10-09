@@ -201,6 +201,14 @@ export function useSourceStatus(id: string): SourceState {
   return state;
 }
 
+/** A run is about 90 s; one still "working" after this long is stuck, and isn't worth polling for. */
+export const POLL_WINDOW_MS = 20 * 60_000;
+
+/** Poll the list while a recent source is still working. */
+export function shouldPollList(sources: Pick<Source, "status" | "createdAt">[], now: number): boolean {
+  return sources.some((s) => isWorking(s.status) && now - Date.parse(s.createdAt) < POLL_WINDOW_MS);
+}
+
 export type SourceListState =
   | { status: "loading" }
   | { status: "ok"; sources: Source[]; usage: Usage; stale: boolean }
@@ -223,7 +231,7 @@ export function useSourceList(): { state: SourceListState; refresh: () => void }
         const { sources, usage } = await listSources();
         if (cancelled) return;
         setState({ status: "ok", sources, usage, stale: false });
-        if (sources.some((s) => isWorking(s.status))) timer = setTimeout(() => void load(), POLL_MS);
+        if (shouldPollList(sources, Date.now())) timer = setTimeout(() => void load(), POLL_MS);
       } catch (err) {
         if (cancelled) return;
         setState((prev) =>

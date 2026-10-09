@@ -137,11 +137,15 @@ function OpenCard({
   const title = cardTitle(phase, source);
   const subtitle = phase === "form" ? FORM_SUBTITLE : sourceName(source, job?.name);
 
-  // On open and on each phase, focus the first control in the body (or the
-  // body itself), unless the user has moved on to something outside the card.
+  // On open, focus the first control in the body (or the body itself). On each
+  // later phase, the same, unless the user has moved on to something outside
+  // the card while it worked.
+  const opened = useRef(false);
   useEffect(() => {
     const active = document.activeElement;
-    if (active && active !== document.body && !card.current?.contains(active)) return;
+    const elsewhere = active && active !== document.body && !card.current?.contains(active);
+    if (opened.current && elsewhere) return;
+    opened.current = true;
     focusFirst(body.current);
   }, [phase]);
 

@@ -30,6 +30,7 @@ flowchart LR
 - **Durable Objects** hold what belongs to one user and changes constantly. `UserSession` (one per user) keeps the quiz in progress, preferences and the daily generation counter. When a quiz finishes it writes the whole session to Postgres in one transaction with an idempotency key, and retries with an alarm until Postgres confirms. Nothing is deleted from the DO before that. `GenerationLock` (one per content fingerprint) decides which run may fill a question bank.
 - **Uploads** go straight from the browser to R2 with a short-lived presigned URL, never through the API.
 - **Links** (articles, YouTube videos) are posted to `POST /api/sources/link`, checked against private and local addresses, and queued the same way; the run fetches them (re-checking every redirect).
+- **Your own material on Home**: the upload tile opens in place (form, the six processing steps, the refusal, then the quiz setup), and each saved source opens its own setup. `GET /api/sources` lists the user's sources with today's usage; `POST /api/session { kind: "source", … }` starts a quiz from a source's questions, with no model call.
 - **Generation** is a Queue that starts one Workflow run per upload or link. Each step is durable and safe to run twice: extract text, fingerprint it (an identical upload reuses the existing bank; the unique `content_hash` is the cache), claim the lock, chunk, check the topic (the gate), generate questions, grade them and drop near-duplicates, tag difficulty and format, record spend, store. Fewer than 5 good questions and the run fails visibly.
 - **The topic gate** samples the start, middle and end of a source. Workers AI embeddings decide first; when they are unsure, one Claude Haiku call decides. Off-topic sources are refused with a message naming what they look like.
 - **Models** are called through Cloudflare AI Gateway: Claude Sonnet generates, Claude Haiku grades and tags, Workers AI embeds.
@@ -288,7 +289,7 @@ worker/
   quiz/                  quiz assembly, session routes, pure quiz rules, flush, misses, review
   durable/               UserSession and GenerationLock Durable Objects
   uploads/               upload rules, presigning, upload routes
-  sources/               link intake and source status routes
+  sources/               link intake, the source list and source status routes
   extract/, chunk/       text extraction, fingerprinting, chunking (pure where possible)
   classifier/            the topic gate and the difficulty tagger
   workflows/             the generation Workflow, queue consumer, generate, filter, store
