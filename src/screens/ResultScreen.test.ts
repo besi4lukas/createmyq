@@ -23,6 +23,8 @@ const q = (index: number, topic: string, option: number | null, correct: boolean
 const result: QuizResult = {
   quizId: "quiz",
   kind: "category",
+  sourceId: null,
+  sourceTitle: null,
   category: "system-design",
   difficulty: "beginner",
   mode: "exam",

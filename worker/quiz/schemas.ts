@@ -36,7 +36,20 @@ export const reviewStartBody = z.strictObject({
   mode: quizModeSchema.optional(),
 });
 
-export const startBody = z.union([categoryStartBody, reviewStartBody]);
+/**
+ * Start a quiz on one of the user's own sources (inline upload on Home). The
+ * route resolves a duplicate to its bank (STM-16) and serves only that bank's
+ * approved questions at this difficulty.
+ */
+export const sourceStartBody = z.strictObject({
+  kind: z.literal("source"),
+  sourceId: z.uuid(),
+  difficulty: questionDifficultySchema,
+  length: quizLengthSchema,
+  mode: quizModeSchema,
+});
+
+export const startBody = z.union([categoryStartBody, reviewStartBody, sourceStartBody]);
 
 const quizId = z.uuid();
 

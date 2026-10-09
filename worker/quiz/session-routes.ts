@@ -5,7 +5,8 @@
  * user can only ever reach their own object.
  *
  *   POST /api/session          start a quiz (409 + the quiz if one is in progress):
- *                              { category, difficulty, length, mode } or { kind: "review", length?, mode? }
+ *                              { category, difficulty, length, mode }, { kind: "review", length?, mode? }
+ *                              or { kind: "source", sourceId, difficulty, length, mode } (source-quiz.ts)
  *   GET  /api/review           { count } of questions waiting for review (STM-25)
  *   GET  /api/session          the quiz in progress, for resume ({ quiz: null } if none)
  *   POST /api/session/answer   { quizId, index, option } → graded in the object
@@ -19,6 +20,7 @@ import { assertNever } from "../lib/assert";
 import { withTimeout } from "../lib/timeout";
 import { pickQuestions } from "./assemble";
 import { assembleReview, countReview } from "./review";
+import { pickSourceQuestions } from "./source-quiz";
 import { answerBody, finishBody, prefsPatchSchema, startBody } from "./schemas";
 import type { PublicQuiz, StartInput } from "./session-state";
 
@@ -39,7 +41,7 @@ sessionRoutes.post("/session", async (c) => {
     return apiError(
       c,
       400,
-      "Pick a category, a difficulty (beginner, intermediate or advanced), a length of 5, 10 or 20 and a mode (practice or exam), or send { kind: \"review\" }.",
+      "Pick a category or a source, a difficulty (beginner, intermediate or advanced), a length of 5, 10 or 20 and a mode (practice or exam), or send { kind: \"review\" }.",
     );
   }
   const stub = userSession(c);
@@ -51,23 +53,41 @@ sessionRoutes.post("/session", async (c) => {
   if (inProgress) return quizInProgress(c, inProgress);
 
   let start: StartInput;
-  if ("kind" in input.data) {
+  const body = input.data;
+  if (!("kind" in body)) {
+    const { category, difficulty, length, mode } = body;
+    const picked = await pickQuestions(c.var.db, userId, { category, difficulty, length });
+    if (!picked.ok) return apiError(c, 404, picked.error);
+    start = {
+      kind: "category", userId, categoryId: picked.categoryId, category, sourceId: null, sourceTitle: null,
+      difficulty, length, mode, questions: picked.questions,
+    };
+  } else if (body.kind === "review") {
     // STM-25: a review quiz from the user's unresolved misses.
     const prefs = await stub.getPrefs();
-    const length = input.data.length ?? prefs.defaultLength;
-    const mode = input.data.mode ?? prefs.defaultMode;
+    const length = body.length ?? prefs.defaultLength;
+    const mode = body.mode ?? prefs.defaultMode;
     const questions = await assembleReview(c.var.db, userId, length);
     if (questions.length === 0) {
       return apiError(c, 404, "Nothing to review. Questions you miss come back here until you get them right twice in a row.", {
         code: "no_misses",
       });
     }
-    start = { kind: "review", userId, categoryId: null, category: null, difficulty: null, length, mode, questions };
+    start = {
+      kind: "review", userId, categoryId: null, category: null, sourceId: null, sourceTitle: null,
+      difficulty: null, length, mode, questions,
+    };
+  } else if (body.kind === "source") {
+    // A quiz on one of the user's own sources: that bank's questions only.
+    const { sourceId, difficulty, length, mode } = body;
+    const picked = await pickSourceQuestions(c.var.db, userId, { sourceId, difficulty, length });
+    if (!picked.ok) return apiError(c, picked.status, picked.error, { code: picked.code });
+    start = {
+      kind: "source", userId, categoryId: null, category: null, sourceId: picked.bankSourceId, sourceTitle: picked.title,
+      difficulty, length, mode, questions: picked.questions,
+    };
   } else {
-    const { category, difficulty, length, mode } = input.data;
-    const picked = await pickQuestions(c.var.db, userId, { category, difficulty, length });
-    if (!picked.ok) return apiError(c, 404, picked.error);
-    start = { kind: "category", userId, categoryId: picked.categoryId, category, difficulty, length, mode, questions: picked.questions };
+    return assertNever(body);
   }
 
   const { started, quiz } = await stub.start(start);

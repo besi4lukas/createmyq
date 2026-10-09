@@ -28,6 +28,8 @@ const input = (mode: "practice" | "exam" = "practice") => ({
   userId: "user-1",
   categoryId: "cat-1",
   category: "system-design",
+  sourceId: null,
+  sourceTitle: null,
   difficulty: "beginner",
   mode,
   length: 5,
