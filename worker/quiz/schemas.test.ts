@@ -55,3 +55,15 @@ describe("startBody (STM-25 review)", () => {
     ).not.toHaveProperty("kind");
   });
 });
+
+describe("startBody (source quiz)", () => {
+  const id = "0b9f8a52-3c1e-4d7a-9e2b-6f1a2b3c4d5e";
+  it("takes a source id with difficulty, length and mode, all required", () => {
+    const ok = { kind: "source", sourceId: id, difficulty: "advanced", length: 10, mode: "exam" };
+    expect(startBody.parse(ok)).toEqual(ok);
+    expect(startBody.safeParse({ kind: "source", sourceId: id }).success).toBe(false);
+    expect(startBody.safeParse({ ...ok, sourceId: "not-a-uuid" }).success).toBe(false);
+    expect(startBody.safeParse({ ...ok, length: 7 }).success).toBe(false);
+    expect(startBody.safeParse({ ...ok, category: "system-design" }).success).toBe(false);
+  });
+});

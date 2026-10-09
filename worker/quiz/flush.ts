@@ -42,6 +42,11 @@ export async function writeFinishedSession(db: Db, userId: string, quiz: Finishe
         // FK would reject the insert on every retry forever. It is nullable
         // (and null for a review quiz, which mixes categories).
         categoryId: quiz.categoryId === null ? null : sql`(select id from categories where id = ${quiz.categoryId})`,
+        // Source quizzes: the bank the questions came from. A subselect for the
+        // same reason (sources are never deleted while they have questions, but
+        // a missing row must not block the write forever). Null otherwise, and
+        // for quizzes stored before source quizzes existed (no field).
+        sourceId: quiz.sourceId ? sql`(select id from sources where id = ${quiz.sourceId})` : null,
         mode: quiz.mode,
         // Validated by the route at start; typed as a plain string on the quiz.
         // Null for a review quiz (mixed difficulties).
