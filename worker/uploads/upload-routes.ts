@@ -26,6 +26,7 @@ import { z } from "zod";
 import type { AppEnv } from "../auth/session";
 import type { Db } from "../db/client";
 import { sourceUploads, sources } from "../db/schema";
+import { assertNever } from "../lib/assert";
 import { apiError, readJson } from "../http";
 import { capMessage, safeTimeZone, type CapWindow } from "../limits/daily-cap";
 import { SPEND_CEILING_MESSAGE, ceilingAllows, parseSpendCeiling } from "../limits/spend";
@@ -33,6 +34,7 @@ import { monthSpendUsd } from "../limits/spend-db";
 import type { GenerationMessage } from "../workflows/queue";
 import type { SourceStatus } from "../workflows/rules";
 import { presignPut, type R2Credentials } from "./presign";
+import { recordSource } from "./record-source";
 import {
   PDF_CONTENT_TYPE,
   UPLOAD_URL_TTL_SECONDS,
@@ -71,6 +73,38 @@ const ceilingHit = (c: Context) => apiError(c, 503, SPEND_CEILING_MESSAGE, { cod
 async function underCeiling(c: Context<AppEnv>): Promise<boolean> {
   const ceiling = parseSpendCeiling(c.env.SPEND_CEILING_USD);
   return ceilingAllows(await monthSpendUsd(c.var.db, new Date()), ceiling);
+}
+
+type Refusal = { code: "spend_ceiling" } | { code: "daily_cap"; limit: number; window: CapWindow };
+
+/**
+ * STM-24 for a new source: room under the spend ceiling, then a slot in the
+ * user's daily cap (counted here). Null admits it.
+ */
+async function admitGeneration(
+  c: Context<AppEnv>,
+  tx: Pick<Db, "select">,
+  sourceId: string,
+  timeZone: string,
+  now: Date,
+): Promise<Refusal | null> {
+  const ceiling = parseSpendCeiling(c.env.SPEND_CEILING_USD);
+  if (!ceilingAllows(await monthSpendUsd(tx, now), ceiling)) return { code: "spend_ceiling" };
+  const reserved = await userSession(c).reserveGeneration(sourceId, timeZone);
+  if (!reserved.ok) return { code: "daily_cap", limit: reserved.limit, window: reserved.window };
+  console.log(JSON.stringify({ event: "daily_cap_counted", sourceId, used: reserved.window.sourceIds.length, limit: reserved.limit }));
+  return null;
+}
+
+function refusalResponse(c: Context, refusal: Refusal) {
+  switch (refusal.code) {
+    case "spend_ceiling":
+      return ceilingHit(c);
+    case "daily_cap":
+      return dailyCapHit(c, refusal.limit, refusal.window);
+    default:
+      return assertNever(refusal);
+  }
 }
 
 /** The R2 API token is two secrets; missing either fails closed. */
@@ -131,38 +165,21 @@ uploadRoutes.post("/uploads/complete", async (c) => {
     return apiError(c, check.code === "too_large" ? 413 : 400, check.error, { code: check.code });
   }
 
-  // A retried complete finds the row already there and is not counted or checked again.
-  if (!(await findOwnSource(c.var.db, userId, sourceId))) {
-    if (!(await underCeiling(c))) {
-      await c.env.UPLOADS.delete(key);
-      return ceilingHit(c);
-    }
-    const reserved = await userSession(c).reserveGeneration(sourceId, safeTimeZone(timeZone));
-    if (!reserved.ok) {
-      await c.env.UPLOADS.delete(key);
-      return dailyCapHit(c, reserved.limit, reserved.window);
-    }
-    console.log(JSON.stringify({ event: "daily_cap_counted", sourceId, used: reserved.window.sourceIds.length, limit: reserved.limit }));
+  // One transaction, answered by writes only (Hyperdrive caches reads; see
+  // record-source.ts). Only a new row is checked against the ceiling and
+  // counted against the cap; a refusal rolls it back. A retry is not counted again.
+  const now = new Date();
+  const tz = safeTimeZone(timeZone);
+  const result = await recordSource(
+    c.var.db,
+    { id: sourceId, ownerId: userId, kind: "pdf", r2Key: key, title: titleFromFilename(filename) },
+    (tx) => admitGeneration(c, tx, sourceId, tz, now),
+  );
+  if ("refused" in result) {
+    await c.env.UPLOADS.delete(key);
+    return refusalResponse(c, result.refused);
   }
-
-  // Idempotent: a retried complete finds the row already there.
-  await c.var.db.transaction(async (tx) => {
-    await tx
-      .insert(sources)
-      .values({
-        id: sourceId,
-        ownerId: userId,
-        visibility: "private",
-        kind: "pdf",
-        r2Key: key,
-        title: titleFromFilename(filename),
-        status: "uploaded",
-      })
-      .onConflictDoNothing();
-    await tx.insert(sourceUploads).values({ userId, sourceId }).onConflictDoNothing();
-  });
-
-  const source = await findOwnSource(c.var.db, userId, sourceId);
+  const { source } = result;
   if (!source) return notFound(c);
   // Queue it while it is still waiting. A retried complete may send twice; the
   // consumer starts one run per source either way (worker/workflows/queue.ts).

@@ -23,7 +23,12 @@ function timeZone(): string | undefined {
   }
 }
 
-const PUT_FAILED = "The upload did not go through. Check your connection and try again.";
+/**
+ * The file never reached storage (network, CORS or R2 refusing the signed PUT).
+ * Said here, and `complete` is not called: it could only answer "could not find
+ * that upload", which would blame the wrong step.
+ */
+export const PUT_FAILED = "Your file did not reach our storage, so nothing was uploaded. Check your connection and try again.";
 
 /** Ask for a URL (the server checks size and type), PUT the file to R2, then confirm. */
 export async function uploadPdf(file: File): Promise<UploadedSource> {
@@ -36,9 +41,9 @@ export async function uploadPdf(file: File): Promise<UploadedSource> {
     // Not api(): this goes to R2, with no session token.
     res = await fetch(ticket.uploadUrl, { method: "PUT", headers: ticket.headers, body: file });
   } catch {
-    throw new ApiError(0, PUT_FAILED);
+    throw new ApiError(0, PUT_FAILED, "upload_put_failed");
   }
-  if (!res.ok) throw new ApiError(res.status, PUT_FAILED);
+  if (!res.ok) throw new ApiError(res.status, PUT_FAILED, "upload_put_failed");
 
   const done = await api<{ source: UploadedSource }>("/uploads/complete", {
     body: { sourceId: ticket.sourceId, filename: file.name, timeZone: timeZone() },
