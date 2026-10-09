@@ -6,6 +6,8 @@ const quiz = (mode: Quiz["mode"], currentIndex: number): Quiz => ({
   quizId: "q",
   kind: "category",
   category: "system-design",
+  sourceId: null,
+  sourceTitle: null,
   difficulty: "beginner",
   mode,
   length: 5,

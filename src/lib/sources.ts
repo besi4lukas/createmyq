@@ -2,7 +2,8 @@
  * Your own material (design v2, "Bring your own material"): a PDF, an article
  * link or a YouTube link becomes a source, and the source's status is polled
  * until the background run finishes. PDFs go through uploads.ts (browser → R2);
- * links go to POST /api/sources/link. Status: GET /api/sources/:id.
+ * links go to POST /api/sources/link. Status: GET /api/sources/:id. The list
+ * on Home and today's usage: GET /api/sources.
  *
  * The rules here are pure (checkLinkInput, checkPdfFile, sourceView) and unit
  * tested; the server checks everything again.
@@ -22,8 +23,27 @@ export type Source = {
   /** The user-facing message the run stored: the off-topic refusal, scanned PDF, too thin… */
   error: string | null;
   bankSourceId: string;
+  /** Private to people who uploaded the same file, or shared to the group (FR-10a). */
+  visibility: "private" | "group";
+  /** What the run has written so far (worker/sources/own-source.ts): the fingerprint step has returned. */
+  fingerprinted: boolean;
+  /** The topic gate's decision on the bank, once it has made one. */
+  gateVerdict: "accepted" | "refused" | null;
+  /** Refused only: the topic it read as ("cooking"). */
+  detectedNiche: string | null;
+  /** 0.5–1: how sure the gate was of its verdict. */
+  confidence: number | null;
   questionCount: number;
   createdAt: string;
+};
+
+/** Today's generation runs (STM-24): the cap is DAILY_GENERATION_CAP (3 unless configured). */
+export type Usage = {
+  used: number;
+  limit: number;
+  resetAt: string;
+  /** The daily-cap message with the reset time, once the cap is reached; else null. */
+  message: string | null;
 };
 
 export const KINDS: { value: SourceKind; label: string }[] = [
@@ -90,6 +110,12 @@ export async function submitLink(url: string, requestId: string): Promise<{ id: 
     body: { url: url.trim(), requestId, timeZone: timeZone() },
   });
   return source;
+}
+
+/** The user's sources, newest first, and today's usage. */
+export async function listSources(): Promise<{ sources: Source[]; usage: Usage }> {
+  const tz = timeZone();
+  return api<{ sources: Source[]; usage: Usage }>(`/sources${tz ? `?tz=${encodeURIComponent(tz)}` : ""}`);
 }
 
 export async function getSource(id: string): Promise<Source> {
@@ -173,4 +199,44 @@ export function useSourceStatus(id: string): SourceState {
     };
   }, [id]);
   return state;
+}
+
+export type SourceListState =
+  | { status: "loading" }
+  | { status: "ok"; sources: Source[]; usage: Usage; stale: boolean }
+  | { status: "error"; message: string };
+
+/**
+ * The saved-source list on Home: loaded on mount, polled while any source is
+ * still working (so a closed card's job lands here when it finishes), and
+ * reloaded on `refresh()` (right after a new source is created). A failed
+ * poll keeps the last list (`stale`) and tries again later.
+ */
+export function useSourceList(): { state: SourceListState; refresh: () => void } {
+  const [state, setState] = useState<SourceListState>({ status: "loading" });
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = async () => {
+      try {
+        const { sources, usage } = await listSources();
+        if (cancelled) return;
+        setState({ status: "ok", sources, usage, stale: false });
+        if (sources.some((s) => isWorking(s.status))) timer = setTimeout(() => void load(), POLL_MS);
+      } catch (err) {
+        if (cancelled) return;
+        setState((prev) =>
+          prev.status === "ok" ? { ...prev, stale: true } : { status: "error", message: friendlyError(err) },
+        );
+        timer = setTimeout(() => void load(), POLL_MS * 2);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [tick]);
+  return { state, refresh: () => setTick((t) => t + 1) };
 }

@@ -1,25 +1,18 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import {
-  ArrowCounterClockwise,
-  ArrowRight,
-  CaretDown,
-  PlayPause,
-  SlidersHorizontal,
-  FilePdf,
-  LinkSimple,
-  YoutubeLogo,
-} from "@phosphor-icons/react";
+import { useEffect, useId, useRef, useState } from "react";
+import { ArrowCounterClockwise, CaretDown, PlayPause } from "@phosphor-icons/react";
 import { useUser } from "@clerk/react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "../components/Button";
-import { ErrorNotice, Loading } from "../components/Bits";
-import { QuizSetupFields } from "../components/QuizSetupFields";
+import { ErrorNotice } from "../components/Bits";
+import { InlineSetup } from "../home/InlineSetup";
+import { SourceRows } from "../home/SourceRows";
+import { UploadCard, type Job } from "../home/UploadCard";
 import { panelEnter } from "../lib/motion";
-import { linkTo, navigate } from "../lib/router";
+import { UPLOAD_PANEL, catPanel, closePanel, openPanel, srcPanel, type OpenPanel, type PanelId } from "../lib/panel";
+import { navigate } from "../lib/router";
 import { CATEGORIES, difficultyLabel, getActiveQuiz, getPrefs, quizTitle, type Prefs, type Quiz } from "../lib/quiz";
-import { INLINE_DEFAULT_LENGTH, closeCard, openCard, setupFromPrefs, type OpenCard } from "../lib/setup";
+import { useSourceList } from "../lib/sources";
 import { useAsync, type AsyncState } from "../lib/useAsync";
-import { useStartQuiz } from "../lib/useStartQuiz";
 import { useReview } from "../lib/useReview";
 
 function greeting(now = new Date()) {
@@ -30,6 +23,15 @@ function greeting(now = new Date()) {
 export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boolean) => void }) {
   const { user } = useUser();
   const active = useAsync(getActiveQuiz);
+  const prefs = useAsync(getPrefs);
+  // Home's one open panel across category cards, the upload card and source
+  // rows (src/lib/panel.ts). Home's own state, so leaving Home closes it.
+  const [panel, setPanel] = useState<OpenPanel>(null);
+  const panels: Panels = {
+    isOpen: (id) => panel === id,
+    open: (id) => setPanel((p) => openPanel(p, id)),
+    close: (id) => setPanel((p) => closePanel(p, id)),
+  };
 
   const name = user?.firstName?.trim();
 
@@ -53,8 +55,8 @@ export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boo
       {/* Two equal columns (design v2 Home: grid-cols-2, gap 28). Stacked below
           lg, where a column would be too narrow for the open setup panel. */}
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
-        <BuiltIn onStarted={onStarted} />
-        <OwnMaterial />
+        <BuiltIn panels={panels} prefs={prefs} onStarted={onStarted} />
+        <OwnMaterial panels={panels} prefs={prefs} onStarted={onStarted} />
       </div>
 
       {/* Full width under the columns, like the prototype's misses row. */}
@@ -65,16 +67,16 @@ export function HomeScreen({ onStarted }: { onStarted: (quiz: Quiz, resumed: boo
 
 type Category = (typeof CATEGORIES)[number];
 type OnStarted = (quiz: Quiz, resumed: boolean) => void;
+type Panels = { isOpen: (id: PanelId) => boolean; open: (id: PanelId) => void; close: (id: PanelId) => void };
 
 /**
  * The built-in category cards. "Start a quiz" opens the setup inside the card
  * (INLINE_QUIZ_SETUP_UPDATE): one card open at a time, prefilled from the
  * user's preferences each time it opens, and "Start quiz" goes straight to
- * question 1. Leaving Home unmounts this, so an open card closes.
+ * question 1. The open card is Home's one open panel, shared with the upload
+ * card and the source rows.
  */
-function BuiltIn({ onStarted }: { onStarted: OnStarted }) {
-  const prefs = useAsync(getPrefs);
-  const [open, setOpen] = useState<OpenCard>(null);
+function BuiltIn({ panels, prefs, onStarted }: { panels: Panels; prefs: AsyncState<Prefs>; onStarted: OnStarted }) {
   return (
     <section aria-labelledby="builtin" className="flex min-w-0 flex-col gap-3">
       <h2 id="builtin" className="section-label">
@@ -84,10 +86,10 @@ function BuiltIn({ onStarted }: { onStarted: OnStarted }) {
         <CategoryCard
           key={c.slug}
           category={c}
-          open={open === c.slug}
+          open={panels.isOpen(catPanel(c.slug))}
           prefs={prefs}
-          onOpen={() => setOpen((o) => openCard(o, c.slug))}
-          onClose={() => setOpen((o) => closeCard(o, c.slug))}
+          onOpen={() => panels.open(catPanel(c.slug))}
+          onClose={() => panels.close(catPanel(c.slug))}
           onStarted={onStarted}
         />
       ))}
@@ -161,11 +163,6 @@ function SetupPanel({
   onStarted: OnStarted;
 }) {
   const reduce = useReducedMotion();
-  const cancelButton = (
-    <Button variant="ghost" className="px-2.5" aria-expanded={true} aria-controls={id} onClick={onCancel}>
-      Cancel
-    </Button>
-  );
   return (
     <motion.div
       id={id}
@@ -180,90 +177,59 @@ function SetupPanel({
         }
       }}
     >
-      <p className="flex items-center gap-1.5 text-meta text-muted">
-        <SlidersHorizontal aria-hidden="true" className="shrink-0" />
-        Filled in from your preferences.
-      </p>
-      {prefs.status === "ok" ? (
-        <InlineSetupForm category={category} prefs={prefs.data} cancelButton={cancelButton} onStarted={onStarted} />
-      ) : (
-        <>
-          {prefs.status === "loading" ? <Loading /> : <ErrorNotice>{prefs.message}</ErrorNotice>}
-          <div>{cancelButton}</div>
-        </>
-      )}
+      <InlineSetup
+        target={{ category }}
+        prefs={prefs}
+        onStarted={onStarted}
+        secondary={
+          <Button variant="ghost" className="px-2.5" aria-expanded={true} aria-controls={id} onClick={onCancel}>
+            Cancel
+          </Button>
+        }
+      />
     </motion.div>
   );
 }
 
-function InlineSetupForm({
-  category,
-  prefs,
-  cancelButton,
-  onStarted,
-}: {
-  category: string;
-  prefs: Prefs;
-  cancelButton: ReactNode;
-  onStarted: OnStarted;
-}) {
-  // Mounted on each open, so each open starts from the preferences again.
-  const [values, setValues] = useState(() => setupFromPrefs(prefs, INLINE_DEFAULT_LENGTH));
-  const { start, starting, error } = useStartQuiz(category, onStarted);
-  const form = useRef<HTMLFormElement>(null);
-
-  // Opened: focus the chosen Difficulty option (Tab and arrow keys go on from there).
-  useEffect(() => {
-    form.current?.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.focus();
-  }, []);
-
-  return (
-    <form
-      ref={form}
-      className="flex flex-col gap-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void start(values);
-      }}
-    >
-      <QuizSetupFields values={values} onChange={setValues} showFormats />
-      {error && <ErrorNotice>{error}</ErrorNotice>}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Button type="submit" size="lg" disabled={starting} aria-busy={starting}>
-          {starting ? "Starting…" : "Start quiz"}
-          <ArrowRight aria-hidden="true" className="size-4" />
-        </Button>
-        {cancelButton}
-      </div>
-    </form>
-  );
-}
-
 /**
- * "Your own material" (design v2, Home): the dashed tile that opens the
- * add-source screen for a PDF, an article link or a YouTube link. The list of
- * the user's sources under it is not built yet (no list route; TASKS.md).
+ * "Your own material" (INLINE_UPLOAD_AND_SOURCES_UPDATE): the upload tile that
+ * opens into a card, and the user's saved sources under it. The job the card
+ * is following lives here, so closing the card mid-run keeps it.
  */
-function OwnMaterial() {
+function OwnMaterial({ panels, prefs, onStarted }: { panels: Panels; prefs: AsyncState<Prefs>; onStarted: OnStarted }) {
+  const { state, refresh } = useSourceList();
+  const [job, setJob] = useState<Job | null>(null);
+  const sources = state.status === "ok" ? state.sources : [];
   return (
     <section aria-labelledby="your-own" className="flex min-w-0 flex-col gap-3">
       <h2 id="your-own" className="section-label">
         Your own material
       </h2>
-      <a
-        {...linkTo({ name: "add" })}
-        className="flex flex-col items-start gap-2.5 rounded-md border border-dashed border-accent/55 bg-accent/5 p-4.5 text-text no-underline transition-colors hover:bg-accent/11"
-      >
-        <span aria-hidden="true" className="flex gap-2 text-accent">
-          <FilePdf className="size-5.5" />
-          <LinkSimple className="size-5.5" />
-          <YoutubeLogo className="size-5.5" />
-        </span>
-        <span className="text-title font-medium">Make a quiz from something you’re reading</span>
-        <span className="text-small text-muted">
-          A PDF, an article link or a YouTube video with captions. Takes about two minutes.
-        </span>
-      </a>
+      <UploadCard
+        open={panels.isOpen(UPLOAD_PANEL)}
+        onOpen={() => panels.open(UPLOAD_PANEL)}
+        onClose={() => panels.close(UPLOAD_PANEL)}
+        job={job}
+        setJob={setJob}
+        source={job ? sources.find((s) => s.id === job.id) : undefined}
+        usage={state.status === "ok" ? state.usage : null}
+        prefs={prefs}
+        onCreated={refresh}
+        onStarted={onStarted}
+      />
+      {state.status === "error" && <ErrorNotice>We could not load your sources. {state.message}</ErrorNotice>}
+      <SourceRows
+        sources={sources}
+        isOpen={(id) => panels.isOpen(srcPanel(id))}
+        onToggle={(id) => (panels.isOpen(srcPanel(id)) ? panels.close(srcPanel(id)) : panels.open(srcPanel(id)))}
+        onClose={(id) => panels.close(srcPanel(id))}
+        onTryAnother={() => {
+          setJob(null);
+          panels.open(UPLOAD_PANEL);
+        }}
+        prefs={prefs}
+        onStarted={onStarted}
+      />
     </section>
   );
 }

@@ -98,7 +98,8 @@ function QuizRunner({
   const pad = (n: number) => String(n).padStart(2, "0");
   const category = quizTitle(quiz);
   // A review quiz is as long as the misses waiting; being shorter is not news.
-  const short = quiz.kind === "category" && quiz.difficulty !== null && quiz.questionCount < quiz.length;
+  // A category or source pool at one difficulty can run short (STM-8, STM-23).
+  const short = quiz.kind !== "review" && quiz.difficulty !== null && quiz.questionCount < quiz.length;
 
   return (
     <div className="flex max-w-[720px] flex-col gap-4.5 pt-1 md:max-w-[1080px]">
