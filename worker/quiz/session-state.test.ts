@@ -15,7 +15,7 @@ const T0 = "2026-09-30T10:00:00.000Z";
 const T1 = "2026-09-30T10:01:00.000Z";
 const quizOf = (mode: "practice" | "exam") =>
   newQuiz(
-    { kind: "category", userId: "u", categoryId: "c", category: "system-design", difficulty: "intermediate", mode, length: 10, questions: [q(1, "x"), q(2, "z")] },
+    { kind: "category", userId: "u", categoryId: "c", category: "system-design", sourceId: null, sourceTitle: null, difficulty: "intermediate", mode, length: 10, questions: [q(1, "x"), q(2, "z")] },
     { quizId: "quiz-1", idempotencyKey: "key-1" },
     T0,
   );

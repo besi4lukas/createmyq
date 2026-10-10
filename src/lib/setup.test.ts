@@ -3,8 +3,6 @@ import type { Prefs } from "./quiz";
 import {
   INLINE_DEFAULT_LENGTH,
   availableFormats,
-  closeCard,
-  openCard,
   setupFromPrefs,
   toggleFormat,
 } from "./setup";
@@ -15,21 +13,6 @@ const prefs: Prefs = {
   defaultLength: 20,
   formats: ["multiple_choice"],
 };
-
-describe("Home cards: one open at a time", () => {
-  it("opening a card closes whichever was open", () => {
-    let open = openCard(null, "system-design");
-    expect(open).toBe("system-design");
-    open = openCard(open, "cs-fundamentals");
-    expect(open).toBe("cs-fundamentals");
-  });
-
-  it("closing only closes the card that is open", () => {
-    expect(closeCard("system-design", "system-design")).toBeNull();
-    expect(closeCard("cs-fundamentals", "system-design")).toBe("cs-fundamentals");
-    expect(closeCard(null, "system-design")).toBeNull();
-  });
-});
 
 describe("toggleFormat", () => {
   it("keeps at least one format on", () => {

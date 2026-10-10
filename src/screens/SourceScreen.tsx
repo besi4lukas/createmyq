@@ -1,18 +1,18 @@
 /**
  * One source and its status (design v2, screens 6 "Processing" and 7 "Subject
  * gate refusal"), polled until the background run finishes. Safe to leave and
- * come back to: /sources/<id> is a real URL.
+ * come back to: /sources/<id> is a real URL. Home shows the same steps and
+ * refusal inline (ProcessingSteps, SubjectRefusal); this page stays for deep
+ * links.
  *
- * The server only knows the run's overall status, not which step it is on, so
- * this shows one honest "working" row with the time so far instead of the
- * design's six-step list (see TASKS.md). Every outcome is said in words and an
- * icon, never by colour alone.
+ * The steps come from what the run has written so far (src/lib/steps.ts), so
+ * a step is never shown done before the server knows it is. Every outcome is
+ * said in words and an icon, never by colour alone.
  */
-import { useEffect, useState } from "react";
 import {
   ArrowCounterClockwise,
+  ArrowRight,
   CheckCircle,
-  CircleNotch,
   FilePdf,
   Info,
   LinkSimple,
@@ -22,20 +22,15 @@ import {
 } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "../components/Button";
-import { ErrorNotice, Loading, Tag } from "../components/Bits";
+import { ErrorNotice, Loading } from "../components/Bits";
+import { ProcessingSteps } from "../components/ProcessingSteps";
+import { SubjectRefusal } from "../components/SubjectRefusal";
 import { revealEnter } from "../lib/motion";
 import { navigate } from "../lib/router";
-import { elapsed, sourceView, useSourceStatus, type Source, type SourceKind } from "../lib/sources";
+import { sourceView, useSourceStatus, type Source, type SourceKind } from "../lib/sources";
+import { readyBanner } from "../lib/upload-card";
 
 const KIND_ICON: Record<SourceKind, Icon> = { pdf: FilePdf, article: LinkSimple, youtube: YoutubeLogo };
-const WORKS_WELL = [
-  "System design",
-  "Algorithms and data structures",
-  "Databases",
-  "Networking",
-  "Languages and runtimes",
-  "Concurrency",
-];
 
 export function SourceScreen({ id }: { id: string }) {
   const state = useSourceStatus(id);
@@ -85,34 +80,21 @@ function SourceView({ source }: { source: Source }) {
 
   if (view.phase === "refused") {
     return (
-      <div className="flex max-w-[540px] flex-col gap-4.5 pt-6">
-        <span aria-hidden="true" className="grid size-13 place-items-center rounded-lg bg-neutral-900 text-neutral-300">
-          <XCircle className="size-6.5" />
-        </span>
-        <div>
-          <h1 data-autofocus tabIndex={-1} className="text-h2-phone sm:text-h2 text-balance outline-none">
-            {view.title}
-          </h1>
-          <SourceName source={source} />
-        </div>
-        <p className="text-body text-pretty">{view.message}</p>
-        <div className="flex flex-col gap-2">
-          <p className="text-meta text-muted">Things that work well</p>
-          <div className="flex flex-wrap gap-1.5">
-            {WORKS_WELL.map((t) => (
-              <Tag key={t} tone="accent">
-                {t}
-              </Tag>
-            ))}
-          </div>
-        </div>
-        <div className="mt-1.5 flex flex-wrap gap-2.5">
-          {again}
-          <Button variant="secondary" onClick={() => navigate({ name: "home" })}>
-            Take a built-in quiz
-          </Button>
-        </div>
-      </div>
+      <SubjectRefusal
+        variant="refused"
+        message={view.message}
+        detectedNiche={source.detectedNiche}
+        confidence={source.confidence}
+        name={<SourceName source={source} />}
+        actions={
+          <>
+            {again}
+            <Button variant="secondary" onClick={() => navigate({ name: "home" })}>
+              Take a built-in quiz
+            </Button>
+          </>
+        }
+      />
     );
   }
 
@@ -126,28 +108,26 @@ function SourceView({ source }: { source: Source }) {
         <SourceName source={source} />
       </div>
 
-      {view.phase === "working" && <Working since={source.createdAt} />}
+      {(view.phase === "working" || view.phase === "ready") && <ProcessingSteps source={source} />}
+
+      {view.phase === "working" && (
+        <p className="flex items-center gap-2 text-meta text-muted">
+          <Info aria-hidden="true" className="size-4 shrink-0" />
+          You can close this page. It keeps going, and your quiz will be on the home screen.
+        </p>
+      )}
 
       {view.phase === "ready" && (
         <motion.div {...revealEnter} initial={reduce ? false : revealEnter.initial} className="flex flex-col gap-2.5 rounded-md bg-surface p-4.5 shadow-md">
           <div className="flex items-center gap-2.5">
             <CheckCircle aria-hidden="true" weight="fill" className="size-6 text-accent" />
-            <div className="text-title">
-              {view.cached ? `${view.count} questions, ready now` : `${view.count} questions made`}
-            </div>
+            <div className="text-title">{readyBanner(source).lead.replace(/\.$/, "")}</div>
           </div>
-          <p className="text-small text-pretty">
-            {view.cached
-              ? "Someone in the group brought the same text. Nothing had to be generated, and it didn’t count toward your limit."
-              : "Every one points back to the part of the text it came from."}
-          </p>
-          <p className="text-meta text-muted text-pretty">
-            Taking a quiz from your own source isn’t in the app yet. Your questions are saved for when it is.
-          </p>
+          <p className="text-small text-pretty">{readyBanner(source).body}</p>
           <div className="mt-1 flex flex-wrap gap-2.5">
-            <Button onClick={() => navigate({ name: "add" })}>Add another source</Button>
-            <Button variant="secondary" onClick={() => navigate({ name: "home" })}>
-              Home
+            <Button onClick={() => navigate({ name: "source-setup", id: source.id })}>
+              Set up the quiz
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Button>
           </div>
         </motion.div>
@@ -168,33 +148,5 @@ function SourceView({ source }: { source: Source }) {
         </>
       )}
     </div>
-  );
-}
-
-function Working({ since }: { since: string }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <>
-      <div className="flex gap-3.5 py-3">
-        <CircleNotch aria-hidden="true" className="size-5.5 shrink-0 animate-spin text-accent-300" />
-        <div className="flex-1">
-          <div className="text-ui">Reading, checking the subject, writing questions</div>
-          <div className="text-meta text-muted">
-            We check it’s about software, then aim for 20 to 25 questions. Usually about two minutes.
-          </div>
-        </div>
-        <span className="text-meta text-muted tabular-nums" aria-label="Time so far">
-          {elapsed(since, now)}
-        </span>
-      </div>
-      <p className="flex items-center gap-2 text-meta text-muted">
-        <Info aria-hidden="true" className="size-4 shrink-0" />
-        You can close this page. It keeps going, and this page’s link shows the result.
-      </p>
-    </>
   );
 }

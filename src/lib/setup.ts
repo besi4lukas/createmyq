@@ -65,11 +65,3 @@ export function setupFromPrefs(prefs: Prefs, length: QuizLength = prefs.defaultL
     formats: availableFormats(prefs.formats),
   };
 }
-
-/** Home's category cards: which one is open. At most one; opening another closes the first. */
-export type OpenCard = string | null;
-
-export const openCard = (_current: OpenCard, slug: string): OpenCard => slug;
-
-/** Close `slug` if it is the open one; any other card stays as it is. */
-export const closeCard = (current: OpenCard, slug: string): OpenCard => (current === slug ? null : current);

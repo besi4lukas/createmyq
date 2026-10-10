@@ -39,6 +39,12 @@ const userSession = {
     counted.add(sourceId);
     return { ok: true, counted: true, limit: capLimit, window: window() };
   },
+  generationAllowance: () => ({
+    limit: capLimit,
+    used: counted.size,
+    remaining: Math.max(0, capLimit - counted.size),
+    window: window(),
+  }),
 };
 
 const app = (userId: string) =>
@@ -65,6 +71,10 @@ async function postLink(body: unknown, userId = U1) {
     env(),
   );
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+}
+async function listSources(userId = U1) {
+  const res = await app(userId).request("/api/sources?tz=UTC", {}, env());
+  return { status: res.status, body: (await res.json()) as { sources: Record<string, unknown>[]; usage: Record<string, unknown> } };
 }
 async function getSource(id: string, userId = U1) {
   const res = await app(userId).request(`/api/sources/${id}`, {}, env());
@@ -219,5 +229,68 @@ describe("GET /api/sources/:id", () => {
     cache.clear();
     const res = await getSource(dupId);
     expect(res.body.source).toMatchObject({ id: dupId, status: "ready", bankSourceId: bankId, questionCount: 2, error: null });
+  });
+});
+
+describe("GET /api/sources", () => {
+  it("lists only the caller's own sources, newest first, in any status, with today's usage", async () => {
+    const first = crypto.randomUUID();
+    const second = crypto.randomUUID();
+    const theirs = crypto.randomUUID();
+    await postLink({ url: ARTICLE, requestId: first });
+    // Nothing else is listed yet; this read must not be served again after the next write.
+    expect((await listSources()).body.sources.map((s) => s.id)).toEqual([first]);
+    await postLink({ url: VIDEO, requestId: second });
+    await postLink({ url: "https://example.com/a", requestId: theirs }, U2);
+    await db.execute(sql`update sources set created_at = now() - interval '1 minute' where id = ${first}`);
+
+    const res = await listSources();
+    expect(res.status).toBe(200);
+    expect(res.body.sources.map((s) => s.id)).toEqual([second, first]);
+    expect(res.body.sources[0]).toMatchObject({
+      kind: "youtube",
+      status: "uploaded",
+      visibility: "private",
+      fingerprinted: false,
+      gateVerdict: null,
+      questionCount: 0,
+    });
+    // counted is shared by the stub across users here: 3 links were counted.
+    expect(res.body.usage).toMatchObject({ used: 3, limit: 3, message: expect.stringContaining("You have hit today's limit.") });
+  });
+
+  it("a fresh read every time: a status change shows on the next poll (now() keeps it out of the cache)", async () => {
+    const id = crypto.randomUUID();
+    await postLink({ url: ARTICLE, requestId: id });
+    expect((await listSources()).body.sources[0]).toMatchObject({ status: "uploaded" });
+    await db.execute(sql`update sources set status = 'processing', content_hash = 'h1' where id = ${id}`);
+    expect((await listSources()).body.sources[0]).toMatchObject({ status: "processing", fingerprinted: true });
+    expect((await getSource(id)).body.source).toMatchObject({ status: "processing", fingerprinted: true });
+  });
+
+  it("a duplicate is listed once, as the caller's upload, with the bank's status, gate and count", async () => {
+    const bankId = crypto.randomUUID();
+    const dupId = crypto.randomUUID();
+    await postLink({ url: ARTICLE, requestId: bankId }, U2);
+    await postLink({ url: ARTICLE, requestId: dupId }, U1);
+    await db.execute(sql`update sources set status = 'refused', gate_verdict = 'refused', detected_niche = 'cooking',
+      confidence = 0.94, error = 'This looks like cooking. CreateMyQ only covers software engineering right now.' where id = ${bankId}`);
+    await db.execute(sql`update sources set status = 'duplicate', duplicate_of_id = ${bankId} where id = ${dupId}`);
+    // The Workflow makes every uploader of the copy an uploader of the bank too (bank.ts).
+    await db.execute(sql`insert into source_uploads (user_id, source_id) values (${U1}, ${bankId})`);
+
+    const res = await listSources();
+    expect(res.body.sources).toHaveLength(1);
+    expect(res.body.sources[0]).toMatchObject({
+      id: dupId,
+      bankSourceId: bankId,
+      status: "refused",
+      fingerprinted: true,
+      gateVerdict: "refused",
+      detectedNiche: "cooking",
+      questionCount: 0,
+    });
+    expect(res.body.sources[0]!.confidence).toBeCloseTo(0.94, 5);
+    expect(res.body.usage).toMatchObject({ used: 2, limit: 3, message: null });
   });
 });

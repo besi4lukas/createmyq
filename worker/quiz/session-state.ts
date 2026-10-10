@@ -33,10 +33,20 @@ export type Quiz = {
    * "category": built from one category at one difficulty (STM-8).
    * "review": built from the user's unresolved misses (STM-25); it mixes
    * categories and difficulties, so those three fields are null.
+   * "source": built from one of the user's own sources at one difficulty;
+   * category fields are null and `sourceId` names the bank that was served.
    */
   kind: QuizKind;
   categoryId: string | null;
   category: string | null;
+  /**
+   * Source quizzes only: the bank source the questions came from
+   * (sessions.source_id; for a duplicate upload, the bank it points at, STM-16)
+   * and the name shown for the quiz. Missing on quizzes stored before source
+   * quizzes existed, which reads as null.
+   */
+  sourceId?: string | null;
+  sourceTitle?: string | null;
   difficulty: AssembledQuestion["difficulty"] | null;
   mode: QuizMode;
   /** What the user asked for; `questions.length` can be smaller (short pool). */
@@ -50,12 +60,14 @@ export type Quiz = {
   answers: StoredAnswer[];
 };
 
-export type QuizKind = "category" | "review";
+export type QuizKind = "category" | "review" | "source";
 
 export type StartInput = Pick<
   Quiz,
   "kind" | "userId" | "categoryId" | "category" | "difficulty" | "mode" | "length"
 > & {
+  sourceId: string | null;
+  sourceTitle: string | null;
   questions: AssembledQuestion[];
 };
 
@@ -110,6 +122,8 @@ export function toPublicQuiz(quiz: Quiz) {
     quizId: quiz.quizId,
     kind: quiz.kind,
     category: quiz.category,
+    sourceId: quiz.sourceId ?? null,
+    sourceTitle: quiz.sourceTitle ?? null,
     difficulty: quiz.difficulty,
     mode: quiz.mode,
     length: quiz.length,
@@ -128,6 +142,8 @@ export function toResult(quiz: Quiz) {
     quizId: quiz.quizId,
     kind: quiz.kind,
     category: quiz.category,
+    sourceId: quiz.sourceId ?? null,
+    sourceTitle: quiz.sourceTitle ?? null,
     difficulty: quiz.difficulty,
     mode: quiz.mode,
     startedAt: quiz.startedAt,

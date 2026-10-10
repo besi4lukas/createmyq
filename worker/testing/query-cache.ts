@@ -1,12 +1,17 @@
 /**
  * Test-only stand-in for Hyperdrive's query cache: every repeated read-only
  * SELECT (same text, same parameters) is answered from its first result, and
- * writes never invalidate it. Inside transactions too: the worst case.
+ * writes never invalidate it. Inside transactions too: the worst case. Like
+ * Hyperdrive, a query that calls a volatile or stable function (now(),
+ * random() …) is never cached.
  * Wraps a PGlite client for drizzle-orm/pglite.
  */
 import type { PGlite } from "@electric-sql/pglite";
 
 type Queryable = { query: (...args: unknown[]) => Promise<unknown>; transaction: (fn: (tx: unknown) => Promise<unknown>) => Promise<unknown> };
+
+/** Volatile or stable functions: Hyperdrive does not cache a query that uses one. */
+const UNCACHEABLE = /\b(now|random|timeofday|lastval|current_timestamp|current_date|txid_current)\b\s*\(?/i;
 
 export function withQueryCache(client: PGlite) {
   const cache = new Map<string, unknown>();
@@ -16,7 +21,7 @@ export function withQueryCache(client: PGlite) {
         const q = t as unknown as Queryable;
         if (prop === "query") {
           return async (text: string, params?: unknown[], opts?: unknown) => {
-            if (!/^\s*select\b/i.test(text)) return q.query(text, params, opts);
+            if (!/^\s*select\b/i.test(text) || UNCACHEABLE.test(text)) return q.query(text, params, opts);
             const key = `${text}\u0000${JSON.stringify(params ?? [])}`;
             if (!cache.has(key)) cache.set(key, await q.query(text, params, opts));
             return cache.get(key);

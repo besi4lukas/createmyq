@@ -62,6 +62,21 @@ export const visibleTo = (userId: string) => sql`(
 )`;
 
 /**
+ * The `seen` CTE: each question in one of `userId`'s sessions finished in the
+ * last SEEN_WINDOW_DAYS, with when it was last seen. Shared with the source
+ * quiz (worker/quiz/source-quiz.ts), which samples the same way.
+ */
+export const seenBy = (userId: string) => sql`
+    seen as (
+      select sq.question_id, max(s.finished_at) as seen_at
+      from sessions s
+      join session_questions sq on sq.session_id = s.id
+      where s.user_id = ${userId}
+        and s.finished_at > now() - make_interval(days => ${SEEN_WINDOW_DAYS})
+      group by sq.question_id
+    )`;
+
+/**
  * Sampling and the fallback when the pool runs dry (FR-6), all in the ORDER BY:
  *
  * 1. Questions the user hasn't seen in the last 30 days come first, in random
@@ -87,14 +102,7 @@ export async function assembleQuiz(
   { categoryId, difficulty, length }: AssembleParams,
 ): Promise<AssembledQuestion[]> {
   const { rows } = await db.execute<Omit<AssembledQuestion, "payload"> & { payload: unknown }>(sql`
-    with seen as (
-      select sq.question_id, max(s.finished_at) as seen_at
-      from sessions s
-      join session_questions sq on sq.session_id = s.id
-      where s.user_id = ${userId}
-        and s.finished_at > now() - make_interval(days => ${SEEN_WINDOW_DAYS})
-      group by sq.question_id
-    )
+    with ${seenBy(userId)}
     select q.id, q.format, q.difficulty, q.topic, q.prompt, q.explanation, q.payload
     from questions q
     left join seen on seen.question_id = q.id

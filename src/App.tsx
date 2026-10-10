@@ -11,7 +11,7 @@ import { AddSourceScreen } from "./screens/AddSourceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { QuizScreen } from "./screens/QuizScreen";
 import { ResultScreen } from "./screens/ResultScreen";
-import { SetupScreen } from "./screens/SetupScreen";
+import { SetupScreen, SourceSetupScreen } from "./screens/SetupScreen";
 import { SourceScreen } from "./screens/SourceScreen";
 
 /** Page gutters: 20px on a phone, 56px on desktop. */
@@ -105,6 +105,9 @@ function SignedIn({ onSignOut }: { onSignOut: () => Promise<unknown> }) {
       break;
     case "source":
       screen = <SourceScreen key={route.id} id={route.id} />;
+      break;
+    case "source-setup":
+      screen = <SourceSetupScreen key={route.id} id={route.id} onStarted={onStarted} />;
       break;
     default:
       screen = route satisfies never; // every route has a screen

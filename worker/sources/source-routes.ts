@@ -9,18 +9,23 @@
  *     spend_ceiling) and the daily cap (429 daily_cap, counted here); then the
  *     same queue message as an upload. A retry with the same requestId returns
  *     the same source and is not counted again.
+ *   GET  /api/sources?tz=   the caller's own sources, newest first, in any
+ *     status (own-source.ts: listOwnSources), and today's generation usage
+ *     from their UserSession (STM-24 `gen:window`, read-only):
+ *     { sources, usage: { used, limit, resetAt, message } }. `message` is the
+ *     daily-cap message with the reset time once the cap is reached, else null.
  *   GET  /api/sources/:id   the caller's own source and its status (any kind)
  */
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../auth/session";
 import { apiError, readJson } from "../http";
-import { admitGeneration, refusalResponse } from "../limits/admission";
-import { safeTimeZone } from "../limits/daily-cap";
+import { admitGeneration, refusalResponse, userSession } from "../limits/admission";
+import { capMessage, safeTimeZone } from "../limits/daily-cap";
 import { recordSource } from "../uploads/record-source";
 import type { GenerationMessage } from "../workflows/queue";
 import { NOT_A_LINK, checkLink, linkSourceBody, titleFromLink } from "./link-rules";
-import { findOwnSource } from "./own-source";
+import { findOwnSource, listOwnSources } from "./own-source";
 
 export const sourceRoutes = new Hono<AppEnv>();
 
@@ -49,6 +54,23 @@ sourceRoutes.post("/sources/link", async (c) => {
     await c.env.GENERATION_QUEUE.send({ sourceId } satisfies GenerationMessage);
   }
   return c.json({ source: result.source }, result.created ? 201 : 200);
+});
+
+sourceRoutes.get("/sources", async (c) => {
+  const [sources, allowance] = await Promise.all([
+    listOwnSources(c.var.db, c.var.user.id),
+    userSession(c).generationAllowance(safeTimeZone(c.req.query("tz"))),
+  ]);
+  const { used, limit, remaining, window } = allowance;
+  return c.json({
+    sources,
+    usage: {
+      used,
+      limit,
+      resetAt: new Date(window.resetAt).toISOString(),
+      message: remaining === 0 ? capMessage(window, Date.now()) : null,
+    },
+  });
 });
 
 sourceRoutes.get("/sources/:id", async (c) => {
